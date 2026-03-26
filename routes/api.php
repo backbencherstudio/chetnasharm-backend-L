@@ -57,7 +57,9 @@ Route::middleware('auth:api')->put('profile-update', [UserController::class, 'pr
 Route::middleware(['auth:api', 'permission:api.user.destroy'])->delete('/user-delete/{id}', [UserController::class, 'destroy'])->name('api.user.destroy');
 
 
+Route::middleware(['auth:api', 'role:admin|manager'])->group(function () {
 
+});
 
 
 
