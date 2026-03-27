@@ -16,25 +16,6 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-
-    public function roleList()
-    {
-        $roles = Role::where('guard_name', 'api')
-            ->get(['id', 'name'])
-            ->map(function ($role) {
-                return [
-                    'id'   => $role->id,
-                    'name' => Str::ucfirst($role->name),
-                ];
-            });
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Roles fetched successfully.',
-            'data'    => $roles
-        ], 200);
-    }
-
     public function store(Request $request)
     {
         $validator =Validator::make($request->all(), [
@@ -43,7 +24,6 @@ class UserController extends Controller
             'department' => ['nullable', 'string', 'max:100'],
             'email'      => ['required', 'email', 'max:255', 'unique:users,email'],
             'password'   => ['required', 'confirmed', Password::defaults()],
-            'role_id'    => ['required', 'exists:roles,id'],
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -66,9 +46,7 @@ class UserController extends Controller
                 'password'   => Hash::make($validated['password']),
             ]);
 
-            $role = Role::where('id', $validated['role_id'])
-                        ->where('guard_name', 'api')
-                        ->firstOrFail();
+            $role = Role::where('name', 'admin')->firstOrFail();
 
             $user->assignRole($role);
 
@@ -81,7 +59,9 @@ class UserController extends Controller
                     'id'    => $user->id,
                     'name'  => $user->name,
                     'email' => $user->email,
-                    'roles' => $user->getRoleNames(),
+                    'department' => $user->department,
+                    'mobile' => $user->mobile,
+                    'role'  => $user->getRoleNames()->first(),
                 ]
             ], 201);
 
@@ -98,17 +78,7 @@ class UserController extends Controller
 
     public function edit($id)
     {
-        $user = User::with('roles:id,name')->findOrFail($id);
-
-        $roles = Role::where('guard_name', 'api')
-            ->select('id', 'name')
-            ->get()
-            ->map(function ($role) {
-                return [
-                    'id'   => $role->id,
-                    'name' => ucfirst($role->name),
-                ];
-            });
+        $user = User::findOrFail($id);
 
         return response()->json([
             'status' => true,
@@ -119,9 +89,8 @@ class UserController extends Controller
                     'email'      => $user->email,
                     'mobile'     => $user->mobile,
                     'department' => $user->department,
-                    'role_id'    => $user->roles->first()?->id,
+                    'role'       => $user->getRoleNames()->first(),
                 ],
-                'roles' => $roles
             ]
         ]);
     }
@@ -136,7 +105,6 @@ class UserController extends Controller
             'department' => ['nullable', 'string', 'max:100'],
             'email'      => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'password'   => ['nullable', 'confirmed', Password::defaults()],
-            'role_id'    => ['required', 'exists:roles,id'],
         ]);
 
         if ($validator->fails()) {
@@ -162,11 +130,9 @@ class UserController extends Controller
                     : $user->password,
             ]);
 
-            $role = Role::where('id', $validated['role_id'])
-                        ->where('guard_name', 'api')
-                        ->firstOrFail();
+            // $role = Role::where('name', 'admin')->firstOrFail();
 
-            $user->syncRoles([$role]);
+            // $user->syncRoles([$role]);
 
             DB::commit();
 
@@ -177,7 +143,9 @@ class UserController extends Controller
                     'id'    => $user->id,
                     'name'  => $user->name,
                     'email' => $user->email,
-                    'roles' => $user->getRoleNames(),
+                    'department' => $user->department,
+                    'mobile' => $user->mobile,
+                    'role' => $user->getRoleNames()->first(),
                 ]
             ], 200);
 
@@ -194,12 +162,9 @@ class UserController extends Controller
 
     public function data()
     {
-        $users = User::whereHas('roles', function ($query) {
-                $query->where('guard_name', 'api');
-            })
+        $users = User::whereHas('roles')
             ->with(['roles' => function ($query) {
-                $query->select('id', 'name', 'guard_name')
-                    ->where('guard_name', 'api');
+                $query->select('id', 'name');
             }])
             ->select('id', 'name', 'email', 'mobile', 'department')
             ->get()
@@ -230,7 +195,6 @@ class UserController extends Controller
         try {
 
             $user->syncRoles([]);
-            $user->syncPermissions([]);
 
             $user->delete();
 

@@ -34,6 +34,8 @@ class AuthController extends Controller
         }
 
         $user = auth('api')->user();
+        $user->role = $user->getRoleNames()->first();
+        unset($user->roles);
 
         return $this->respondWithToken($token, $user);
     }
@@ -42,18 +44,17 @@ class AuthController extends Controller
     {
         $user = auth('api')->user();
 
-        $user->load('roles.permissions');
+        $user->load('roles');
 
-        $permissions = $user->getAllPermissions()->pluck('name');
 
         return response()->json([
             'success' => true,
+            'message' => 'User fetched successfully',
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'roles' => $user->roles->pluck('name'),
-                'permissions' => $permissions,
+                'role' => $user->roles->pluck('name')->implode(', '),
             ],
         ]);
     }
