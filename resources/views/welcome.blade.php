@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Website Under Construction</title>
+      <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23080d16'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='monospace'
+            font-weight='700' font-size='13' fill='%2300c8ff' letter-spacing='-1'%3ELA%3C/text%3E%3C/svg%3E" />
     <style>
         :root {
             --bg-1: #07111f;
@@ -195,30 +197,16 @@
                 Under Construction
             </div>
 
-            <h1>We are building something beautiful.</h1>
-
-            <p>
-                Our website is currently under development. We are working behind the scenes to launch
-                a faster, clearer, and better experience for you. Please check back soon.
-            </p>
-
             <div class="grid">
                 <div class="panel">
                     <strong>Fresh Design</strong>
-                    <span>A cleaner and more modern experience is on the way.</span>
                 </div>
                 <div class="panel">
                     <strong>Improved Features</strong>
-                    <span>We are preparing tools and content that are more useful and easier to explore.</span>
                 </div>
                 <div class="panel">
                     <strong>Launching Soon</strong>
-                    <span>Thank you for your patience while we put the finishing touches in place.</span>
                 </div>
-            </div>
-
-            <div class="footer-note">
-                This website is under construction. Thank you for visiting.
             </div>
         </section>
     </main>

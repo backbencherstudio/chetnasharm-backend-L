@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Spatie\Permission\Models\Role;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
@@ -27,7 +25,6 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Attempt login
         $credentials = $validator->validated();
         if (! $token = auth('api')->attempt($credentials)) {
             return response()->json([
@@ -73,12 +70,28 @@ class AuthController extends Controller
 
     public function refresh()
     {
-        $token = auth('api')->refresh();
-        $user = auth('api')->user();
+        try {
+            $token = auth('api')->refresh();
 
-        return $this->respondWithToken($token, $user);
+            $user = auth('api')->user();
+
+            return $this->respondWithToken($token, $user);
+
+        } catch (TokenExpiredException $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Refresh token expired. Please login again.'
+            ], 401);
+
+        } catch (JWTException $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Token invalid or not provided'
+            ], 401);
+        }
     }
-
 
     protected function respondWithToken($token, $user)
     {
@@ -91,60 +104,60 @@ class AuthController extends Controller
         ]);
     }
 
-    public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'mobile'   => 'nullable|string|max:20',
-            'department' => 'nullable|string|max:100',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
+    // public function register(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'name'     => 'required|string|max:255',
+    //         'email'    => 'required|email|unique:users,email',
+    //         'mobile'   => 'nullable|string|max:20',
+    //         'department' => 'nullable|string|max:100',
+    //         'password' => 'required|string|min:6|confirmed',
+    //     ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Validation failed.',
-                'errors'  => $validator->errors()
-            ], 422);
-        }
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'Validation failed.',
+    //             'errors'  => $validator->errors()
+    //         ], 422);
+    //     }
 
-        $validated = $validator->validated();
+    //     $validated = $validator->validated();
 
-        DB::beginTransaction();
+    //     DB::beginTransaction();
 
-        try {
-            $user = User::create([
-                'name'     => $validated['name'],
-                'email'    => $validated['email'],
-                'mobile'   => $validated['mobile'] ?? null,
-                'department' => $validated['department'] ?? null,
-                'password' => bcrypt($validated['password']),
-            ]);
-            // Assign role to user (API guard)
-            $role = Role::where('name','general')
-                        ->where('guard_name', 'api')
-                        ->firstOrFail();
+    //     try {
+    //         $user = User::create([
+    //             'name'     => $validated['name'],
+    //             'email'    => $validated['email'],
+    //             'mobile'   => $validated['mobile'] ?? null,
+    //             'department' => $validated['department'] ?? null,
+    //             'password' => bcrypt($validated['password']),
+    //         ]);
+    //         // Assign role to user (API guard)
+    //         $role = Role::where('name','student')
+    //                     ->firstOrFail();
 
-            $user->assignRole($role);
-            DB::commit();
+    //         $user->assignRole($role);
+    //         DB::commit();
 
-            return response()->json([
-                'status'  => true,
-                'message' => 'User registered successfully.',
-                'data'    => [
-                    'id'    => $user->id,
-                    'name'  => $user->name,
-                    'email' => $user->email,
-                    'roles' => $user->getRoleNames(),
-                ]
-            ], 201);
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return response()->json([
-                'status'  => false,
-                'message' => 'User registration failed.',
-            ], 500);
-        }
-    }
+    //         return response()->json([
+    //             'status'  => true,
+    //             'message' => 'User registered successfully.',
+    //             'data'    => [
+    //                 'id'    => $user->id,
+    //                 'name'  => $user->name,
+    //                 'email' => $user->email,
+    //                 'roles' => $user->getRoleNames(),
+    //             ]
+    //         ], 201);
+    //     } catch (\Throwable $e) {
+    //         DB::rollBack();
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'User registration failed.',
+    //         ], 500);
+    //     }
+    // }
+
 }
