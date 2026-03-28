@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Str;
@@ -23,6 +24,7 @@ class UserController extends Controller
             'mobile'     => ['nullable', 'string', 'max:20'],
             'department' => ['nullable', 'string', 'max:100'],
             'email'      => ['required', 'email', 'max:255', 'unique:users,email'],
+            'image'      => ['nullable', 'image', 'max:2048'],
             'password'   => ['required', 'confirmed', Password::defaults()],
         ]);
         if ($validator->fails()) {
@@ -38,11 +40,17 @@ class UserController extends Controller
         DB::beginTransaction();
 
         try {
+            $imagePath = null;
+
+            if ($request->hasFile('image')) {
+                $imagePath = $request->file('image')->store('users', 'public');
+            }
             $user = User::create([
                 'name'       => $validated['name'],
                 'email'      => $validated['email'],
                 'mobile'     => $validated['mobile'] ?? null,
                 'department' => $validated['department'] ?? null,
+                'image'      => $imagePath,
                 'password'   => Hash::make($validated['password']),
             ]);
 
@@ -55,15 +63,16 @@ class UserController extends Controller
             return response()->json([
                 'status'  => true,
                 'message' => 'User created successfully.',
-                'data'    => [
-                    'id'    => $user->id,
-                    'name'  => $user->name,
-                    'email' => $user->email,
-                    'department' => $user->department,
-                    'mobile' => $user->mobile,
-                    'role'  => $user->getRoleNames()->first(),
-                ]
-            ], 201);
+                    'data'    => [
+                        'id'         => $user->id,
+                        'name'       => $user->name,
+                        'email'      => $user->email,
+                        'department' => $user->department,
+                        'mobile'     => $user->mobile,
+                        'image'      => $user->image_url,
+                        'role'       => $user->getRoleNames()->first(),
+                    ]
+            ], 200);
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -89,6 +98,7 @@ class UserController extends Controller
                     'email'      => $user->email,
                     'mobile'     => $user->mobile,
                     'department' => $user->department,
+                    'image'      => $user->image_url,
                     'role'       => $user->getRoleNames()->first(),
                 ],
             ]
@@ -104,6 +114,7 @@ class UserController extends Controller
             'mobile'     => ['nullable', 'string', 'max:20'],
             'department' => ['nullable', 'string', 'max:100'],
             'email'      => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'image'      => ['nullable', 'image', 'max:2048'],
             'password'   => ['nullable', 'confirmed', Password::defaults()],
         ]);
 
@@ -120,19 +131,28 @@ class UserController extends Controller
         DB::beginTransaction();
 
         try {
-            $user->update([
-                'name'       => $validated['name'],
-                'email'      => $validated['email'],
-                'mobile'     => $validated['mobile'] ?? null,
-                'department' => $validated['department'] ?? null,
-                'password'   => isset($validated['password'])
-                    ? Hash::make($validated['password'])
-                    : $user->password,
-            ]);
 
-            // $role = Role::where('name', 'admin')->firstOrFail();
+            if ($request->hasFile('image')) {
 
-            // $user->syncRoles([$role]);
+                if ($user->image && Storage::disk('public')->exists($user->image)) {
+                    Storage::disk('public')->delete($user->image);
+                }
+
+                $imagePath = $request->file('image')->store('users', 'public');
+
+                $user->image = $imagePath;
+            }
+
+            $user->name       = $validated['name'];
+            $user->email      = $validated['email'];
+            $user->mobile     = $validated['mobile'] ?? null;
+            $user->department = $validated['department'] ?? null;
+
+            if (!empty($validated['password'])) {
+                $user->password = Hash::make($validated['password']);
+            }
+
+            $user->save();
 
             DB::commit();
 
@@ -140,12 +160,13 @@ class UserController extends Controller
                 'status'  => true,
                 'message' => 'User updated successfully.',
                 'data'    => [
-                    'id'    => $user->id,
-                    'name'  => $user->name,
-                    'email' => $user->email,
+                    'id'         => $user->id,
+                    'name'       => $user->name,
+                    'email'      => $user->email,
                     'department' => $user->department,
-                    'mobile' => $user->mobile,
-                    'role' => $user->getRoleNames()->first(),
+                    'mobile'     => $user->mobile,
+                    'image'      => $user->image_url,
+                    'role'       => $user->getRoleNames()->first(),
                 ]
             ], 200);
 
@@ -166,7 +187,7 @@ class UserController extends Controller
             ->with(['roles' => function ($query) {
                 $query->select('id', 'name');
             }])
-            ->select('id', 'name', 'email', 'mobile', 'department')
+            ->select('id', 'name', 'email', 'mobile', 'department', 'image')
             ->get()
             ->map(function ($user) {
                 return [
@@ -175,6 +196,7 @@ class UserController extends Controller
                     'email'      => $user->email,
                     'mobile'     => $user->mobile,
                     'department' => $user->department,
+                    'image'      => $user->image_url,
                     'role'       => $user->roles->map(fn($r) => ucfirst($r->name))->implode(', '),
                 ];
             });
@@ -193,6 +215,10 @@ class UserController extends Controller
         DB::beginTransaction();
 
         try {
+
+           if ($user->image && Storage::disk('public')->exists($user->image)) {
+                Storage::disk('public')->delete($user->image);
+            }
 
             $user->syncRoles([]);
 
@@ -258,6 +284,7 @@ class UserController extends Controller
             'email'      => 'required|email|unique:users,email,' . $user->id,
             'mobile'     => 'nullable|string|max:20',
             'department' => 'nullable|string|max:100',
+            'image'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -268,7 +295,18 @@ class UserController extends Controller
             ], 422);
         }
 
-        $user->update($request->only('name', 'email', 'mobile', 'department'));
+        $validated = $validator->validated();
+
+        if ($request->hasFile('image')) {
+
+            if ($user->image && Storage::disk('public')->exists($user->image)) {
+                Storage::disk('public')->delete($user->image);
+            }
+
+            $validated['image'] = $request->file('image')->store('users', 'public');
+        }
+
+        $user->update($validated);
 
         return response()->json([
             'status'  => true,
@@ -279,6 +317,7 @@ class UserController extends Controller
                 'email'      => $user->email,
                 'mobile'     => $user->mobile,
                 'department' => $user->department,
+                'image'      => $user->image_url,
             ],
         ], 200);
     }

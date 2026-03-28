@@ -20,6 +20,7 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'department',
         'mobile',
+        'image',
     ];
 
     protected $hidden = [
@@ -34,7 +35,12 @@ class User extends Authenticatable implements JWTSubject
             'password' => 'hashed',
         ];
     }
-    
+
+    public function getImageUrlAttribute()
+    {
+        return $this->image ? asset('storage/' . $this->image) : null;
+    }
+
     public function getJWTIdentifier()
     {
         return $this->getKey();
