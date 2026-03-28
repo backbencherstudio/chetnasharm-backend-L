@@ -54,6 +54,9 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'mobile' => $user->mobile ?? null,
+                'department' => $user->department ?? null,
+                'image' => $user->image_url,
                 'role' => $user->roles->pluck('name')->implode(', '),
             ],
         ]);

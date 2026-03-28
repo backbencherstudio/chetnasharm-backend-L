@@ -45,7 +45,7 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('/teachers', [TeacherController::class, 'data']);
     Route::post('/teacher-store', [TeacherController::class, 'store']);
     Route::get('/teacher-edit-data/{id}', [TeacherController::class, 'edit']);
-    Route::put('/teacher-update/{id}', [TeacherController::class, 'update']);
+    Route::post('/teacher-update/{id}', [TeacherController::class, 'update']);
     Route::delete('/teacher-delete/{id}', [TeacherController::class, 'destroy']);
 });
 
@@ -56,7 +56,6 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
 
 });
-
 
 Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(function () {
 

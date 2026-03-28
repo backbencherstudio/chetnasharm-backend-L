@@ -2,27 +2,32 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class Teacher extends Authenticatable
+class Teacher extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'name',
         'email',
-        'phone',
+        'mobile',
         'bio',
-        'password',
         'expertise',
-        'zoom_email',
-        'zoom_account_id',
+        'image',
+        // 'zoom_email',
+        // 'zoom_account_id',
         'is_active',
+        'user_id',
     ];
 
+    public function getImageUrlAttribute()
+    {
+        return $this->image ? asset('storage/' . $this->image) : null;
+    }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     // public function batches()
     // {
@@ -34,8 +39,4 @@ class Teacher extends Authenticatable
     //     return $this->hasMany(ClassSchedule::class);
     // }
 
-    // public function students()
-    // {
-    //     return $this->hasManyThrough(Student::class, Batch::class);
-    // }
 }
