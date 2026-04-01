@@ -63,6 +63,9 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('/batches/{id}', [BatchController::class, 'edit']);
     Route::post('/batches/{id}', [BatchController::class, 'update']);
     Route::delete('/batches/{id}', [BatchController::class, 'destroy']);
+
+    Route::get('/class-list', [BatchController::class, 'classList']);
+    Route::get('/teacher-list', [BatchController::class, 'teacherList']);
 });
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {

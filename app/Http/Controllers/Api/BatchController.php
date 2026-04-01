@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Batch;
+use App\Models\ClassModel;
+use App\Models\Teacher;
 
 class BatchController extends Controller
 {
@@ -127,4 +129,27 @@ class BatchController extends Controller
             'message' => 'Batch deleted successfully'
         ]);
     }
+
+    public function classList()
+    {
+        $classes = ClassModel::select('id', 'title')->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Class list retrieved successfully',
+            'data' => $classes
+        ]);
+    }
+
+    public function teacherList()
+    {
+        $teachers = Teacher::select('id', 'name')->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Teacher list retrieved successfully',
+            'data' => $teachers
+        ]);
+    }
+
 }
