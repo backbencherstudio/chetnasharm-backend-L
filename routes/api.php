@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\TeacherController;
 
@@ -47,6 +48,13 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('/teacher-edit-data/{id}', [TeacherController::class, 'edit']);
     Route::post('/teacher-update/{id}', [TeacherController::class, 'update']);
     Route::delete('/teacher-delete/{id}', [TeacherController::class, 'destroy']);
+
+    // Class Management
+    Route::get('classes/', [ClassController::class, 'index']);
+    Route::post('classes/', [ClassController::class, 'store']);
+    Route::get('classes/{id}', [ClassController::class, 'edit']);
+    Route::post('classes/{id}', [ClassController::class, 'update']);
+    Route::delete('classes/{id}', [ClassController::class, 'destroy']);
 });
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
