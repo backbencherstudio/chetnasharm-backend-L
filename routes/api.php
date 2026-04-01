@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\TeacherController;
@@ -55,6 +56,13 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('classes/{id}', [ClassController::class, 'edit']);
     Route::post('classes/{id}', [ClassController::class, 'update']);
     Route::delete('classes/{id}', [ClassController::class, 'destroy']);
+
+    // Batch Management
+    Route::get('/batches', [BatchController::class, 'index']);
+    Route::post('/batches', [BatchController::class, 'store']);
+    Route::get('/batches/{id}', [BatchController::class, 'edit']);
+    Route::post('/batches/{id}', [BatchController::class, 'update']);
+    Route::delete('/batches/{id}', [BatchController::class, 'destroy']);
 });
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
