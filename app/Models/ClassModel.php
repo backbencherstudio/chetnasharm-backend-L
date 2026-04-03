@@ -25,7 +25,7 @@ class ClassModel extends Model
         'price' => 'decimal:2',
     ];
 
-    protected $hidden = ['image'];
+    // protected $hidden = ['image'];
 
     protected $appends = ['image_url'];
 

@@ -69,7 +69,8 @@ class UserController extends Controller
                         'email'      => $user->email,
                         'department' => $user->department,
                         'mobile'     => $user->mobile,
-                        'image'      => $user->image_url,
+                        'image'      => $user->image,
+                        'image_url'      => $user->image_url,
                         'role'       => $user->getRoleNames()->first(),
                     ]
             ], 200);
@@ -98,7 +99,8 @@ class UserController extends Controller
                     'email'      => $user->email,
                     'mobile'     => $user->mobile,
                     'department' => $user->department,
-                    'image'      => $user->image_url,
+                    'image'      => $user->image,
+                    'image_url'      => $user->image_url,
                     'role'       => $user->getRoleNames()->first(),
                 ],
             ]
@@ -165,7 +167,8 @@ class UserController extends Controller
                     'email'      => $user->email,
                     'department' => $user->department,
                     'mobile'     => $user->mobile,
-                    'image'      => $user->image_url,
+                    'image'      => $user->image,
+                    'image_url'      => $user->image_url,
                     'role'       => $user->getRoleNames()->first(),
                 ]
             ], 200);
@@ -196,7 +199,8 @@ class UserController extends Controller
                     'email'      => $user->email,
                     'mobile'     => $user->mobile,
                     'department' => $user->department,
-                    'image'      => $user->image_url,
+                    'image'      => $user->image,
+                    'image_url'      => $user->image_url,
                     'role'       => $user->roles->map(fn($r) => ucfirst($r->name))->implode(', '),
                 ];
             });
@@ -317,7 +321,8 @@ class UserController extends Controller
                 'email'      => $user->email,
                 'mobile'     => $user->mobile,
                 'department' => $user->department,
-                'image'      => $user->image_url,
+                'image'      => $user->image,
+                'image_url'      => $user->image_url,
             ],
         ], 200);
     }
