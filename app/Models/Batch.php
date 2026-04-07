@@ -14,6 +14,7 @@ class Batch extends Model
         'teacher_id',
         'name',
         'total_seat',
+        'filled_seat',
         'start_date',
         'end_date',
         'zoom_link',
@@ -29,7 +30,7 @@ class Batch extends Model
     {
         return $this->belongsTo(ClassModel::class, 'class_id');
     }
-    
+
     public function schedules()
     {
         return $this->hasMany(BatchSchedule::class);

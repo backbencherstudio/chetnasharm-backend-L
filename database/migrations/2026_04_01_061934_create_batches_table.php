@@ -16,6 +16,7 @@ return new class extends Migration
 
             $table->string('name');
             $table->integer('total_seat')->default(20);
+            $table->integer('filled_seat')->default(0);
 
             $table->date('start_date');
             $table->date('end_date')->nullable();
