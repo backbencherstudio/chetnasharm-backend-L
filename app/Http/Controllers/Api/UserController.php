@@ -184,30 +184,70 @@ class UserController extends Controller
         }
     }
 
-    public function data()
+    public function data(Request $request)
     {
-        $users = User::whereHas('roles')
-            ->with(['roles' => function ($query) {
-                $query->select('id', 'name');
-            }])
-            ->select('id', 'name', 'email', 'mobile', 'department', 'image')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id'         => $user->id,
-                    'name'       => $user->name,
-                    'email'      => $user->email,
-                    'mobile'     => $user->mobile,
-                    'department' => $user->department,
-                    'image'      => $user->image,
-                    'image_url'      => $user->image_url,
-                    'role'       => $user->roles->map(fn($r) => ucfirst($r->name))->implode(', '),
-                ];
+        $perPage = $request->query('limit', $request->query('per_page', 10));
+        $search  = $request->query('search');
+        $role    = $request->query('role');
+
+        $query = User::query();
+
+        if ($role) {
+            $query->whereHas('roles', function ($q) use ($role) {
+                $q->where('name', $role);
             });
+        } else {
+            $query->whereHas('roles');
+        }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                ->orWhere('email', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $query->with(['roles:id,name'])
+            ->select('id', 'name', 'email', 'mobile', 'department', 'image');
+
+        $users = $query->paginate($perPage);
+
+        $users->getCollection()->transform(function ($user) {
+            return [
+                'id'         => $user->id,
+                'name'       => $user->name,
+                'email'      => $user->email,
+                'mobile'     => $user->mobile,
+                'department' => $user->department,
+                'image'      => $user->image,
+                'image_url'  => $user->image_url,
+                'role'       => $user->roles->pluck('name')->map(fn($r) => ucfirst($r))->implode(', '),
+            ];
+        });
+
+        $totalUsers = User::whereHas('roles')->count();
+
+        $adminCount = User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->count();
+        $teacherCount = User::whereHas('roles', fn($q) => $q->where('name', 'teacher'))->count();
+        $studentCount = User::whereHas('roles', fn($q) => $q->where('name', 'student'))->count();
 
         return response()->json([
             'status' => true,
-            'data'   => $users,
+            'data'   => $users->items(),
+
+            'pagination' => [
+                'current_page' => $users->currentPage(),
+                'per_page'     => $users->perPage(),
+                'total'        => $users->total(),
+                'last_page'    => $users->lastPage(),
+            ],
+
+            'counts' => [
+                'total_users' => $totalUsers,
+                'admin'       => $adminCount,
+                'teacher'     => $teacherCount,
+                'student'     => $studentCount,
+            ]
         ]);
     }
 

@@ -16,8 +16,10 @@ class ClassController extends Controller
 
         $classes = ClassModel::query()
             ->when($search, function ($query) use ($search) {
-                $query->where('title', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%");
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+                });
             })
             ->latest()
             ->paginate($perPage);
@@ -25,7 +27,13 @@ class ClassController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Classes retrieved successfully',
-            'data' => $classes
+            'data' => $classes->items(),
+            'pagination' => [
+                'current_page' => $classes->currentPage(),
+                'per_page'     => $classes->perPage(),
+                'total'        => $classes->total(),
+                'last_page'    => $classes->lastPage(),
+            ]
         ]);
     }
 

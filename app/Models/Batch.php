@@ -29,7 +29,11 @@ class Batch extends Model
     {
         return $this->belongsTo(ClassModel::class, 'class_id');
     }
-
+    
+    public function schedules()
+    {
+        return $this->hasMany(BatchSchedule::class);
+    }
     public function teacher()
     {
         return $this->belongsTo(Teacher::class, 'teacher_id');
