@@ -12,7 +12,10 @@ class Teacher extends Model
         'mobile',
         'bio',
         'expertise',
+        'qualification',
+        'years_of_exp',
         'image',
+        'intro_video',
         // 'zoom_email',
         // 'zoom_account_id',
         'is_active',
@@ -22,6 +25,11 @@ class Teacher extends Model
     public function getImageUrlAttribute()
     {
         return $this->image ? asset('storage/' . $this->image) : null;
+    }
+
+    public function getIntroVideoUrlAttribute()
+    {
+        return $this->intro_video ? asset('storage/' . $this->intro_video) : null;
     }
 
     public function user()

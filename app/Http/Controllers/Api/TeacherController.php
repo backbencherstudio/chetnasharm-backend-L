@@ -28,7 +28,8 @@ class TeacherController extends Controller
                 ->orWhere('email', 'like', "%{$search}%")
                 ->orWhere('mobile', 'like', "%{$search}%")
                 ->orWhere('bio', 'like', "%{$search}%")
-                ->orWhere('expertise', 'like', "%{$search}%");
+                ->orWhere('expertise', 'like', "%{$search}%")
+                ->orWhere('qualification', 'like', "%{$search}%");
             });
         }
 
@@ -46,10 +47,14 @@ class TeacherController extends Controller
                     'name'      => $t->name,
                     'email'     => $t->email,
                     'mobile'    => $t->mobile,
-                    'expertise' => $t->expertise,
                     'bio'       => $t->bio,
+                    'expertise' => $t->expertise,
+                    'qualification' => $t->qualification,
+                    'years_of_exp' => $t->years_of_exp,
                     'image'     => $t->image,
                     'image_url'     => $t->image ? asset('storage/' . $t->image) : null,
+                    'intro_video' => $t->intro_video,
+                    'intro_video_url' => $t->intro_video ? asset('storage/' . $t->intro_video) : null,
                     'is_active' => $t->is_active,
                 ];
             }),
@@ -69,8 +74,11 @@ class TeacherController extends Controller
             'email'      => 'required|email|unique:teachers,email|unique:users,email',
             'mobile'     => 'nullable|string|max:20',
             'bio'        => 'nullable|string',
+            'qualification' => 'nullable|string|max:500',
             'expertise'  => 'nullable|string|max:255',
+            'years_of_exp' => 'nullable|integer|min:0',
             'image'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'intro_video' => 'nullable|file|mimes:mp4,mov,avi,webm|max:10240',
             // 'zoom_email' => 'nullable|email',
             // 'zoom_account_id' => 'nullable|string',
             'is_active'  => 'nullable|boolean',
@@ -91,6 +99,9 @@ class TeacherController extends Controller
             if ($request->hasFile('image')) {
                 $validated['image'] = $request->file('image')->store('teachers', 'public');
             }
+            if ($request->hasFile('intro_video')) {
+                $validated['intro_video'] = $request->file('intro_video')->store('teacher_videos', 'public');
+            }
 
             $randomPassword = '12345678';
 
@@ -103,7 +114,7 @@ class TeacherController extends Controller
                 'image'      => $validated['image'] ?? null,
             ]);
 
-            $role = Role::where('name', 'teacher')->first();
+            $role = Role::where('name', 'teacher')->firstOrFail();
             $user->assignRole($role);
 
             $validated['user_id'] = $user->id;
@@ -116,7 +127,9 @@ class TeacherController extends Controller
                 'status'  => true,
                 'message' => 'Teacher created successfully.',
                 'data'    => [
-                    'teacher' => $teacher,
+                    'id' => $teacher->id,
+                    'name' => $teacher->name,
+                    'email' => $teacher->email,
                     'user'    => [
                         'id'       => $user->id,
                         'email'    => $user->email,
@@ -143,18 +156,20 @@ class TeacherController extends Controller
         return response()->json([
             'status' => true,
             'data'   => [
-                'teacher' => [
-                    'id'        => $teacher->id,
-                    'name'      => $teacher->name,
-                    'email'     => $teacher->email,
-                    'mobile'    => $teacher->mobile,
-                    'expertise' => $teacher->expertise,
-                    'bio'       => $teacher->bio,
-                    'image'     => $teacher->image,
-                    'image_url'     => $teacher->image_url,
-                    'is_active' => $teacher->is_active,
-                    'user_id'    => $teacher->user_id,
-                ],
+                'id'        => $teacher->id,
+                'name'      => $teacher->name,
+                'email'     => $teacher->email,
+                'mobile'    => $teacher->mobile,
+                'bio'       => $teacher->bio,
+                'expertise' => $teacher->expertise,
+                'years_of_exp' => $teacher->years_of_exp,
+                'qualification' => $teacher->qualification,
+                'intro_video' => $teacher->intro_video,
+                'intro_video_url' => $teacher->intro_video_url,
+                'image'     => $teacher->image,
+                'image_url'     => $teacher->image_url,
+                'is_active' => $teacher->is_active,
+                'user_id'    => $teacher->user_id,
             ]
         ], 200);
     }
@@ -166,11 +181,14 @@ class TeacherController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name'       => 'required|string|max:255',
-            'email'      => 'required|email|unique:teachers,email,' . $teacher->id . '|unique:users,email,' . $teacher->user_id,
+            'email'      => 'required|email|unique:users,email,' . $teacher->user_id,
             'mobile'     => 'nullable|string|max:20',
             'bio'        => 'nullable|string',
             'expertise'  => 'nullable|string|max:255',
+            'qualification' => 'nullable|string|max:500',
+            'years_of_exp' => 'nullable|integer|min:0',
             'image'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'intro_video' => 'nullable|file|mimes:mp4,mov,avi,webm|max:10240',
             'is_active'  => 'nullable|boolean',
         ]);
 
@@ -193,6 +211,12 @@ class TeacherController extends Controller
 
                 $validated['image'] = $request->file('image')->store('teachers', 'public');
             }
+            if ($request->hasFile('intro_video')) {
+                if ($teacher->intro_video && Storage::disk('public')->exists($teacher->intro_video)) {
+                    Storage::disk('public')->delete($teacher->intro_video);
+                }
+                $validated['intro_video'] = $request->file('intro_video')->store('teacher_videos', 'public');
+            }
 
             $teacher->update($validated);
 
@@ -211,18 +235,10 @@ class TeacherController extends Controller
                 'status'  => true,
                 'message' => 'Teacher updated successfully.',
                 'data'    => [
-                    'teacher' => [
-                        'id'        => $teacher->id,
-                        'name'      => $teacher->name,
-                        'email'     => $teacher->email,
-                        'mobile'    => $teacher->mobile,
-                        'expertise' => $teacher->expertise,
-                        'bio'       => $teacher->bio,
-                        'image'     => $teacher->image,
-                        'image_url'     => $teacher->image_url,
-                        'is_active' => $teacher->is_active,
-                        'user_id'    => $teacher->user_id,
-                    ]
+                    'id'        => $teacher->id,
+                    'name'      => $teacher->name,
+                    'email'     => $teacher->email,
+                    'user_id'    => $teacher->user_id,
                 ]
             ], 200);
         } catch (\Throwable $e) {
@@ -246,6 +262,10 @@ class TeacherController extends Controller
         try {
             if ($teacher->image && Storage::disk('public')->exists($teacher->image)) {
                 Storage::disk('public')->delete($teacher->image);
+            }
+
+            if ($teacher->intro_video && Storage::disk('public')->exists($teacher->intro_video)) {
+                Storage::disk('public')->delete($teacher->intro_video);
             }
 
             $teacher->delete();

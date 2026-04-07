@@ -11,13 +11,16 @@ return new class extends Migration
         Schema::create('teachers', function (Blueprint $table) {
 
             $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->string('mobile')->nullable();
+            $table->string('name', 100);
+            $table->string('email', 255)->unique();
+            $table->string('mobile', 20)->nullable();
             $table->string('image')->nullable();
+            $table->string('intro_video')->nullable();
+            $table->string('qualification', 500)->nullable();
+            $table->string('expertise')->nullable();
+            $table->integer('years_of_exp')->nullable();
             $table->text('bio')->nullable();
 
-            $table->string('expertise')->nullable();
 
             $table->string('zoom_email')->nullable();
             $table->string('zoom_account_id')->nullable();
