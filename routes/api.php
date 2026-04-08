@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\TeacherController;
-use App\Http\Controllers\AvailabilityController;
+use App\Http\Controllers\Api\AvailabilityController;
 use App\Http\Controllers\Api\SettingController;
 
 Route::get('/login', function () {
@@ -79,6 +79,7 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 
 Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
 
+    Route::get('/class-time', [SettingController::class, 'getClassTime']);
     Route::get('teacher-availability', [AvailabilityController::class, 'index']);
     Route::post('teacher-availability', [AvailabilityController::class, 'store']);
     Route::put('teacher-availability/{id}', [AvailabilityController::class, 'update']);
