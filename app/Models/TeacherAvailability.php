@@ -8,7 +8,7 @@ class TeacherAvailability extends Model
 {
     protected $fillable = [
         'teacher_id',
-        'date',
+        'day_of_month',
         'start_time',
         'end_time'
     ];

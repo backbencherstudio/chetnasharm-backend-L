@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Carbon\Carbon;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use App\Models\TeacherAvailability;
+
 
 class AvailabilityController extends Controller
 {
@@ -49,23 +51,51 @@ class AvailabilityController extends Controller
             'date' => 'required|date',
             'slots' => 'required|array|min:1',
             'slots.*.start_time' => 'required',
-            'slots.*.end_time' => 'required|after:slots.*.start_time',
         ]);
 
         $teacherId = auth('api')->user()->teacher->id;
 
+        $dayOfMonth = Carbon::parse($validated['date'])->day;
+
+        $setting = Setting::first();
+
+        if (!$setting || !$setting->class_time) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Class time not configured'
+            ], 422);
+        }
+
+        $classTime = (int) $setting->class_time;
+
         $createdSlots = [];
 
-        foreach ($validated['slots'] as $slot) {
+        foreach ($validated['slots'] as $index => $slot) {
+
+            $startTime = Carbon::parse($slot['start_time']);
+            $endTime   = $startTime->copy()->addMinutes($classTime);
+
+            if ($endTime->gt(Carbon::parse('23:59'))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Slot #".($index+1)." exceeds day limit"
+                ], 422);
+            }
 
             $exists = TeacherAvailability::where('teacher_id', $teacherId)
-                ->where('date', $validated['date'])
-                ->where(function ($q) use ($slot) {
-                    $q->whereBetween('start_time', [$slot['start_time'], $slot['end_time']])
-                    ->orWhereBetween('end_time', [$slot['start_time'], $slot['end_time']])
-                    ->orWhere(function ($q2) use ($slot) {
-                        $q2->where('start_time', '<=', $slot['start_time'])
-                            ->where('end_time', '>=', $slot['end_time']);
+                ->where('day_of_month', $dayOfMonth)
+                ->where(function ($q) use ($startTime, $endTime) {
+                    $q->whereBetween('start_time', [
+                            $startTime->format('H:i:s'),
+                            $endTime->format('H:i:s')
+                        ])
+                    ->orWhereBetween('end_time', [
+                            $startTime->format('H:i:s'),
+                            $endTime->format('H:i:s')
+                        ])
+                    ->orWhere(function ($q2) use ($startTime, $endTime) {
+                        $q2->where('start_time', '<=', $startTime->format('H:i:s'))
+                            ->where('end_time', '>=', $endTime->format('H:i:s'));
                     });
                 })
                 ->exists();
@@ -73,21 +103,21 @@ class AvailabilityController extends Controller
             if ($exists) {
                 return response()->json([
                     'success' => false,
-                    'message' => "Time slot {$slot['start_time']} - {$slot['end_time']} overlaps"
+                    'message' => "Time slot {$startTime->format('H:i')} overlaps"
                 ], 422);
             }
 
             $createdSlots[] = TeacherAvailability::create([
                 'teacher_id' => $teacherId,
-                'date' => $validated['date'],
-                'start_time' => $slot['start_time'],
-                'end_time' => $slot['end_time'],
+                'day_of_month' => $dayOfMonth,
+                'start_time' => $startTime->format('H:i:s'),
+                'end_time' => $endTime->format('H:i:s'),
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Slots created successfully',
+            'message' => 'Slots saved (recurring monthly)',
             'data' => $createdSlots
         ]);
     }

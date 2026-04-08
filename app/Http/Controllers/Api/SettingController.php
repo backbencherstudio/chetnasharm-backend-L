@@ -39,4 +39,15 @@ class SettingController extends Controller
             'data' => $setting
         ]);
     }
+
+    public function getClassTime(){
+
+        $time = Setting::select('class_time')->first();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Time retrieved successfully',
+            'class_time' => $time->class_time
+        ]);
+    }
 }
