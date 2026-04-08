@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\TeacherController;
+use App\Http\Controllers\AvailabilityController;
 
 Route::get('/login', function () {
     return response()->json([
@@ -73,6 +74,11 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 });
 
 Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
+
+    Route::get('teacher-availability', [AvailabilityController::class, 'index']);
+    Route::post('teacher-availability', [AvailabilityController::class, 'store']);
+    Route::put('teacher-availability/{id}', [AvailabilityController::class, 'update']);
+    Route::delete('teacher-availability/{id}', [AvailabilityController::class, 'destroy']);
 
 });
 
