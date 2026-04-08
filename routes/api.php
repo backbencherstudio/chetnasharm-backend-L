@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\AvailabilityController;
+use App\Http\Controllers\Api\SettingController;
 
 Route::get('/login', function () {
     return response()->json([
@@ -67,6 +68,9 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
 
     Route::get('/class-list', [BatchController::class, 'classList']);
     Route::get('/teacher-list', [BatchController::class, 'teacherList']);
+
+    Route::get('/settings', [SettingController::class, 'show']);
+    Route::post('/settings', [SettingController::class, 'update']);
 });
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
