@@ -155,7 +155,9 @@ class BatchController extends Controller
     {
         $batch = Batch::with([
             'class:id,title',
-            'teacher:id,name'])->find($id);
+            'teacher:id,name',
+            'schedules:id,batch_id,day_of_week,start_time,end_time'
+        ])->find($id);
 
         if (!$batch) {
             return response()->json([
@@ -166,7 +168,7 @@ class BatchController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Batch retrieved successfully',
+            'message' => 'Batch fetched successfully',
             'data' => $batch
         ]);
     }
