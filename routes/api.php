@@ -82,8 +82,8 @@ Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(functi
     Route::get('/class-time', [SettingController::class, 'getClassTime']);
     Route::get('teacher-availability', [AvailabilityController::class, 'index']);
     Route::post('teacher-availability', [AvailabilityController::class, 'store']);
-    Route::put('teacher-availability/{id}', [AvailabilityController::class, 'update']);
-    Route::delete('teacher-availability/{id}', [AvailabilityController::class, 'destroy']);
+    Route::post('teacher-availability-update', [AvailabilityController::class, 'update']);
+    Route::delete('teacher-availability/delete-by-date', [AvailabilityController::class, 'destroyByDate']);
 
 });
 

@@ -23,25 +23,42 @@ class AvailabilityController extends Controller
         $start = Carbon::parse($request->month)->startOfMonth();
         $end   = Carbon::parse($request->month)->endOfMonth();
 
-        $availabilities = TeacherAvailability::where('teacher_id', $teacherId)
-            ->whereBetween('date', [$start, $end])
-            ->orderBy('date')
-            ->orderBy('start_time')
-            ->get()
-            ->groupBy('date')
-            ->map(function ($slots) {
-                return $slots->map(function ($slot) {
+        $slots = TeacherAvailability::where('teacher_id', $teacherId)->get();
+
+        $result = [];
+
+        $current = $start->copy();
+
+        while ($current <= $end) {
+
+            $day = $current->day;
+            $date = $current->toDateString();
+
+            $daySlots = $slots
+                ->where('day_of_month', $day)
+                ->sortBy('start_time')
+                ->map(function ($slot) {
                     return [
                         'id' => $slot->id,
-                        'start_time' => $slot->start_time,
-                        'end_time' => $slot->end_time,
+                        'start_time' => Carbon::parse($slot->start_time)->format('H:i'),
+                        'end_time' => Carbon::parse($slot->end_time)->format('H:i'),
                     ];
-                });
-            });
+                })
+                ->values();
+
+            $result[] = [
+                'date' => $date,
+                'day' => $day,
+                'slots' => $daySlots,
+            ];
+
+            $current->addDay();
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $availabilities
+            'message' => 'Availability data retrieved successfully',
+            'data' => $result
         ]);
     }
 
@@ -69,6 +86,7 @@ class AvailabilityController extends Controller
         $classTime = (int) $setting->class_time;
 
         $createdSlots = [];
+        $failedSlots = [];
 
         foreach ($validated['slots'] as $index => $slot) {
 
@@ -76,35 +94,27 @@ class AvailabilityController extends Controller
             $endTime   = $startTime->copy()->addMinutes($classTime);
 
             if ($endTime->gt(Carbon::parse('23:59'))) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Slot #".($index+1)." exceeds day limit"
-                ], 422);
+                $failedSlots[] = [
+                    'start_time' => $startTime->format('H:i'),
+                    'message' => 'Exceeds day limit'
+                ];
+                continue;
             }
 
             $exists = TeacherAvailability::where('teacher_id', $teacherId)
                 ->where('day_of_month', $dayOfMonth)
                 ->where(function ($q) use ($startTime, $endTime) {
-                    $q->whereBetween('start_time', [
-                            $startTime->format('H:i:s'),
-                            $endTime->format('H:i:s')
-                        ])
-                    ->orWhereBetween('end_time', [
-                            $startTime->format('H:i:s'),
-                            $endTime->format('H:i:s')
-                        ])
-                    ->orWhere(function ($q2) use ($startTime, $endTime) {
-                        $q2->where('start_time', '<=', $startTime->format('H:i:s'))
-                            ->where('end_time', '>=', $endTime->format('H:i:s'));
-                    });
+                    $q->where('start_time', '<', $endTime->format('H:i:s'))
+                    ->where('end_time', '>', $startTime->format('H:i:s'));
                 })
                 ->exists();
 
             if ($exists) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Time slot {$startTime->format('H:i')} overlaps"
-                ], 422);
+                $failedSlots[] = [
+                    'start_time' => $startTime->format('H:i'),
+                    'message' => 'Overlaps with existing slot'
+                ];
+                continue;
             }
 
             $createdSlots[] = TeacherAvailability::create([
@@ -117,55 +127,116 @@ class AvailabilityController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Slots saved (recurring monthly)',
-            'data' => $createdSlots
+            'message' => 'Slots processed successfully',
+            'created' => $createdSlots,
+            'failed' => $failedSlots,
+            'summary' => [
+                'total' => count($validated['slots']),
+                'created' => count($createdSlots),
+                'failed' => count($failedSlots),
+            ]
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
-        $availability = TeacherAvailability::find($id);
-
-        if (!$availability) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Not found'
-            ], 404);
-        }
-
         $validated = $request->validate([
             'date' => 'required|date',
-            'start_time' => 'required',
-            'end_time' => 'required|after:start_time',
+            'slots' => 'required|array|min:1',
+            'slots.*.start_time' => 'required',
         ]);
 
-        $availability->update($validated);
+        $teacherId = auth('api')->user()->teacher->id;
 
-        return response()->json([
-            'success' => true,
-            'data' => $availability
-        ]);
-    }
+        $dayOfMonth = Carbon::parse($validated['date'])->day;
 
-    public function destroy($id)
-    {
-        $availability = TeacherAvailability::find($id);
+        $setting = Setting::first();
 
-        if (!$availability) {
+        if (!$setting || !$setting->class_time) {
             return response()->json([
                 'success' => false,
-                'message' => 'Not found'
-            ], 404);
+                'message' => 'Class time not configured'
+            ], 422);
         }
 
-        $availability->delete();
+        $classTime = (int) $setting->class_time;
+
+        TeacherAvailability::where('teacher_id', $teacherId)
+            ->where('day_of_month', $dayOfMonth)
+            ->delete();
+
+        $createdSlots = [];
+        $failedSlots = [];
+
+        foreach ($validated['slots'] as $index => $slot) {
+
+            $startTime = Carbon::parse($slot['start_time']);
+            $endTime   = $startTime->copy()->addMinutes($classTime);
+
+            if ($endTime->gt(Carbon::parse('23:59'))) {
+                $failedSlots[] = [
+                    'start_time' => $startTime->format('H:i'),
+                    'message' => 'Exceeds day limit'
+                ];
+                continue;
+            }
+
+            $overlap = collect($createdSlots)->contains(function ($existing) use ($startTime, $endTime) {
+                return $existing['start_time'] < $endTime->format('H:i:s') &&
+                    $existing['end_time'] > $startTime->format('H:i:s');
+            });
+
+            if ($overlap) {
+                $failedSlots[] = [
+                    'start_time' => $startTime->format('H:i'),
+                    'message' => 'Overlaps within request'
+                ];
+                continue;
+            }
+
+            $slotModel = TeacherAvailability::create([
+                'teacher_id' => $teacherId,
+                'day_of_month' => $dayOfMonth,
+                'start_time' => $startTime->format('H:i:s'),
+                'end_time' => $endTime->format('H:i:s'),
+            ]);
+
+            $createdSlots[] = $slotModel;
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Deleted successfully'
+            'message' => 'Slots updated successfully',
+            'created' => $createdSlots,
+            'failed' => $failedSlots,
+            'summary' => [
+                'total' => count($validated['slots']),
+                'created' => count($createdSlots),
+                'failed' => count($failedSlots),
+            ]
         ]);
     }
 
+    public function destroyByDate(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+        ]);
+
+        $teacherId = auth('api')->user()->teacher->id;
+
+        $dayOfMonth = Carbon::parse($request->date)->day;
+
+        $deleted = TeacherAvailability::where('teacher_id', $teacherId)
+            ->where('day_of_month', $dayOfMonth)
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "All slots deleted for the day {$dayOfMonth}",
+            'deleted_count' => $deleted
+        ]);
+    }
 
 
 }
