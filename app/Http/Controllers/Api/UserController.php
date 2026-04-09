@@ -147,8 +147,8 @@ class UserController extends Controller
 
             $user->name       = $validated['name'];
             $user->email      = $validated['email'];
-            $user->mobile     = $validated['mobile'] ?? null;
-            $user->department = $validated['department'] ?? null;
+            $user->mobile     = $validated['mobile'] ?? $user->mobile;
+            $user->department = $validated['department'] ?? $user->department;
 
             if (!empty($validated['password'])) {
                 $user->password = Hash::make($validated['password']);

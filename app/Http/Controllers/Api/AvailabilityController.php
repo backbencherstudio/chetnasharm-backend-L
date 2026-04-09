@@ -14,11 +14,20 @@ class AvailabilityController extends Controller
 
     public function index(Request $request)
     {
+        $user = auth('api')->user();
+
+        if ($user->hasRole('teacher')) {
+            $teacherId = $user->teacher->id;
+        } else {
+            $request->validate([
+                'teacher_id' => 'required|exists:teachers,id',
+            ]);
+            $teacherId = $request->teacher_id;
+        }
+
         $request->validate([
             'month' => 'required|date_format:Y-m',
         ]);
-
-        $teacherId = auth('api')->user()->teacher->id;
 
         $start = Carbon::parse($request->month)->startOfMonth();
         $end   = Carbon::parse($request->month)->endOfMonth();
@@ -64,13 +73,22 @@ class AvailabilityController extends Controller
 
     public function store(Request $request)
     {
+        $user = auth('api')->user();
+
+        if ($user->hasRole('teacher')) {
+            $teacherId = $user->teacher->id;
+        } else {
+            $request->validate([
+                'teacher_id' => 'required|exists:teachers,id',
+            ]);
+            $teacherId = $request->teacher_id;
+        }
+
         $validated = $request->validate([
             'date' => 'required|date',
             'slots' => 'required|array|min:1',
             'slots.*.start_time' => 'required',
         ]);
-
-        $teacherId = auth('api')->user()->teacher->id;
 
         $dayOfMonth = Carbon::parse($validated['date'])->day;
 
@@ -140,13 +158,22 @@ class AvailabilityController extends Controller
 
     public function update(Request $request)
     {
+        $user = auth('api')->user();
+
+        if ($user->hasRole('teacher')) {
+            $teacherId = $user->teacher->id;
+        } else {
+            $request->validate([
+                'teacher_id' => 'required|exists:teachers,id',
+            ]);
+            $teacherId = $request->teacher_id;
+        }
+
         $validated = $request->validate([
             'date' => 'required|date',
             'slots' => 'required|array|min:1',
             'slots.*.start_time' => 'required',
         ]);
-
-        $teacherId = auth('api')->user()->teacher->id;
 
         $dayOfMonth = Carbon::parse($validated['date'])->day;
 
@@ -182,8 +209,8 @@ class AvailabilityController extends Controller
             }
 
             $overlap = collect($createdSlots)->contains(function ($existing) use ($startTime, $endTime) {
-                return $existing['start_time'] < $endTime->format('H:i:s') &&
-                    $existing['end_time'] > $startTime->format('H:i:s');
+                return $existing->start_time < $endTime->format('H:i:s') &&
+                    $existing->end_time > $startTime->format('H:i:s');
             });
 
             if ($overlap) {
@@ -219,11 +246,22 @@ class AvailabilityController extends Controller
 
     public function destroyByDate(Request $request)
     {
+
+        $user = auth('api')->user();
+
+        if ($user->hasRole('teacher')) {
+            $teacherId = $user->teacher->id;
+        } else {
+            $request->validate([
+                'teacher_id' => 'required|exists:teachers,id',
+            ]);
+            $teacherId = $request->teacher_id;
+        }
         $request->validate([
             'date' => 'required|date',
         ]);
 
-        $teacherId = auth('api')->user()->teacher->id;
+        $teacherId = $request->teacher_id;
 
         $dayOfMonth = Carbon::parse($request->date)->day;
 

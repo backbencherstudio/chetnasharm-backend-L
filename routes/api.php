@@ -68,6 +68,7 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
 
     Route::get('/class-list', [BatchController::class, 'classList']);
     Route::get('/teacher-list', [BatchController::class, 'teacherList']);
+    Route::get('teacher-availability/', [AvailabilityController::class, 'index']);
 
     Route::get('/settings', [SettingController::class, 'show']);
     Route::post('/settings', [SettingController::class, 'update']);
@@ -75,15 +76,17 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 
-});
-
-Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
-
     Route::get('/class-time', [SettingController::class, 'getClassTime']);
     Route::get('teacher-availability', [AvailabilityController::class, 'index']);
     Route::post('teacher-availability', [AvailabilityController::class, 'store']);
     Route::post('teacher-availability-update', [AvailabilityController::class, 'update']);
     Route::delete('teacher-availability/delete-by-date', [AvailabilityController::class, 'destroyByDate']);
+
+});
+
+Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
+
+
 
 });
 
