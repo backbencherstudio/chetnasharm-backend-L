@@ -256,6 +256,25 @@ class UserController extends Controller
     public function suspend($id)
     {
         $user = User::findOrFail($id);
+        if (!$user) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'User not found.',
+            ], 404);
+        }
+        if ($id == auth('api')->id()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'You cannot suspend your own account.',
+            ], 400);
+        }
+
+        if ($id == 1) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'You cannot suspend super admin account.',
+            ], 403);
+        }
 
         DB::beginTransaction();
 

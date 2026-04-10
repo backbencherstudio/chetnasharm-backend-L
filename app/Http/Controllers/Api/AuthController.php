@@ -26,6 +26,7 @@ class AuthController extends Controller
         }
 
         $credentials = $validator->validated();
+
         if (! $token = auth('api')->attempt($credentials)) {
             return response()->json([
                 'success' => false,
@@ -34,6 +35,16 @@ class AuthController extends Controller
         }
 
         $user = auth('api')->user();
+
+        if ($user->suspend_status == 1) {
+            auth('api')->logout();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Your account has been suspended. Please contact admin.'
+            ], 403);
+        }
+
         $user->role = $user->getRoleNames()->first();
         unset($user->roles);
 
