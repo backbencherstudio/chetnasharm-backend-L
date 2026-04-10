@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\PermissionGroup;
+use App\Models\Setting;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -221,6 +222,9 @@ class RolePermissionSeeder extends Seeder
                 'guard_name' => 'api',
             ]);
         }
+        $setting = Setting::firstOrCreate([
+            'class_time'=> '30',
+        ]);
         // $apiAdmin->syncPermissions(
         //     Permission::where('guard_name', 'api')->get()
         // );

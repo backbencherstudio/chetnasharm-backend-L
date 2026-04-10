@@ -18,10 +18,7 @@ return new class extends Migration {
                   ->constrained('teachers')
                   ->cascadeOnDelete();
 
-            $table->enum('day_of_week', [
-                'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
-            ]);
-
+            $table->tinyInteger('day_of_week'); // 0 (Sunday) - 6 (Saturday)
             $table->time('start_time');
             $table->time('end_time');
 

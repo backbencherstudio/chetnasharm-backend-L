@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('zoom_link')->nullable();
 
             $table->enum('status', ['upcoming', 'ongoing', 'completed'])->default('upcoming');
+            $table->tinyInteger('active_status')->default(1);
 
             $table->timestamps();
         });

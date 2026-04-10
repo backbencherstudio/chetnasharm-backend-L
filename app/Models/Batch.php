@@ -19,6 +19,7 @@ class Batch extends Model
         'end_date',
         'zoom_link',
         'status',
+        'active_status',
     ];
 
     protected $casts = [
