@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BatchSchedule;
 use Carbon\Carbon;
 use App\Models\Setting;
 use Illuminate\Http\Request;
@@ -321,5 +322,90 @@ class AvailabilityController extends Controller
         ]);
     }
 
+    public function availabilityByDate(Request $request)
+    {
+        $validated = $request->validate([
+            'teacher_id' => 'required|exists:teachers,id',
+            'start_date' => 'required|date',
+            'end_date'   => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $teacherId = $validated['teacher_id'];
+        $startDate = Carbon::parse($validated['start_date']);
+        $endDate   = Carbon::parse($validated['end_date']);
+
+        $classTime = Setting::first()?->class_time;
+
+        if (!$classTime) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Class time not set in settings'
+            ], 422);
+        }
+
+        $result = [];
+
+        while ($startDate->lte($endDate)) {
+
+            $dayOfWeek = $startDate->dayOfWeek;
+
+            $availabilities = TeacherAvailability::where('teacher_id', $teacherId)
+                ->where('day_of_week', $dayOfWeek)
+                ->get();
+
+            $daySlots = [];
+
+            foreach ($availabilities as $availability) {
+
+                $slotStart = Carbon::parse($availability->start_time);
+                $slotEnd   = Carbon::parse($availability->end_time);
+
+                while ($slotStart->copy()->addMinutes($classTime)->lte($slotEnd)) {
+
+                    $startTime = $slotStart->format('H:i:s');
+                    $endTime   = $slotStart->copy()->addMinutes($classTime)->format('H:i:s');
+
+                    $conflict = BatchSchedule::where('teacher_id', $teacherId)
+                        ->where('day_of_week', $dayOfWeek)
+                        ->whereHas('batch', function ($q) use ($startDate) {
+                            $q->where('start_date', '<=', $startDate)
+                            ->where('end_date', '>=', $startDate);
+                        })
+                        ->where(function ($q) use ($startTime, $endTime) {
+                            $q->whereBetween('start_time', [$startTime, $endTime])
+                            ->orWhereBetween('end_time', [$startTime, $endTime])
+                            ->orWhere(function ($q2) use ($startTime, $endTime) {
+                                $q2->where('start_time', '<=', $startTime)
+                                    ->where('end_time', '>=', $endTime);
+                            });
+                        })
+                        ->exists();
+
+                    if (!$conflict) {
+                        $daySlots[] = [
+                            'start_time' => $startTime,
+                            'end_time'   => $endTime,
+                        ];
+                    }
+
+                    $slotStart->addMinutes($classTime);
+                }
+            }
+
+            $result[] = [
+                'date'  => $startDate->toDateString(),
+                'day'   => $dayOfWeek,
+                'slots' => $daySlots
+            ];
+
+            $startDate->addDay();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Teacher availability fetched successfully',
+            'data'    => $result
+        ]);
+    }
 
 }

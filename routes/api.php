@@ -69,7 +69,7 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
 
     Route::get('/class-list', [BatchController::class, 'classList']);
     Route::get('/teacher-list', [BatchController::class, 'teacherList']);
-    Route::get('teacher-availability/bydate', [AvailabilityController::class, 'index']);
+    Route::get('teacher-availablity/by-date', [AvailabilityController::class, 'availabilityByDate']);
 
     Route::get('/settings', [SettingController::class, 'show']);
     Route::post('/settings', [SettingController::class, 'update']);
