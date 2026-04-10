@@ -18,7 +18,7 @@ class Teacher extends Model
         'intro_video',
         // 'zoom_email',
         // 'zoom_account_id',
-        'is_active',
+        'suspend_status',
         'user_id',
     ];
 

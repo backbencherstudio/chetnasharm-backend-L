@@ -55,7 +55,7 @@ class TeacherController extends Controller
                     'image_url'     => $t->image ? asset('storage/' . $t->image) : null,
                     'intro_video' => $t->intro_video,
                     'intro_video_url' => $t->intro_video ? asset('storage/' . $t->intro_video) : null,
-                    'is_active' => $t->is_active,
+                    'suspend_status' => $t->suspend_status,
                 ];
             }),
             'pagination' => [
@@ -78,10 +78,9 @@ class TeacherController extends Controller
             'expertise'  => 'nullable|string|max:255',
             'years_of_exp' => 'nullable|integer|min:0',
             'image'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'intro_video' => 'nullable|file|mimes:mp4,mov,avi,webm|max:10240',
+            'intro_video' => 'nullable|file|mimes:mp4,mov,avi,webm|max:20480',
             // 'zoom_email' => 'nullable|email',
             // 'zoom_account_id' => 'nullable|string',
-            'is_active'  => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -168,7 +167,7 @@ class TeacherController extends Controller
                 'intro_video_url' => $teacher->intro_video_url,
                 'image'     => $teacher->image,
                 'image_url'     => $teacher->image_url,
-                'is_active' => $teacher->is_active,
+                'suspend_status' => $teacher->suspend_status,
                 'user_id'    => $teacher->user_id,
             ]
         ], 200);
@@ -189,7 +188,7 @@ class TeacherController extends Controller
             'years_of_exp' => 'nullable|integer|min:0',
             'image'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'intro_video' => 'nullable|file|mimes:mp4,mov,avi,webm|max:10240',
-            'is_active'  => 'nullable|boolean',
+            'suspend_status'  => 'nullable|in:0,1',
         ]);
 
         if ($validator->fails()) {
@@ -252,41 +251,42 @@ class TeacherController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function suspend($id)
     {
         $teacher = Teacher::with('user')->findOrFail($id);
-        $linkedUser = $teacher->user;
+        $user = $teacher->user;
 
         DB::beginTransaction();
 
         try {
-            if ($teacher->image && Storage::disk('public')->exists($teacher->image)) {
-                Storage::disk('public')->delete($teacher->image);
-            }
 
-            if ($teacher->intro_video && Storage::disk('public')->exists($teacher->intro_video)) {
-                Storage::disk('public')->delete($teacher->intro_video);
-            }
+            $teacher->suspend_status = $teacher->suspend_status == 1 ? 0 : 1;
+            $teacher->save();
 
-            $teacher->delete();
-
-            if ($linkedUser) {
-                $linkedUser->syncRoles([]);
-                $linkedUser->delete();
+            if ($user) {
+                $user->suspend_status = $teacher->suspend_status;
+                $user->save();
             }
 
             DB::commit();
 
             return response()->json([
                 'status'  => true,
-                'message' => 'Teacher deleted successfully.'
+                'message' => $teacher->suspend_status
+                    ? 'Teacher suspended successfully.'
+                    : 'Teacher reactivated successfully.',
+                'data' => [
+                    'teacher_id' => $teacher->id,
+                    'suspend_status' => $teacher->suspend_status
+                ]
             ], 200);
+
         } catch (\Throwable $e) {
             DB::rollBack();
 
             return response()->json([
                 'status'  => false,
-                'message' => 'Failed to delete teacher.',
+                'message' => 'Operation failed.',
                 'error'   => $e->getMessage()
             ], 500);
         }

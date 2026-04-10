@@ -208,7 +208,7 @@ class UserController extends Controller
         }
 
         $query->with(['roles:id,name'])
-            ->select('id', 'name', 'email', 'mobile', 'department', 'image');
+            ->select('id', 'name', 'email', 'mobile', 'department', 'image', 'suspend_status');
 
         $users = $query->paginate($perPage);
 
@@ -221,6 +221,7 @@ class UserController extends Controller
                 'department' => $user->department,
                 'image'      => $user->image,
                 'image_url'  => $user->image_url,
+                'suspended'  => $user->suspend_status,
                 'role'       => $user->roles->pluck('name')->map(fn($r) => ucfirst($r))->implode(', '),
             ];
         });
@@ -252,7 +253,7 @@ class UserController extends Controller
     }
 
 
-    public function destroy($id)
+    public function suspend($id)
     {
         $user = User::findOrFail($id);
 
@@ -260,19 +261,18 @@ class UserController extends Controller
 
         try {
 
-           if ($user->image && Storage::disk('public')->exists($user->image)) {
-                Storage::disk('public')->delete($user->image);
-            }
-
-            $user->syncRoles([]);
-
-            $user->delete();
+            $user->suspend_status = $user->suspend_status == 1 ? 0 : 1;
+            $user->save();
 
             DB::commit();
 
             return response()->json([
                 'status'  => true,
-                'message' => 'User deleted successfully.'
+                'message' => $user->suspend_status ? 'User suspended successfully.' : 'User reactivated successfully.',
+                'data'    => [
+                    'user_id' => $user->id,
+                    'suspend_status' => $user->suspend_status
+                ]
             ], 200);
 
         } catch (\Throwable $e) {
@@ -280,7 +280,7 @@ class UserController extends Controller
 
             return response()->json([
                 'status'  => false,
-                'message' => 'User deletion failed.',
+                'message' => 'Operation failed.',
                 'error'   => $e->getMessage()
             ], 500);
         }

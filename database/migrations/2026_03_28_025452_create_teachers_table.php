@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('zoom_email')->nullable();
             $table->string('zoom_account_id')->nullable();
 
-            $table->boolean('is_active')->default(true);
+            $table->boolean('suspend_status')->default(0);
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
 
             $table->timestamps();

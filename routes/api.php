@@ -43,14 +43,14 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::post('/user-store', [UserController::class, 'store']);
     Route::get('/user-edit-data/{id}', [UserController::class, 'edit']);
     Route::post('/user-update/{id}', [UserController::class, 'update']);
-    Route::delete('/user-delete/{id}', [UserController::class, 'destroy']);
+    Route::patch('/user-suspend/{id}', [UserController::class, 'suspend']);
 
     //Teacher Management
     Route::get('/teachers', [TeacherController::class, 'data']);
     Route::post('/teacher-store', [TeacherController::class, 'store']);
     Route::get('/teacher-edit-data/{id}', [TeacherController::class, 'edit']);
     Route::post('/teacher-update/{id}', [TeacherController::class, 'update']);
-    Route::delete('/teacher-delete/{id}', [TeacherController::class, 'destroy']);
+    Route::patch('/teacher-suspend/{id}', [TeacherController::class, 'suspend']);
 
     // Class Management
     Route::get('classes/', [ClassController::class, 'index']);
