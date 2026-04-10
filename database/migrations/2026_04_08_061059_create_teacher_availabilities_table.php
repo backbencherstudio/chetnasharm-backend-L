@@ -10,14 +10,17 @@ return new class extends Migration
     {
         Schema::create('teacher_availabilities', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('teacher_id')->constrained()->cascadeOnDelete();
 
-            $table->tinyInteger('day_of_month');
+            $table->foreignId('teacher_id')
+                  ->constrained()
+                  ->cascadeOnDelete();
+            $table->tinyInteger('day_of_week'); // 0 (Sunday) - 6 (Saturday)
             $table->time('start_time');
             $table->time('end_time');
+
             $table->timestamps();
 
-            $table->index(['teacher_id', 'day_of_month']);
+            $table->index(['teacher_id', 'day_of_week']);
         });
     }
 
