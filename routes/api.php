@@ -57,7 +57,7 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::post('classes/', [ClassController::class, 'store']);
     Route::get('classes/{id}', [ClassController::class, 'edit']);
     Route::post('classes/{id}', [ClassController::class, 'update']);
-    Route::delete('classes/{id}', [ClassController::class, 'destroy']);
+    Route::patch('class-status/{id}', [ClassController::class, 'status']);
 
     // Batch Management
     Route::get('/batches', [BatchController::class, 'index']);
@@ -68,7 +68,7 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
 
     Route::get('/class-list', [BatchController::class, 'classList']);
     Route::get('/teacher-list', [BatchController::class, 'teacherList']);
-    Route::get('teacher-availability/', [AvailabilityController::class, 'index']);
+    Route::get('teacher-availability/bydate', [AvailabilityController::class, 'index']);
 
     Route::get('/settings', [SettingController::class, 'show']);
     Route::post('/settings', [SettingController::class, 'update']);

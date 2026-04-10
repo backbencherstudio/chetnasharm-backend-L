@@ -300,7 +300,7 @@ class BatchController extends Controller
 
     public function classList()
     {
-        $classes = ClassModel::select('id', 'title')->get();
+        $classes = ClassModel::where('is_active', 1)->select('id', 'title')->get();
 
         return response()->json([
             'success' => true,
@@ -311,7 +311,7 @@ class BatchController extends Controller
 
     public function teacherList()
     {
-        $teachers = Teacher::select('id', 'name')->get();
+        $teachers = Teacher::where('suspend_status', 0)->select('id', 'name')->get();
 
         return response()->json([
             'success' => true,

@@ -45,7 +45,6 @@ class ClassController extends Controller
             'price' => 'required|numeric|min:0',
             'duration_in_days' => 'required|integer|min:1',
             'total_classes' => 'required|integer|min:1',
-            'is_active' => 'nullable|in:0,1',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
@@ -119,7 +118,7 @@ class ClassController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function status($id)
     {
         $class = ClassModel::find($id);
 
@@ -129,16 +128,13 @@ class ClassController extends Controller
                 'message' => 'Class not found'
             ], 404);
         }
-
-        if ($class->image && Storage::disk('public')->exists($class->image)) {
-            Storage::disk('public')->delete($class->image);
-        }
-
-        $class->delete();
+        $class->is_active = $class->is_active == 1 ? 0 : 1;
+        $class->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Class deleted successfully'
+            'message' => 'Class status updated successfully',
+            'status' => $class->is_active
         ]);
     }
 }
