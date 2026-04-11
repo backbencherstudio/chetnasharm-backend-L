@@ -408,4 +408,180 @@ class AvailabilityController extends Controller
         ]);
     }
 
+    public function teacherBusySlots(Request $request)
+    {
+        $validated = $request->validate([
+            'teacher_id' => 'required|exists:teachers,id',
+            'start_date' => 'required|date',
+            'end_date'   => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $teacherId = $validated['teacher_id'];
+        $startDate = Carbon::parse($validated['start_date']);
+        $endDate   = Carbon::parse($validated['end_date']);
+
+        $schedules = BatchSchedule::with('batch:id,name,start_date,end_date')
+            ->where('teacher_id', $teacherId)
+            ->get();
+
+        $result = [];
+
+        while ($startDate->lte($endDate)) {
+
+            $dayOfWeek = $startDate->dayOfWeek;
+
+            $dayBusy = [];
+
+            foreach ($schedules as $schedule) {
+
+                $batch = $schedule->batch;
+
+                if (
+                    $batch &&
+                    $schedule->day_of_week == $dayOfWeek &&
+                    $startDate->between(
+                        Carbon::parse($batch->start_date),
+                        Carbon::parse($batch->end_date)
+                    )
+                ) {
+                    $dayBusy[] = [
+                        'start_time' => $schedule->start_time,
+                        'end_time'   => $schedule->end_time,
+                        'batch_id'   => $batch->id,
+                        'batch_name' => $batch->name,
+                    ];
+                }
+            }
+
+            $result[] = [
+                'date'       => $startDate->toDateString(),
+                'day'        => $dayOfWeek,
+                'busy_slots' => $dayBusy
+            ];
+
+            $startDate->addDay();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Teacher busy schedule fetched successfully',
+            'data'    => $result
+        ]);
+    }
+
+    public function teacherSchedule(Request $request)
+    {
+        $validated = $request->validate([
+            'teacher_id' => 'required|exists:teachers,id',
+            'start_date' => 'required|date',
+            'end_date'   => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $teacherId = $validated['teacher_id'];
+        $startDate = Carbon::parse($validated['start_date']);
+        $endDate   = Carbon::parse($validated['end_date']);
+
+        $classTime = Setting::value('class_time');
+
+        if (!$classTime) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Class time not set in settings'
+            ], 422);
+        }
+
+        // ✅ Load once (IMPORTANT)
+        $schedules = BatchSchedule::with('batch:id,name,start_date,end_date')
+            ->where('teacher_id', $teacherId)
+            ->get();
+
+        $availabilities = TeacherAvailability::where('teacher_id', $teacherId)
+            ->get()
+            ->groupBy('day_of_week');
+
+        $result = [];
+
+        while ($startDate->lte($endDate)) {
+
+            $currentDate = $startDate->copy();
+            $dayOfWeek   = $currentDate->dayOfWeek;
+
+            $busySlots = [];
+            $availableSlots = [];
+
+            // =========================
+            // ✅ 1. Get Busy Slots
+            // =========================
+            foreach ($schedules as $schedule) {
+
+                $batch = $schedule->batch;
+
+                if (
+                    $batch &&
+                    $schedule->day_of_week == $dayOfWeek &&
+                    $currentDate->between(
+                        Carbon::parse($batch->start_date),
+                        Carbon::parse($batch->end_date)
+                    )
+                ) {
+                    $busySlots[] = [
+                        'start_time' => $schedule->start_time,
+                        'end_time'   => $schedule->end_time,
+                        'batch_id'   => $batch->id,
+                        'batch_name' => $batch->name,
+                    ];
+                }
+            }
+
+            // =========================
+            // ✅ 2. Generate Available Slots
+            // =========================
+            $dayAvailabilities = $availabilities[$dayOfWeek] ?? collect();
+
+            foreach ($dayAvailabilities as $availability) {
+
+                $slotStart = Carbon::parse($availability->start_time);
+                $slotEnd   = Carbon::parse($availability->end_time);
+
+                while ($slotStart->copy()->addMinutes($classTime)->lte($slotEnd)) {
+
+                    $startTime = $slotStart->format('H:i:s');
+                    $endTime   = $slotStart->copy()->addMinutes($classTime)->format('H:i:s');
+
+                    // 🔥 Check against busy slots (IN-MEMORY, FAST)
+                    $isBusy = collect($busySlots)->contains(function ($busy) use ($startTime, $endTime) {
+                        return (
+                            $busy['start_time'] < $endTime &&
+                            $busy['end_time'] > $startTime
+                        );
+                    });
+
+                    if (!$isBusy) {
+                        $availableSlots[] = [
+                            'start_time' => $startTime,
+                            'end_time'   => $endTime,
+                        ];
+                    }
+
+                    $slotStart->addMinutes($classTime);
+                }
+            }
+
+            $result[] = [
+                'date'            => $currentDate->toDateString(),
+                'day'             => $dayOfWeek,
+                'busy_slots'      => $busySlots,
+                'available_slots' => $availableSlots,
+            ];
+
+            $startDate->addDay();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Teacher schedule fetched successfully',
+            'data'    => $result
+        ]);
+    }
+
 }

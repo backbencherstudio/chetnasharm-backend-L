@@ -57,6 +57,14 @@ class AuthController extends Controller
 
         $user->load('roles');
 
+        if ($user->suspend_status == 1) {
+            auth('api')->logout();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Your account has been suspended. Please contact admin.'
+            ], 403);
+        }
 
         return response()->json([
             'success' => true,
@@ -70,6 +78,7 @@ class AuthController extends Controller
                 'image' => $user->image,
                 'image_url' => $user->image_url,
                 'role' => $user->roles->pluck('name')->implode(', '),
+                'teacher_id' => $user->teacher ? $user->teacher->id : null,
             ],
         ]);
     }
