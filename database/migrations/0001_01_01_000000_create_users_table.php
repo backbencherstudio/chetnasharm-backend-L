@@ -15,9 +15,11 @@ return new class extends Migration
             $table->string('department')->nullable();
             $table->string('mobile')->nullable();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('password')->nullable();
             $table->string('image')->nullable();
             $table->tinyInteger('suspend_status')->default(0);
+            $table->string('provider')->nullable();
+            $table->string('provider_id')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

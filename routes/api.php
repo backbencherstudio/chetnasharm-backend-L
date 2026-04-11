@@ -23,7 +23,11 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/send-otp', [ForgotPasswordController::class, 'sendOtp']);
 Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
 Route::post('/password-reset', [ForgotPasswordController::class, 'resetPassword']);
-// Route::post('/register', [AuthController::class, 'register']);
+Route::post('/register', [AuthController::class, 'register']);
+
+//google register
+Route::get('/auth/google/redirect', [AuthController::class, 'googleRedirect']);
+Route::get('/auth/google/callback', [AuthController::class, 'googleCallback']);
 
 Route::post('/refresh', [AuthController::class, 'refresh']);
 
@@ -85,7 +89,7 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
     Route::get('teacher-availability/edit', [AvailabilityController::class, 'edit']);
     Route::post('teacher-availability/update', [AvailabilityController::class, 'update']);
     Route::delete('teacher-availability/{id}', [AvailabilityController::class, 'destroy']);
-    
+
     Route::get('teachers-schedule', [AvailabilityController::class, 'teacherSchedule']);
 
 });

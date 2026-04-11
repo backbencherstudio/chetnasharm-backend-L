@@ -3,10 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Str;
+use Psy\Command\WhereamiCommand;
 
 class AuthController extends Controller
 {
@@ -129,60 +136,131 @@ class AuthController extends Controller
         ]);
     }
 
-    // public function register(Request $request)
+    public function register(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Validation failed.',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => bcrypt($request->password),
+                'department' => 'Student',
+                'suspend_status' => 0,
+            ]);
+
+            if (Role::where('name', 'student')->exists()) {
+                $user->assignRole('student');
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'User registered successfully.',
+                'data' => $user
+            ], 201);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('Registration failed', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'User registration failed.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function googleRedirect()
+    {
+        return Socialite::driver('google')->stateless()->redirect();
+    }
+
+    // public function googleCallback()
     // {
-    //     $validator = Validator::make($request->all(), [
-    //         'name'     => 'required|string|max:255',
-    //         'email'    => 'required|email|unique:users,email',
-    //         'mobile'   => 'nullable|string|max:20',
-    //         'department' => 'nullable|string|max:100',
-    //         'password' => 'required|string|min:6|confirmed',
-    //     ]);
+    //     $googleUser = Socialite::driver('google')->stateless()->user();
 
-    //     if ($validator->fails()) {
-    //         return response()->json([
-    //             'status'  => false,
-    //             'message' => 'Validation failed.',
-    //             'errors'  => $validator->errors()
-    //         ], 422);
-    //     }
+    //     $user = User::where('email', $googleUser->email)->first();
 
-    //     $validated = $validator->validated();
-
-    //     DB::beginTransaction();
-
-    //     try {
+    //     if (!$user) {
     //         $user = User::create([
-    //             'name'     => $validated['name'],
-    //             'email'    => $validated['email'],
-    //             'mobile'   => $validated['mobile'] ?? null,
-    //             'department' => $validated['department'] ?? null,
-    //             'password' => bcrypt($validated['password']),
+    //             'name' => $googleUser->name,
+    //             'email' => $googleUser->email,
+    //             'password' => null,
+    //             'department' => 'Student',
+    //             'image' => $googleUser->avatar,
+    //             'provider' => 'google',
+    //             'provider_id' => $googleUser->id,
+    //             'suspend_status' => 0,
     //         ]);
-    //         // Assign role to user (API guard)
-    //         $role = Role::where('name','student')
-    //                     ->firstOrFail();
-
-    //         $user->assignRole($role);
-    //         DB::commit();
-
-    //         return response()->json([
-    //             'status'  => true,
-    //             'message' => 'User registered successfully.',
-    //             'data'    => [
-    //                 'id'    => $user->id,
-    //                 'name'  => $user->name,
-    //                 'email' => $user->email,
-    //                 'roles' => $user->getRoleNames(),
-    //             ]
-    //         ], 201);
-    //     } catch (\Throwable $e) {
-    //         DB::rollBack();
-    //         return response()->json([
-    //             'status'  => false,
-    //             'message' => 'User registration failed.',
-    //         ], 500);
     //     }
+
+    //     $token = auth('api')->login($user);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'user' => $user,
+    //         'token' => $token,
+    //     ]);
     // }
 
+    public function googleCallback()
+    {
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
+
+            $user = User::where('email', $googleUser->email)->first();
+
+            if (!$user) {
+                $user = User::create([
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email,
+                    'password' => null,
+                    'department' => 'Student',
+                    'image' => $googleUser->avatar,
+                    'provider' => 'google',
+                    'provider_id' => $googleUser->id,
+                    'suspend_status' => 0,
+                ]);
+
+                if (Role::where('name', 'student')->exists()) {
+                    $user->assignRole('student');
+                }
+            }
+
+            if ($user->suspend_status == 1) {
+                return redirect(config('app.frontend_url') . "/login?error=account_suspended");
+            }
+            $token = auth('api')->login($user);
+
+            return redirect(config('app.frontend_url') . "/auth/callback?token={$token}");
+
+        } catch (\Throwable $e) {
+            Log::error('Google login error', [
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect(config('app.frontend_url') . "/login?error=google_login_failed");
+        }
+    }
 }
