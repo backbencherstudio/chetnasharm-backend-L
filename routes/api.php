@@ -9,7 +9,9 @@ use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\AvailabilityController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\WebhookController;
 
 Route::get('/login', function () {
     return response()->json([
@@ -102,4 +104,7 @@ Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(functi
 
 Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(function () {
 
+    Route::post('create-payment', [PaymentController::class, 'createPayment']);
+
 });
+Route::post('/stripe/webhook', [WebhookController::class, 'stripeWebhook']);

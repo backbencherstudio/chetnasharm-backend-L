@@ -8,6 +8,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\WebhookController;
 
 // Route::redirect('/', '/login');
 
@@ -20,6 +21,5 @@ Route::get('/clear', function () {
 Route::get('/', function () {
     return view('welcome');
 });
-
 
 require __DIR__.'/auth.php';
