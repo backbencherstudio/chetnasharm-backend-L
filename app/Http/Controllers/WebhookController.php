@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Batch;
-use App\Models\Enrollment;
-use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Stripe\Webhook;
+use App\Models\Payment;
+use App\Models\Enrollment;
+use App\Models\Batch;
 
 class WebhookController extends Controller
 {
@@ -23,36 +23,86 @@ class WebhookController extends Controller
                 $sigHeader,
                 config('services.stripe.webhook_secret')
             );
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json(['error' => 'Invalid webhook'], 400);
         }
 
-        if ($event->type === 'checkout.session.completed') {
+        $type = $event->type;
+        $session = $event->data->object;
 
-            $session = $event->data->object;
+        if ($type === 'checkout.session.completed') {
+
+            if (
+                empty($session->metadata->payment_id) ||
+                empty($session->metadata->batch_id)
+            ) {
+                return response()->json(['error' => 'Invalid metadata'], 400);
+            }
 
             $payment = Payment::find($session->metadata->payment_id);
 
-            if ($payment && $payment->status !== 'paid') {
+            if (!$payment) {
+                return response()->json(['error' => 'Payment not found'], 404);
+            }
 
-                DB::beginTransaction();
+            if ($payment->status === 'paid') {
+                return response()->json(['status' => 'already processed']);
+            }
 
-                try {
+            DB::beginTransaction();
 
-                    $payment->update([
-                        'status' => 'paid',
-                        'transaction_id' => $session->payment_intent,
-                        'paid_at' => now(),
-                    ]);
+            try {
 
-                    $this->createEnrollment($payment, $session->metadata->batch_id);
+                $stripeAmount = $session->amount_total / 100;
 
-                    DB::commit();
-
-                } catch (\Throwable $e) {
-                    DB::rollBack();
-                    Log::error('Stripe webhook error', ['error' => $e->getMessage()]);
+                if ((float)$payment->amount !== (float)$stripeAmount) {
+                    throw new \Exception('Amount mismatch');
                 }
+
+                $payment->update([
+                    'status' => 'paid',
+                    'transaction_id' => $session->payment_intent ?? $session->id,
+                    'paid_at' => now(),
+                ]);
+
+                $this->createEnrollment($payment, $session->metadata->batch_id);
+
+                DB::commit();
+
+            } catch (\Throwable $e) {
+                DB::rollBack();
+            }
+        }
+
+        if ($type === 'checkout.session.async_payment_failed') {
+
+            $payment = Payment::find($session->metadata->payment_id ?? null);
+
+            if ($payment) {
+                $payment->update([
+                    'status' => 'failed'
+                ]);
+            }
+        }
+
+        if ($type === 'checkout.session.expired') {
+
+            $session = $event->data->object;
+
+            if (empty($session->metadata->payment_id)) {
+                return response()->json(['error' => 'Missing metadata'], 400);
+            }
+
+            $payment = Payment::find($session->metadata->payment_id);
+
+            if (!$payment) {
+                return;
+            }
+
+            if ($payment->status === 'pending') {
+                $payment->update([
+                    'status' => 'failed'
+                ]);
             }
         }
 
@@ -63,8 +113,11 @@ class WebhookController extends Controller
     {
         $batch = Batch::with('class')->findOrFail($batchId);
 
-        if (Enrollment::where('user_id', $payment->user_id)
-            ->where('batch_id', $batchId)->exists()) {
+        $exists = Enrollment::where('user_id', $payment->user_id)
+            ->where('batch_id', $batchId)
+            ->exists();
+
+        if ($exists) {
             return;
         }
 
@@ -77,7 +130,9 @@ class WebhookController extends Controller
             'expiry_date' => now()->addDays($batch->class->duration_in_days),
         ]);
 
-        $batch->increment('filled_seat');
+        if ($batch->filled_seat < $batch->total_seat) {
+            $batch->increment('filled_seat');
+        }
 
         $payment->update([
             'enrollment_id' => $enrollment->id
