@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\AvailabilityController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\WebhookController;
 
 Route::get('/login', function () {
@@ -81,6 +82,10 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
 
     Route::get('/settings', [SettingController::class, 'show']);
     Route::post('/settings', [SettingController::class, 'update']);
+
+    //payment
+    Route::patch('/set-transaction-id/{id}', [TransactionController::class, 'setTransactionId']);
+
     });
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
@@ -98,13 +103,18 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 
 Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
 
-
-
 });
 
 Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(function () {
 
     Route::post('create-payment', [PaymentController::class, 'createPayment']);
+    Route::post('verify-payment', [TransactionController::class, 'verifyPayment']);
+
+});
+
+Route::middleware(['auth:api', 'role:admin|student'])->group(function () {
+
+    Route::get('/payments', [TransactionController::class, 'index']);
 
 });
 

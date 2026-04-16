@@ -13,7 +13,6 @@ use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
-use Propaganistas\LaravelPhone\PhoneNumber;
 
 class AuthController extends Controller
 {
@@ -141,8 +140,6 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
-            'mobile'   => 'required',
-            'country'  => 'required|string|size:2',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
@@ -158,19 +155,9 @@ class AuthController extends Controller
 
         try {
 
-            Validator::make($request->all(), [
-                'mobile' => 'phone:' . $request->country,
-            ])->validate();
-
-            $formattedMobile = (new PhoneNumber(
-                $request->mobile,
-                strtoupper($request->country)
-            ))->formatE164();
-
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
-                'mobile' => $formattedMobile,
                 'password' => bcrypt($request->password),
                 'department' => 'Student',
                 'suspend_status' => 0,

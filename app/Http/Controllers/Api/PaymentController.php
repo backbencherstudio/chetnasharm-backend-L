@@ -24,6 +24,7 @@ class PaymentController extends Controller
         ]);
 
         $user = auth('api')->user();
+
         $batch = Batch::with('class')->findOrFail($request->batch_id);
 
         if ($batch->filled_seat >= $batch->total_seat) {
@@ -33,20 +34,46 @@ class PaymentController extends Controller
             ], 400);
         }
 
-        $already = Enrollment::where('user_id', $user->id)
+        $enrollment = Enrollment::where('user_id', $user->id)
             ->where('batch_id', $batch->id)
-            ->exists();
+            ->first();
 
-        if ($already) {
+        if ($enrollment && $enrollment->expiry_date && $enrollment->expiry_date->isFuture()) {
             return response()->json([
                 'status' => false,
-                'message' => 'Already enrolled'
-            ], 400);
+                'message' => 'Already enrolled and active',
+                'expiry_date' => $enrollment->expiry_date
+            ], 409);
         }
 
         DB::beginTransaction();
 
         try {
+
+            $payment = Payment::where('user_id', $user->id)
+                ->where('batch_id', $batch->id)
+                ->latest()
+                ->first();
+
+            if ($payment && $payment->status !== 'paid') {
+
+                DB::commit();
+
+                return $this->handlePayment($payment, $batch);
+            }
+
+            if ($payment && $payment->status === 'paid') {
+
+                if ($enrollment && $enrollment->expiry_date && $enrollment->expiry_date->isFuture()) {
+                    DB::rollBack();
+
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Already enrolled'
+                    ], 409);
+                }
+            }
+
             $payment = Payment::create([
                 'payment_id' => $this->generatePaymentId(),
                 'user_id' => $user->id,
@@ -59,32 +86,11 @@ class PaymentController extends Controller
 
             DB::commit();
 
-            if ($request->payment_method === 'stripe') {
-                return $this->stripeCheckout($payment, $batch);
-            }
-
-            if ($request->payment_method === 'paypal') {
-                return $this->paypalCheckout($payment, $batch);
-            }
-
-            if ($request->payment_method === 'token') {
-
-                $support_number=Setting::first()->support_number;
-
-                return response()->json([
-                    'status' => true,
-                    'message' => 'Contact support through whatsapp to complete payment and enrollment. Send payment ID for reference.',
-                    'payment_id' => $payment->payment_id,
-                    'support_number' => $support_number
-                ]);
-            }
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid payment method'
-            ], 400);
+            return $this->handlePayment($payment, $batch);
 
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return response()->json([
                 'status' => false,
                 'message' => 'Payment creation failed',
@@ -92,6 +98,35 @@ class PaymentController extends Controller
             ], 500);
         }
     }
+
+    private function handlePayment($payment, $batch)
+    {
+        if ($payment->payment_method === 'stripe') {
+            return $this->stripeCheckout($payment, $batch);
+        }
+
+        if ($payment->payment_method === 'paypal') {
+            return $this->paypalCheckout($payment, $batch);
+        }
+
+        if ($payment->payment_method === 'token') {
+
+            $support_number = Setting::first()->support_number;
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Contact support through whatsapp to complete payment and enrollment. Send payment ID for reference.',
+                'payment_id' => $payment->payment_id,
+                'support_number' => $support_number
+            ]);
+        }
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid payment method'
+        ], 400);
+    }
+
 
     public function stripeCheckout($payment, $batch)
     {
