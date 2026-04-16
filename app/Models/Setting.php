@@ -10,7 +10,6 @@ class Setting extends Model
 
     protected $fillable = [
         'class_time',
+        'support_number'
     ];
-    
-    public $timestamps = false;
 }

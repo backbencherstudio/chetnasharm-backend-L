@@ -23,14 +23,21 @@ class SettingController extends Controller
     {
         $request->validate([
             'class_time' => 'required|integer|min:1',
+            'support_number' => 'required|string|max:20'
         ]);
 
         $setting = Setting::first();
 
         if ($setting) {
-            $setting->update(['class_time' => $request->class_time]);
+            $setting->update([
+                'class_time' => $request->class_time,
+                'support_number' => $request->support_number
+            ]);
         } else {
-            $setting = Setting::create(['class_time' => $request->class_time]);
+            $setting = Setting::create([
+                'class_time' => $request->class_time,
+                'support_number' => $request->support_number
+            ]);
         }
 
         return response()->json([
