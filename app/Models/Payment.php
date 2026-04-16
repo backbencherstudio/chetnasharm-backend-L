@@ -10,7 +10,9 @@ class Payment extends Model
     use HasFactory;
 
     protected $fillable = [
+        'payment_id',
         'user_id',
+        'batch_id',
         'enrollment_id',
         'amount',
         'currency',
@@ -33,5 +35,10 @@ class Payment extends Model
     public function enrollment()
     {
         return $this->belongsTo(Enrollment::class);
+    }
+
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

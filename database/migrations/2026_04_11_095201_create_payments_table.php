@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-
+            $table->string('payment_id',10)->unique();
             $table->foreignId('user_id')
                 ->constrained()
                 ->cascadeOnDelete();
@@ -19,12 +19,16 @@ return new class extends Migration
                 ->nullable()
                 ->constrained()
                 ->nullOnDelete();
+            $table->foreignId('batch_id')
+                ->nullable()
+                ->constrained()
+                ->nullOnDelete();
 
             $table->decimal('amount', 10, 2);
 
             $table->string('currency', 10)->default('USD');
 
-            $table->enum('payment_method', ['paypal', 'stripe', 'manual']);
+            $table->enum('payment_method', ['paypal', 'stripe', 'token']);
 
             $table->string('transaction_id')->nullable()->unique();
 

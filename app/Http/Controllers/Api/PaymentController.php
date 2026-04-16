@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\Enrollment;
 use App\Models\Payment;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Stripe\Stripe;
@@ -47,7 +48,9 @@ class PaymentController extends Controller
 
         try {
             $payment = Payment::create([
+                'payment_id' => $this->generatePaymentId(),
                 'user_id' => $user->id,
+                'batch_id' => $batch->id,
                 'amount' => $batch->class->price,
                 'currency' => 'USD',
                 'payment_method' => $request->payment_method,
@@ -64,11 +67,21 @@ class PaymentController extends Controller
                 return $this->paypalCheckout($payment, $batch);
             }
 
+            if ($request->payment_method === 'token') {
+
+                $support_number=Setting::first()->support_number;
+
+                return response()->json([
+                    'status' => true,
+                    'message' => 'Contact support through whatsapp to complete payment and enrollment. Send payment ID for reference.',
+                    'payment_id' => $payment->payment_id,
+                    'support_number' => $support_number
+                ]);
+            }
             return response()->json([
-                'status' => true,
-                'message' => 'Manual payment initiated',
-                'payment_id' => $payment->id
-            ]);
+                'status' => false,
+                'message' => 'Invalid payment method'
+            ], 400);
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -350,6 +363,15 @@ class PaymentController extends Controller
 
             return $enrollment;
         });
+    }
+
+    private function generatePaymentId()
+    {
+        do {
+            $paymentId = rand(100000, 999999);
+        } while (Payment::where('payment_id', $paymentId)->exists());
+
+        return $paymentId;
     }
 
 }
