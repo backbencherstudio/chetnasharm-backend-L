@@ -34,11 +34,18 @@ class PaymentController extends Controller
             ], 400);
         }
 
+        if ($batch->start_date && $batch->start_date->isPast()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Batch has already started'
+            ], 400);
+        }
+
         $enrollment = Enrollment::where('user_id', $user->id)
             ->where('batch_id', $batch->id)
             ->first();
 
-        if ($enrollment && $enrollment->expiry_date && $enrollment->expiry_date->isFuture()) {
+        if ($enrollment) {
             return response()->json([
                 'status' => false,
                 'message' => 'Already enrolled and active',
@@ -56,6 +63,13 @@ class PaymentController extends Controller
                 ->first();
 
             if ($payment && $payment->status !== 'paid') {
+
+                $payment->update([
+                    'payment_method' => $request->payment_method,
+                    'amount' => $batch->class->price,
+                ]);
+
+                $payment->refresh();
 
                 DB::commit();
 
@@ -365,9 +379,7 @@ class PaymentController extends Controller
     {
         return DB::transaction(function () use ($payment, $batchId) {
 
-            $batch = Batch::with('class')
-                ->lockForUpdate()
-                ->findOrFail($batchId);
+            $batch = Batch::lockForUpdate()->findOrFail($batchId);
 
             $exists = Enrollment::where('user_id', $payment->user_id)
                 ->where('batch_id', $batchId)
@@ -387,7 +399,7 @@ class PaymentController extends Controller
                 'class_id' => $batch->class_id,
                 'status' => 'active',
                 'enrolled_at' => now(),
-                'expiry_date' => now()->addDays($batch->class->duration_in_days),
+                'expiry_date' => $batch->end_date ? $batch->end_date : null,
             ]);
 
             $batch->increment('filled_seat');

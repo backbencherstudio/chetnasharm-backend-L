@@ -49,6 +49,10 @@ class WebhookController extends Controller
                 return response()->json(['status' => 'already processed']);
             }
 
+            if ($payment->transaction_id === ($session->payment_intent ?? $session->id)) {
+                return response()->json(['status' => 'already processed']);
+            }
+
             DB::beginTransaction();
 
             try {
@@ -71,6 +75,13 @@ class WebhookController extends Controller
 
             } catch (\Throwable $e) {
                 DB::rollBack();
+
+                Log::error('Stripe webhook error', [
+                    'error' => $e->getMessage(),
+                    'payload' => $payload
+                ]);
+
+                return response()->json(['error' => 'Processing failed'], 500);
             }
         }
 
@@ -111,31 +122,38 @@ class WebhookController extends Controller
 
     private function createEnrollment($payment, $batchId)
     {
-        $batch = Batch::with('class')->findOrFail($batchId);
+        return DB::transaction(function () use ($payment, $batchId) {
 
-        $exists = Enrollment::where('user_id', $payment->user_id)
-            ->where('batch_id', $batchId)
-            ->exists();
+            $batch = Batch::lockForUpdate()->findOrFail($batchId);
 
-        if ($exists) {
-            return;
-        }
+            $exists = Enrollment::where('user_id', $payment->user_id)
+                ->where('batch_id', $batchId)
+                ->exists();
 
-        $enrollment = Enrollment::create([
-            'user_id' => $payment->user_id,
-            'batch_id' => $batch->id,
-            'class_id' => $batch->class_id,
-            'status' => 'active',
-            'enrolled_at' => now(),
-            'expiry_date' => now()->addDays($batch->class->duration_in_days),
-        ]);
+            if ($exists) {
+                return null;
+            }
 
-        if ($batch->filled_seat < $batch->total_seat) {
+            if ($batch->filled_seat >= $batch->total_seat) {
+                throw new \Exception('Batch is full');
+            }
+
+            $enrollment = Enrollment::create([
+                'user_id' => $payment->user_id,
+                'batch_id' => $batch->id,
+                'class_id' => $batch->class_id,
+                'status' => 'active',
+                'enrolled_at' => now(),
+                'expiry_date' => $batch->end_date ? $batch->end_date : null,
+            ]);
+
             $batch->increment('filled_seat');
-        }
 
-        $payment->update([
-            'enrollment_id' => $enrollment->id
-        ]);
+            $payment->update([
+                'enrollment_id' => $enrollment->id
+            ]);
+
+            return $enrollment;
+        });
     }
 }
