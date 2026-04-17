@@ -84,9 +84,9 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::post('/settings', [SettingController::class, 'update']);
 
     //payment
-    Route::patch('/set-transaction-id/{id}', [TransactionController::class, 'setTransactionId']);
+    Route::post('/mark-as-paid/{id}', [TransactionController::class, 'markAsPaid']);
 
-    });
+});
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 
@@ -108,7 +108,6 @@ Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(functi
 Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(function () {
 
     Route::post('create-payment', [PaymentController::class, 'createPayment']);
-    Route::post('verify-payment', [TransactionController::class, 'verifyPayment']);
 
 });
 

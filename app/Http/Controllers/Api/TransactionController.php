@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Enrollment;
 use Illuminate\Http\Request;
 use App\Models\Payment;
 
@@ -53,7 +54,7 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function setTransactionId(Request $request, $id)
+    public function markAsPaid(Request $request, $id)
     {
         $payment = Payment::find($id);
 
@@ -65,31 +66,48 @@ class TransactionController extends Controller
             'transaction_id' => 'required|string|unique:payments,transaction_id',
         ]);
 
+        $batch = $payment->batch;
+
+        $exists = Enrollment::where('user_id', $payment->user_id)
+            ->where('batch_id', $batch->id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User is already enrolled in this batch'
+            ], 400);
+        }
+
+        if ($batch->filled_seat >= $batch->total_seat) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Batch is full'
+            ], 400);
+        }
+
+        $batch->increment('filled_seat');
+
+        $enrollment = Enrollment::create([
+            'user_id' => $payment->user_id,
+            'batch_id' => $batch->id,
+            'class_id' => $batch->class_id,
+            'status' => 'active',
+            'enrolled_at' => now(),
+            'expiry_date' => $batch->end_date ? $batch->end_date : null,
+        ]);
+
         $payment->transaction_id = $request->transaction_id;
+        $payment->status = 'paid';
+        $payment->paid_at = now();
+        $payment->enrollment_id = $enrollment->id;
         $payment->save();
 
-        return response()->json(['success' => true, 'message' => 'Transaction ID updated successfully']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaction & enrollment successful'
+        ],200);
     }
 
-    // public function verifyPayment(Request $request)
-    // {
-    //     $request->validate([
-    //         'payment_id' => 'required|string|exists:payments,payment_id',
-    //         'transaction_id' => 'required|string',
-    //     ]);
-
-    //     $payment = Payment::where('payment_id', $request->payment_id)->first();
-
-    //     if (!$payment) {
-    //         return response()->json(['success' => false, 'message' => 'Payment not found'], 404);
-    //     }
-
-    //     if ($payment->transaction_id === $request->transaction_id) {
-    //         return response()->json(['success' => true, 'message' => 'Payment is valid and already paid']);
-    //     }
-    //     else {
-    //         return response()->json(['success' => false, 'message' => 'Payment is not valid or not paid']);
-    //     }
-    // }
 }
 
