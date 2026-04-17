@@ -12,6 +12,8 @@ return new class extends Migration
             $table->id();
             $table->integer('class_time');
             $table->string('support_number', 20);
+            $table->string('support_email', 255);
+            $table->integer('class_notify_time');
             $table->timestamps();
 
         });

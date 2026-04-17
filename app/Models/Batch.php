@@ -40,4 +40,9 @@ class Batch extends Model
     {
         return $this->belongsTo(Teacher::class, 'teacher_id');
     }
+    public function students()
+    {
+        return $this->belongsToMany(User::class, 'enrollments');
+    }
+
 }
