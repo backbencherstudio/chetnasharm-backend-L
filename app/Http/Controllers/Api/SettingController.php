@@ -23,7 +23,9 @@ class SettingController extends Controller
     {
         $request->validate([
             'class_time' => 'required|integer|min:1',
-            'support_number' => 'required|string|max:20'
+            'support_number' => 'required|string|max:20',
+            'support_email' => 'required|email|max:255',
+            'class_notify_time' => 'required|integer|min:1'
         ]);
 
         $setting = Setting::first();
@@ -31,12 +33,16 @@ class SettingController extends Controller
         if ($setting) {
             $setting->update([
                 'class_time' => $request->class_time,
-                'support_number' => $request->support_number
+                'support_number' => $request->support_number,
+                'support_email' => $request->support_email,
+                'class_notify_time' => $request->class_notify_time
             ]);
         } else {
             $setting = Setting::create([
                 'class_time' => $request->class_time,
-                'support_number' => $request->support_number
+                'support_number' => $request->support_number,
+                'support_email' => $request->support_email,
+                'class_notify_time' => $request->class_notify_time
             ]);
         }
 

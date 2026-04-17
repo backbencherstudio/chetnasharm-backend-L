@@ -10,6 +10,8 @@ class Setting extends Model
 
     protected $fillable = [
         'class_time',
-        'support_number'
+        'support_number',
+        'support_email',
+        'class_notify_time',
     ];
 }
