@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\NotificationLog;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -30,6 +31,18 @@ class ClassReminderNotification extends Notification implements ShouldQueue
     public function toMail($notifiable)
     {
         $time = Carbon::parse($this->schedule->start_time)->format('h:i A');
+
+        $message = "Your class {$this->batch->name} starts at {$time}";
+
+        NotificationLog::create([
+            'user_id' => $notifiable->id,
+            'batch_id' => $this->batch->id,
+            'type' => 'email',
+            'message_type' => 'class_reminder',
+            'message' => $message,
+            'status' => 'sent',
+            'sent_at' => now(),
+        ]);
 
         return (new MailMessage)
             ->subject('Class Reminder')

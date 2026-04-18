@@ -4,6 +4,7 @@ namespace App\Notifications\Channels;
 
 use Twilio\Rest\Client;
 use Illuminate\Support\Facades\Log;
+use App\Models\NotificationLog;
 
 class WhatsAppChannel
 {
@@ -14,16 +15,21 @@ class WhatsAppChannel
         }
 
         $data = $notification->toWhatsapp($notifiable);
+
         if (!$data) {
             return;
         }
-        Log::info('Sending WhatsApp to ' . $data['to'] . ': ' . $data['message']);
-        $twilio = new Client(
-            config('services.twilio.sid'),
-            config('services.twilio.token')
-        );
+
+        $status = 'sent';
+        $errorMessage = null;
 
         try {
+
+            $twilio = new Client(
+                config('services.twilio.sid'),
+                config('services.twilio.token')
+            );
+
             $twilio->messages->create(
                 "whatsapp:" . $data['to'],
                 [
@@ -31,8 +37,22 @@ class WhatsAppChannel
                     'body' => $data['message'],
                 ]
             );
+
         } catch (\Exception $e) {
-            Log::error('WhatsApp failed: ' . $e->getMessage());
+            $status = 'failed';
+            $errorMessage = $e->getMessage();
+
+            Log::error('WhatsApp failed: ' . $errorMessage);
         }
+
+        NotificationLog::create([
+            'user_id' => $notifiable->id,
+            'batch_id' => $notification->batch->id ?? null,
+            'type' => 'whatsapp',
+            'message_type' => 'class_reminder',
+            'message' => $data['message'],
+            'status' => $status,
+            'sent_at' => now(),
+        ]);
     }
 }

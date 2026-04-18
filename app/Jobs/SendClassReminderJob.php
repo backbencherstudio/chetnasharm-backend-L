@@ -22,33 +22,47 @@ class SendClassReminderJob implements ShouldQueue
         $now = Carbon::now();
         $targetTime = $now->copy()->addMinutes($minutes);
 
-        $schedules = BatchSchedule::with([
-                'batch.students',
-                'batch.teacher.user'
+        BatchSchedule::with([
+                'batch.teacher.user:id,name,email,mobile',
+                'batch.enrollments.user:id,name,email,mobile'
             ])
+            ->where(function ($query) {
+                $query->whereNull('reminder_sent_date')
+                      ->orWhereDate('reminder_sent_date', '!=', now()->toDateString());
+            })
             ->whereBetween('start_time', [
                 $targetTime->copy()->subMinute(),
                 $targetTime->copy()->addMinute()
             ])
-            ->get();
+            ->chunkById(200, function ($schedules) {
 
-        foreach ($schedules as $schedule) {
+                foreach ($schedules as $schedule) {
 
-            $batch = $schedule->batch;
+                    $batch = $schedule->batch;
 
-            if ($batch->teacher?->user) {
-                $batch->teacher->user->notify(
-                    new ClassReminderNotification($batch, $schedule)
-                );
-            }
+                    $teacherUser = $batch?->teacher?->user;
 
-            foreach ($batch->students as $student) {
-                $student->notify(
-                    new ClassReminderNotification($batch, $schedule)
-                );
-            }
+                    if ($teacherUser) {
+                        $teacherUser->notify(
+                            new ClassReminderNotification($batch, $schedule)
+                        );
+                    }
 
-            $schedule->update(['reminder_sent' => true]);
-        }
+                    foreach ($batch->enrollments as $enrollment) {
+
+                        $student = $enrollment->user;
+
+                        if ($student) {
+                            $student->notify(
+                                new ClassReminderNotification($batch, $schedule)
+                            );
+                        }
+                    }
+
+                    $schedule->update([
+                        'reminder_sent_date' => now()->toDateString(),
+                    ]);
+                }
+            });
     }
 }
