@@ -21,6 +21,7 @@ return new class extends Migration {
             $table->tinyInteger('day_of_week'); // 0 (Sunday) - 6 (Saturday)
             $table->time('start_time');
             $table->time('end_time');
+            $table->date('reminder_sent_date')->nullable();
 
             $table->timestamps();
 
