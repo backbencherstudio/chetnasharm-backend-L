@@ -10,6 +10,7 @@ use App\Models\Batch;
 use App\Models\BatchSchedule;
 use App\Models\Setting;
 use App\Notifications\ClassReminderNotification;
+use Illuminate\Support\Facades\Log;
 
 class SendClassReminderJob implements ShouldQueue
 {
@@ -40,22 +41,43 @@ class SendClassReminderJob implements ShouldQueue
 
                     $batch = $schedule->batch;
 
-                    $teacherUser = $batch?->teacher?->user;
+                    if (!$batch) {
+                        continue;
+                    }
 
-                    if ($teacherUser) {
-                        $teacherUser->notify(
-                            new ClassReminderNotification($batch, $schedule)
-                        );
+                    try {
+                        $teacherUser = $batch?->teacher?->user;
+
+                        if ($teacherUser) {
+                            $teacherUser->notify(
+                                new ClassReminderNotification($batch, $schedule)
+                            );
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Teacher notify failed', [
+                            'schedule_id' => $schedule->id,
+                            'error' => $e->getMessage()
+                        ]);
                     }
 
                     foreach ($batch->enrollments as $enrollment) {
 
                         $student = $enrollment->user;
 
-                        if ($student) {
+                        if (!$student) {
+                            continue;
+                        }
+
+                        try {
                             $student->notify(
                                 new ClassReminderNotification($batch, $schedule)
                             );
+                        } catch (\Exception $e) {
+                            Log::error('Student notify failed', [
+                                'user_id' => $student->id,
+                                'schedule_id' => $schedule->id,
+                                'error' => $e->getMessage()
+                            ]);
                         }
                     }
 

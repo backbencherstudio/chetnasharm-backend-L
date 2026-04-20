@@ -120,38 +120,3 @@ Route::middleware(['auth:api', 'role:admin|student'])->group(function () {
 });
 
 Route::post('/stripe/webhook', [WebhookController::class, 'stripeWebhook']);
-
-Route::get('/test-meta', function () {
-
-    $response = Http::withToken(config('services.whatsapp.token'))
-        ->post(
-            config('services.whatsapp.url') . '/' . config('services.whatsapp.phone_number_id') . '/messages',
-            [
-                'messaging_product' => 'whatsapp',
-                'to' => '8801620925191',
-                'type' => 'template',
-                'template' => [
-                    'name' => 'class_reminder',
-                    'language' => [
-                        'code' => 'en'
-                    ],
-                    'components' => [
-                        [
-                            'type' => 'body',
-                            'parameters' => [
-                                ['type' => 'text', 'text' => 'John Doe'],
-                                ['type' => 'text', 'text' => 'IELTS Batch'],
-                                ['type' => 'text', 'text' => '10:00 AM'],
-                                ['type' => 'text', 'text' => 'https://zoom.us/j/123']
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        );
-
-    return [
-        'status' => $response->status(),
-        'body' => $response->json()
-    ];
-});
