@@ -58,7 +58,7 @@
                 <tr>
                     <td style="background:#f9fafb; padding:14px; text-align:center;">
                         <p style="font-size:11px; color:#4b4b4b; margin:0;">
-                            © {{ date('Y') }} Listenact
+                            © {{ date('Y') }} {{ config('app.name') }}
                         </p>
                     </td>
                 </tr>
