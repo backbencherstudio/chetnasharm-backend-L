@@ -422,4 +422,68 @@ class BatchController extends Controller
         ]);
     }
 
+    public function teacherBatch(Request $request)
+    {
+        $perPage  = $request->query('limit', $request->query('per_page', 10));
+        $search   = $request->query('search');
+        $teacher  = $request->query('teacher_id');
+        $classId  = $request->query('class_id');
+        $status   = $request->query('status');
+
+        $query = Batch::select([
+                'id', 'class_id', 'teacher_id', 'name',
+                'total_seat', 'filled_seat',
+                'start_date', 'end_date', 'status', 'active_status'
+            ])
+            ->with([
+                'class:id,title',
+                'teacher:id,user_id',
+                'teacher.user:id,name,suspend_status',
+                'schedules:id,batch_id,day_of_week,start_time,end_time'
+            ])
+
+            ->whereHas('teacher.user', function ($q) {
+                $q->where('suspend_status', 0);
+            });
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                ->orWhereHas('class', fn($q2) => $q2->where('title', 'like', "%{$search}%"))
+                ->orWhereHas('teacher.user', fn($q3) => $q3->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        $query->when($teacher, fn($q) => $q->where('teacher_id', $teacher))
+            ->when($classId, fn($q) => $q->where('class_id', $classId))
+            ->when($status, fn($q) => $q->where('status', $status));
+
+        if ($request->start_date && $request->end_date) {
+            $query->where(function ($q) use ($request) {
+                $q->where('start_date', '<=', $request->end_date)
+                ->where('end_date', '>=', $request->start_date);
+            });
+        }
+
+        if ($request->day_of_week !== null) {
+            $query->whereHas('schedules', function ($q) use ($request) {
+                $q->where('day_of_week', $request->day_of_week);
+            });
+        }
+
+        $batches = $query->latest()->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batch list fetched successfully',
+            'data' => $batches->items(),
+            'pagination' => [
+                'current_page' => $batches->currentPage(),
+                'per_page'     => $batches->perPage(),
+                'total'        => $batches->total(),
+                'last_page'    => $batches->lastPage(),
+            ]
+        ]);
+    }
+
 }

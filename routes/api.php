@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\AvailabilityController;
+use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TransactionController;
@@ -101,9 +102,13 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 
     Route::get('teachers-schedule', [AvailabilityController::class, 'teacherSchedule']);
 
+    Route::get('/enrollments/{batchId}', [EnrollmentController::class, 'getEnrollmentsByBatch']);
+    
 });
 
 Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
+
+    Route::get('/batches', [BatchController::class, 'teacherBatch']);
 
 });
 
