@@ -20,6 +20,10 @@ class SendClassReminderJob implements ShouldQueue
     {
         $minutes = Setting::value('class_notify_time');
 
+        if ($minutes <= 0) {
+            $minutes = 20;
+        }
+
         $now = Carbon::now();
         $targetTime = $now->copy()->addMinutes($minutes);
 
