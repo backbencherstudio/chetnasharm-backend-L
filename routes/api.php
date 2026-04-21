@@ -111,6 +111,9 @@ Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(functi
 
     Route::post('create-payment', [PaymentController::class, 'createPayment']);
 
+    //Whatsapp
+    Route::post('whatsapp-number', [UserController::class, 'updateWhatsapp']);
+
 });
 
 Route::middleware(['auth:api', 'role:admin|student'])->group(function () {

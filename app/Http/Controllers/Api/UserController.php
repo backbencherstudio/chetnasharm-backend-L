@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
+use Propaganistas\LaravelPhone\PhoneNumber;
 
 class UserController extends Controller
 {
@@ -384,6 +385,39 @@ class UserController extends Controller
                 'image_url'      => $user->image_url,
             ],
         ], 200);
+    }
+
+    public function updateWhatsapp(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'mobile'  => 'required|string',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        try {
+            $phone = phone($request->mobile);
+
+            $mobile = $phone->formatE164();
+
+            $user->update([
+                'mobile' => $mobile,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'WhatsApp number updated successfully',
+                'mobile'  => $mobile,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid phone number format',
+                'error' => $e->getMessage(),
+            ], 422);
+        }
     }
 
 }
