@@ -7,6 +7,8 @@ use App\Models\Batch;
 use App\Models\Enrollment;
 use App\Models\Payment;
 use App\Models\Setting;
+use App\Models\User;
+use App\Notifications\EnrollmentNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Stripe\Stripe;
@@ -407,6 +409,9 @@ class PaymentController extends Controller
             $payment->update([
                 'enrollment_id' => $enrollment->id
             ]);
+
+            $user = User::find($payment->user_id);
+            $user->notify(new EnrollmentNotification($enrollment));
 
             return $enrollment;
         });

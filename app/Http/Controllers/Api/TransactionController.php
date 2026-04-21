@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use Illuminate\Http\Request;
 use App\Models\Payment;
+use App\Models\User;
+use App\Notifications\EnrollmentNotification;
+use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
@@ -86,27 +89,46 @@ class TransactionController extends Controller
             ], 400);
         }
 
-        $batch->increment('filled_seat');
+        DB::beginTransaction();
 
-        $enrollment = Enrollment::create([
-            'user_id' => $payment->user_id,
-            'batch_id' => $batch->id,
-            'class_id' => $batch->class_id,
-            'status' => 'active',
-            'enrolled_at' => now(),
-            'expiry_date' => $batch->end_date ? $batch->end_date : null,
-        ]);
+        try {
 
-        $payment->transaction_id = $request->transaction_id;
-        $payment->status = 'paid';
-        $payment->paid_at = now();
-        $payment->enrollment_id = $enrollment->id;
-        $payment->save();
+            $batch->increment('filled_seat');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Transaction & enrollment successful'
-        ],200);
+            $enrollment = Enrollment::create([
+                'user_id' => $payment->user_id,
+                'batch_id' => $batch->id,
+                'class_id' => $batch->class_id,
+                'status' => 'active',
+                'enrolled_at' => now(),
+                'expiry_date' => $batch->end_date ? $batch->end_date : null,
+            ]);
+
+            $payment->transaction_id = $request->transaction_id;
+            $payment->status = 'paid';
+            $payment->paid_at = now();
+            $payment->enrollment_id = $enrollment->id;
+            $payment->save();
+
+            $user = User::find($payment->user_id);
+            $user->notify(new EnrollmentNotification($enrollment));
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaction & enrollment successful'
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
 }

@@ -9,6 +9,8 @@ use Stripe\Webhook;
 use App\Models\Payment;
 use App\Models\Enrollment;
 use App\Models\Batch;
+use App\Models\User;
+use App\Notifications\EnrollmentNotification;
 
 class WebhookController extends Controller
 {
@@ -152,6 +154,9 @@ class WebhookController extends Controller
             $payment->update([
                 'enrollment_id' => $enrollment->id
             ]);
+
+            $user = User::find($payment->user_id);
+            $user->notify(new EnrollmentNotification($enrollment));
 
             return $enrollment;
         });
