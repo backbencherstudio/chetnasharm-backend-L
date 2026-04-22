@@ -486,4 +486,18 @@ class BatchController extends Controller
         ]);
     }
 
+    public function getBatchesByClass($classId)
+    {
+        $batches = Batch::where('class_id', $classId)
+            ->select('id', 'name', 'total_seat', 'filled_seat')
+            ->where('active_status', 1)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batches fetched successfully',
+            'data' => $batches
+        ]);
+    }
+
 }

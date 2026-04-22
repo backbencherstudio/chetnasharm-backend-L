@@ -78,6 +78,9 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::delete('/batches/{id}', [BatchController::class, 'destroy']);
     Route::patch('/batch-active-status/{id}', [BatchController::class, 'status']);
 
+    Route::get('/batches-by-class/{classId}', [BatchController::class, 'getBatchesByClass']);
+    Route::post('/change-batch', [EnrollmentController::class, 'changeBatch']);
+
     Route::get('/class-list', [BatchController::class, 'classList']);
     Route::get('/teacher-list', [BatchController::class, 'teacherList']);
     Route::get('teacher-availablity/by-date', [AvailabilityController::class, 'availabilityByDate']);
