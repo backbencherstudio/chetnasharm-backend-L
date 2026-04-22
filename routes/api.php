@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\WebhookController;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Http;
@@ -45,6 +46,7 @@ Route::middleware('auth:api')->group(function () {
 
     Route::post('/update-password', [UserController::class, 'updatePass']);
     Route::post('/profile-update', [UserController::class, 'profileUpdate']);
+
 });
 
 Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function () {
@@ -80,6 +82,8 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
 
     Route::get('/batches-by-class/{classId}', [BatchController::class, 'getBatchesByClass']);
     Route::post('/change-batch', [EnrollmentController::class, 'changeBatch']);
+    // Waitlist
+    Route::get('/waiting-list', [WaitlistController::class, 'getForAdmin']);
 
     Route::get('/class-list', [BatchController::class, 'classList']);
     Route::get('/teacher-list', [BatchController::class, 'teacherList']);
@@ -128,6 +132,10 @@ Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(functi
 
     //Whatsapp
     Route::post('whatsapp-number', [UserController::class, 'updateWhatsapp']);
+
+    Route::get('/waiting-list', [WaitlistController::class, 'getForUser']);
+    Route::post('/waiting-list', [WaitlistController::class, 'store']);
+    // Route::delete('/waitlist/{batchId}', [WaitlistController::class, 'destroy']);
 
 });
 
