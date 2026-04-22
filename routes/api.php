@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\WebhookController;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Http;
@@ -103,12 +104,18 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
     Route::get('teachers-schedule', [AvailabilityController::class, 'teacherSchedule']);
 
     Route::get('/enrollments/{batchId}', [EnrollmentController::class, 'getEnrollmentsByBatch']);
-    
+
+    Route::get('attendance-monthly/{batchId}', [AttendanceController::class, 'getMonthlyAttendance']);
+    Route::get('attendances/{batchId}', [AttendanceController::class, 'getAttendanceSheet']);
+    Route::post('attendance-save', [AttendanceController::class, 'store']);
+    Route::post('attendance-single', [AttendanceController::class, 'updateSingle']);
+
 });
 
 Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
 
     Route::get('/batches', [BatchController::class, 'teacherBatch']);
+
 
 });
 
