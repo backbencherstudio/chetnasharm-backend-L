@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use Illuminate\Http\Request;
 use App\Models\ClassModel;
+use App\Models\Enrollment;
 use Illuminate\Support\Facades\Storage;
 
 class ClassController extends Controller
@@ -144,8 +145,11 @@ class ClassController extends Controller
         $query = ClassModel::where('is_active', 1);
 
         if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
+            $search = trim($request->search);
+            $query->where('title', 'like', "%{$search}%");
         }
+
+        $perPage = $request->get('per_page', 10);
 
         $classes = $query
             ->select(
@@ -158,19 +162,31 @@ class ClassController extends Controller
                 'image'
             )
             ->latest()
-            ->get();
+            ->paginate($perPage);
 
         return response()->json([
             'success' => true,
             'message' => 'Classes fetched successfully',
-            'data' => $classes
+
+            'data' => $classes->items(),
+
+            'pagination' => [
+                'current_page' => $classes->currentPage(),
+                'per_page'     => $classes->perPage(),
+                'total'        => $classes->total(),
+                'last_page'    => $classes->lastPage(),
+            ]
         ]);
     }
 
     public function landBatch(Request $request, $classId)
     {
-        $batches = Batch::where('class_id', $classId)
-            ->where('active_status', 1)
+        $query = Batch::where('class_id', $classId)
+            ->where('active_status', 1);
+
+        $perPage = min($request->get('per_page', 10), 50);
+
+        $batches = $query
             ->select(
                 'id',
                 'class_id',
@@ -187,12 +203,67 @@ class ClassController extends Controller
                 'schedules:id,batch_id,day_of_week,start_time,end_time'
             ])
             ->latest()
-            ->get();
+            ->paginate($perPage);
 
         return response()->json([
             'success' => true,
             'message' => 'Batches fetched successfully',
-            'data' => $batches
+
+            'data' => $batches->items(),
+
+            'pagination' => [
+                'current_page' => $batches->currentPage(),
+                'per_page'     => $batches->perPage(),
+                'total'        => $batches->total(),
+                'last_page'    => $batches->lastPage(),
+            ]
         ]);
     }
+
+    public function singleBatch($batchId)
+    {
+        $user = auth('api')->user();
+
+        $batch = Batch::where('id', $batchId)
+            ->where('active_status', 1)
+            ->select(
+                'id',
+                'class_id',
+                'teacher_id',
+                'name',
+                'total_seat',
+                'filled_seat',
+                'start_date',
+                'end_date'
+            )
+            ->with([
+                'teacher:id,name,image,intro_video',
+                'class:id,title,image,description,price',
+                'schedules:id,batch_id,day_of_week,start_time,end_time'
+            ])
+            ->first();
+
+        if (!$batch) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Batch not found'
+            ], 404);
+        }
+
+        $enrolled = false;
+
+        if ($user) {
+            $enrolled = Enrollment::where('user_id', $user->id)
+                ->where('batch_id', $batchId)
+                ->exists();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batch fetched successfully',
+            'data' => $batch,
+            'enrolled_status' => $enrolled
+        ]);
+    }
+
 }

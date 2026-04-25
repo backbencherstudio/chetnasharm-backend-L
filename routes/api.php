@@ -41,6 +41,7 @@ Route::post('/refresh', [AuthController::class, 'refresh']);
 
 Route::get('/classes', [ClassController::class, 'landClass']);
 Route::get('/batches/{classId}', [ClassController::class, 'landBatch']);
+Route::get('single-batch/{batchId}', [ClassController::class, 'singleBatch']);
 
 Route::middleware('auth:api')->group(function () {
 
