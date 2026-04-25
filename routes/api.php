@@ -40,6 +40,7 @@ Route::get('/auth/google/callback', [AuthController::class, 'googleCallback']);
 Route::post('/refresh', [AuthController::class, 'refresh']);
 
 Route::get('/classes', [ClassController::class, 'landClass']);
+Route::get('single-class/{classId}', [ClassController::class,'singleClass']);
 Route::get('/batches/{classId}', [ClassController::class, 'landBatch']);
 Route::get('single-batch/{batchId}', [ClassController::class, 'singleBatch']);
 

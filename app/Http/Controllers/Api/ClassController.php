@@ -266,4 +266,33 @@ class ClassController extends Controller
         ]);
     }
 
+    public function singleClass($classId)
+    {
+        $class = ClassModel::where('id', $classId)
+            ->where('is_active', 1)
+            ->select(
+                'id',
+                'title',
+                'description',
+                'price',
+                'duration_in_days',
+                'total_classes',
+                'image'
+            )
+            ->first();
+
+        if (!$class) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Class not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Class fetched successfully',
+            'data' => $class
+        ]);
+    }
+
 }
