@@ -22,6 +22,8 @@ class Teacher extends Model
         'user_id',
     ];
 
+    protected $appends = ['image_url', 'intro_video_url'];
+    
     public function getImageUrlAttribute()
     {
         return $this->image ? asset('storage/' . $this->image) : null;

@@ -31,4 +31,11 @@ class ClassModel extends Model
     {
         return $this->image ? asset('storage/'.$this->image) : null;
     }
+
+    public function batches()
+    {
+        return $this->hasMany(Batch::class, 'class_id')
+            ->where('active_status', 1);
+    }
+
 }

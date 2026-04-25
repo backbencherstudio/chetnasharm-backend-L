@@ -39,6 +39,9 @@ Route::get('/auth/google/callback', [AuthController::class, 'googleCallback']);
 
 Route::post('/refresh', [AuthController::class, 'refresh']);
 
+Route::get('/classes', [ClassController::class, 'landClass']);
+Route::get('/batches/{classId}', [ClassController::class, 'landBatch']);
+
 Route::middleware('auth:api')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -46,6 +49,7 @@ Route::middleware('auth:api')->group(function () {
 
     Route::post('/update-password', [UserController::class, 'updatePass']);
     Route::post('/profile-update', [UserController::class, 'profileUpdate']);
+
 
 });
 

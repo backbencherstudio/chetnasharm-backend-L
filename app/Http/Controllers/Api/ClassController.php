@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Batch;
 use Illuminate\Http\Request;
 use App\Models\ClassModel;
 use Illuminate\Support\Facades\Storage;
@@ -135,6 +136,63 @@ class ClassController extends Controller
             'success' => true,
             'message' => 'Class status updated successfully',
             'status' => $class->is_active
+        ]);
+    }
+
+    public function landClass(Request $request)
+    {
+        $query = ClassModel::where('is_active', 1);
+
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%' . $request->search . '%');
+        }
+
+        $classes = $query
+            ->select(
+                'id',
+                'title',
+                'description',
+                'price',
+                'duration_in_days',
+                'total_classes',
+                'image'
+            )
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Classes fetched successfully',
+            'data' => $classes
+        ]);
+    }
+
+    public function landBatch(Request $request, $classId)
+    {
+        $batches = Batch::where('class_id', $classId)
+            ->where('active_status', 1)
+            ->select(
+                'id',
+                'class_id',
+                'teacher_id',
+                'name',
+                'total_seat',
+                'filled_seat',
+                'start_date',
+                'end_date'
+            )
+            ->with([
+                'teacher:id,name,image,intro_video',
+                'class:id,title,image',
+                'schedules:id,batch_id,day_of_week,start_time,end_time'
+            ])
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batches fetched successfully',
+            'data' => $batches
         ]);
     }
 }
