@@ -426,9 +426,18 @@ class BatchController extends Controller
     {
         $perPage  = $request->query('limit', $request->query('per_page', 10));
         $search   = $request->query('search');
-        $teacher  = $request->query('teacher_id');
-        $classId  = $request->query('class_id');
         $status   = $request->query('status');
+        
+        $user = auth('api')->user();
+
+        $teacher = Teacher::where('user_id', $user->id)->first();
+        
+        if (!$teacher) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: You are not a teacher'
+            ], 403);
+        }
 
         $query = Batch::select([
                 'id', 'class_id', 'teacher_id', 'name',
@@ -442,6 +451,7 @@ class BatchController extends Controller
                 'schedules:id,batch_id,day_of_week,start_time,end_time'
             ])
 
+            ->where('teacher_id', $teacher->id)
             ->whereHas('teacher.user', function ($q) {
                 $q->where('suspend_status', 0);
             });
@@ -454,9 +464,9 @@ class BatchController extends Controller
             });
         }
 
-        $query->when($teacher, fn($q) => $q->where('teacher_id', $teacher))
-            ->when($classId, fn($q) => $q->where('class_id', $classId))
-            ->when($status, fn($q) => $q->where('status', $status));
+        if ($status) {
+            $query->where('status', $status);
+        }
 
         if ($request->start_date && $request->end_date) {
             $query->where(function ($q) use ($request) {
