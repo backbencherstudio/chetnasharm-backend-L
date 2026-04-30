@@ -149,7 +149,7 @@ Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(functi
     Route::post('/waiting-list', [WaitlistController::class, 'store']);
     // Route::delete('/waitlist/{batchId}', [WaitlistController::class, 'destroy']);
 
-    Route::get('/recordings/{batchId}', [ClassRecordingController::class, 'index']);
+    Route::get('/recordings/{batchId}', [ClassRecordingController::class, 'forStudent']);
 
 });
 

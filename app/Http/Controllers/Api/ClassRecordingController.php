@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\ClassRecording;
+use App\Models\Enrollment;
 use App\Models\Teacher;
 use Illuminate\Http\Request;
 
@@ -193,6 +194,41 @@ class ClassRecordingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Recording deleted successfully'
+        ]);
+    }
+
+    public function forStudent(Request $request, $batch_id)
+    {
+        $user = auth('api')->user();
+
+        $isEnrolled = Enrollment::where('user_id', $user->id)
+            ->where('batch_id', $batch_id)
+            ->exists();
+
+        if (!$isEnrolled) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: You are not enrolled in this batch'
+            ], 403);
+        }
+
+        $query = ClassRecording::with('batch:id,name')
+            ->where('batch_id', $batch_id);
+
+        $perPage = $request->get('per_page', 10);
+
+        $recordings = $query->latest()->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Recordings retrieved successfully',
+            'data' => $recordings->items(),
+            'pagination' => [
+                'current_page' => $recordings->currentPage(),
+                'per_page'     => $recordings->perPage(),
+                'total'        => $recordings->total(),
+                'last_page'    => $recordings->lastPage(),
+            ]
         ]);
     }
 }
