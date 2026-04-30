@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\ClassRecordingController;
 use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\WebhookController;
 use GuzzleHttp\Client;
@@ -129,6 +130,11 @@ Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(functi
 
     Route::get('/batches', [BatchController::class, 'teacherBatch']);
 
+    Route::get('/recordings/{batchId}', [ClassRecordingController::class, 'index']);
+    Route::post('/recordings', [ClassRecordingController::class, 'store']);
+    Route::get('/edit-recording/{id}', [ClassRecordingController::class, 'show']);
+    Route::post('/recordings/{id}', [ClassRecordingController::class, 'update']);
+    Route::delete('/recordings/{id}', [ClassRecordingController::class, 'destroy']);
 
 });
 
@@ -142,6 +148,8 @@ Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(functi
     Route::get('/waiting-list', [WaitlistController::class, 'getForUser']);
     Route::post('/waiting-list', [WaitlistController::class, 'store']);
     // Route::delete('/waitlist/{batchId}', [WaitlistController::class, 'destroy']);
+
+    Route::get('/recordings/{batchId}', [ClassRecordingController::class, 'index']);
 
 });
 

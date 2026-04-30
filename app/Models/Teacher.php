@@ -16,8 +16,6 @@ class Teacher extends Model
         'years_of_exp',
         'image',
         'intro_video',
-        // 'zoom_email',
-        // 'zoom_account_id',
         'suspend_status',
         'user_id',
     ];
@@ -38,15 +36,5 @@ class Teacher extends Model
     {
         return $this->belongsTo(User::class);
     }
-
-    // public function batches()
-    // {
-    //     return $this->hasMany(Batch::class);
-    // }
-
-    // public function schedules()
-    // {
-    //     return $this->hasMany(ClassSchedule::class);
-    // }
 
 }
