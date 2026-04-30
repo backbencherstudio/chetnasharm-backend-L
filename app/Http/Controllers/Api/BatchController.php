@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Batch;
 use App\Models\BatchSchedule;
 use App\Models\ClassModel;
+use App\Models\Enrollment;
 use App\Models\Setting;
 use App\Models\Teacher;
 use Illuminate\Support\Facades\DB;
@@ -507,6 +508,67 @@ class BatchController extends Controller
             'success' => true,
             'message' => 'Batches fetched successfully',
             'data' => $batches
+        ]);
+    }
+
+    public function studentBatch(Request $request)
+    {
+        $user = auth('api')->user();
+
+        $enrollments = Enrollment::where('user_id', $user->id)->pluck('batch_id');
+
+        if ($enrollments->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not enrolled in any batches'
+            ], 404);
+        }
+
+        $query = Batch::select([
+                'id', 'class_id', 'teacher_id', 'name',
+                'total_seat', 'filled_seat', 'start_date', 'end_date', 'status', 'active_status'
+            ])
+            ->with([
+                'class:id,title,image',
+                'teacher:id,user_id,name,image',
+                // 'teacher.user:id,name',
+                'schedules:id,batch_id,day_of_week,start_time,end_time'
+            ])
+            ->whereIn('id', $enrollments);
+
+        $search   = $request->query('search');
+        $status   = $request->query('status');
+        $classId  = $request->query('class_id');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                ->orWhereHas('class', fn($q2) => $q2->where('title', 'like', "%{$search}%"))
+                ->orWhereHas('teacher.user', fn($q3) => $q3->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        if ($classId) {
+            $query->where('class_id', $classId);
+        }
+
+        $perPage = $request->query('per_page', 10);
+        $batches = $query->latest()->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batches fetched successfully',
+            'data' => $batches->items(),
+            'pagination' => [
+                'current_page' => $batches->currentPage(),
+                'per_page'     => $batches->perPage(),
+                'total'        => $batches->total(),
+                'last_page'    => $batches->lastPage(),
+            ]
         ]);
     }
 
