@@ -46,6 +46,8 @@ Route::get('single-class/{classId}', [ClassController::class,'singleClass']);
 Route::get('/batches/{classId}', [ClassController::class, 'landBatch']);
 Route::get('single-batch/{batchId}', [ClassController::class, 'singleBatch']);
 
+Route::get('/support', [SettingController::class, 'support']);
+
 Route::middleware('auth:api')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);

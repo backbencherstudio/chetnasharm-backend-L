@@ -114,4 +114,25 @@ class SettingController extends Controller
         ]);
     }
 
+    public function support()
+    {
+        $setting = Setting::select('support_number', 'support_email')->first();
+
+        if (!$setting) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Settings not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Support information retrieved successfully',
+            'data' => [
+                'support_number' => $setting->support_number,
+                'support_email' => $setting->support_email,
+            ]
+        ]);
+    }
+
 }
