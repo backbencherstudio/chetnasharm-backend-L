@@ -127,13 +127,16 @@ class PaymentController extends Controller
 
         if ($payment->payment_method === 'token') {
 
-            $support_number = Setting::first()->support_number;
+            $setting = Setting::first();
+            $support_number = $setting->support_number;
+            $support_email  = $setting->support_email;
 
             return response()->json([
                 'status' => true,
                 'message' => 'Contact support through whatsapp to complete payment and enrollment. Send payment ID for reference.',
                 'payment_id' => $payment->payment_id,
-                'support_number' => $support_number
+                'support_number' => $support_number,
+                'support_email' => $support_email,
             ]);
         }
 
