@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\ClassRecordingController;
+use App\Http\Controllers\Api\TeacherNoteController;
 use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\WebhookController;
 use GuzzleHttp\Client;
@@ -139,6 +140,13 @@ Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(functi
     Route::post('/recordings/{id}', [ClassRecordingController::class, 'update']);
     Route::delete('/recordings/{id}', [ClassRecordingController::class, 'destroy']);
 
+
+    Route::get('/notes/{batch_id}', [TeacherNoteController::class, 'index']);
+    Route::post('/notes', [TeacherNoteController::class, 'store']);
+    Route::get('/notes-edit/{id}', [TeacherNoteController::class, 'show']);
+    Route::post('/notes/{id}', [TeacherNoteController::class, 'update']);
+    Route::delete('/notes/{id}', [TeacherNoteController::class, 'destroy']);
+
 });
 
 Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(function () {
@@ -154,6 +162,8 @@ Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(functi
 
     Route::get('/batches', [BatchController::class, 'studentBatch']);
     Route::get('/recordings/{batchId}', [ClassRecordingController::class, 'forStudent']);
+
+    Route::get('/notes/{batch_id}', [TeacherNoteController::class, 'forStudent']);
 
 });
 
