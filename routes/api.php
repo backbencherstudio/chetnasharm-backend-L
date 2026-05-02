@@ -101,6 +101,9 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('/settings', [SettingController::class, 'show']);
     Route::post('/settings', [SettingController::class, 'update']);
 
+    Route::get('/notification-logs', [SettingController::class, 'logs']);
+
+
     //payment
     Route::post('/mark-as-paid/{id}', [TransactionController::class, 'markAsPaid']);
 

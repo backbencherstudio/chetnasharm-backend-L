@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\NotificationLog;
 use Illuminate\Http\Request;
 use App\Models\Setting;
 
@@ -63,4 +64,54 @@ class SettingController extends Controller
             'class_time' => $time->class_time
         ]);
     }
+
+    public function logs(Request $request)
+    {
+        $perPage = $request->get('per_page', 10);
+
+        $query = NotificationLog::with([
+            'user:id,name,email',
+            'batch:id,name'
+        ]);
+
+        // Search
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+
+            $query->where(function ($q) use ($search) {
+                $q->where('message', 'like', "%{$search}%")
+                ->orWhereHas('user', function ($userQuery) use ($search) {
+                    $userQuery->where('first_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        // Filters
+        if ($request->filled('batch_id')) {
+            $query->where('batch_id', $request->batch_id);
+        }
+
+        if ($request->filled('message_type')) {
+            $query->where('message_type', $request->message_type);
+        }
+
+        $logs = $query
+            ->latest()
+            ->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification logs fetched successfully',
+            'data' => $logs->items(),
+            'pagination' => [
+                'current_page' => $logs->currentPage(),
+                'per_page'     => $logs->perPage(),
+                'total'        => $logs->total(),
+                'last_page'    => $logs->lastPage(),
+            ]
+        ]);
+    }
+
 }
