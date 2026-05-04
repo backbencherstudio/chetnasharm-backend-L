@@ -291,4 +291,27 @@ class TeacherController extends Controller
             ], 500);
         }
     }
+
+    public function landTeacher(Request $request)
+    {
+        $perPage = $request->per_page ?? 10;
+
+        $teachers = Teacher::where('suspend_status', 0)->select('id', 'name', 'bio', 
+                            'expertise', 'qualification', 'years_of_exp', 'image', 'intro_video')
+            ->latest()
+            ->paginate($perPage);
+
+        return response()->json([
+            'status' => true,
+            'data' => $teachers->items(),
+
+            'pagination' => [
+                'current_page' => $teachers->currentPage(),
+                'per_page'     => $teachers->perPage(),
+                'total'        => $teachers->total(),
+                'last_page'    => $teachers->lastPage(),
+            ]
+        ], 200);
+    }
+
 }
