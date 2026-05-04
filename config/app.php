@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+    'success_url' => env('SUCCESS_URL'),
+    'cancel_url' => env('CANCEL_URL'),
+    'frontend_cancel_url' => env('FRONTEND_CANCEL_URL'),
 
     /*
     |--------------------------------------------------------------------------

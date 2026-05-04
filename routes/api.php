@@ -182,3 +182,6 @@ Route::middleware(['auth:api', 'role:admin|student'])->group(function () {
 });
 
 Route::post('/stripe/webhook', [WebhookController::class, 'stripeWebhook']);
+
+Route::get('paypal-success', [PaymentController::class, 'paypalCapture'])->name('paypal.capture');
+Route::get('paypal-cancel', [PaymentController::class, 'paypalCancel']);

@@ -230,8 +230,8 @@ class PaymentController extends Controller
                             "landing_page" => "LOGIN",
                             "user_action" => "PAY_NOW",
 
-                            "return_url" => config('app.frontend_url') . "/paypal-success",
-                            "cancel_url" => config('app.frontend_url') . "/payment-failed",
+                            "return_url" => config('app.success_url'),
+                            "cancel_url" => config('app.cancel_url'),
                         ]
                     ]
                 ]
@@ -278,12 +278,16 @@ class PaymentController extends Controller
 
     public function paypalCapture(Request $request)
     {
+        Log::info('PayPal Capture Callback', [
+            'request' => $request->all()
+        ]);
+
         $request->validate([
             'token' => 'required'
         ]);
 
         try {
-            $token = $this->getPayPalToken();
+            $accessToken = $this->getPayPalToken();
 
             $client = new Client();
 
@@ -291,8 +295,8 @@ class PaymentController extends Controller
                 "https://api-m.sandbox.paypal.com/v2/checkout/orders/{$request->token}/capture",
                 [
                     'headers' => [
-                        'Authorization' => "Bearer {$token}",
-                        'Content-Type'  => 'application/json',
+                        'Authorization' => "Bearer {$accessToken}",
+                        'Content-Type' => 'application/json',
                     ]
                 ]
             );
@@ -300,54 +304,61 @@ class PaymentController extends Controller
             $result = json_decode($response->getBody(), true);
 
             if (($result['status'] ?? null) !== 'COMPLETED') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Payment not completed',
-                    'paypal_status' => $result['status'] ?? null
-                ], 400);
+                return redirect()->away(
+                    env('FRONTEND_FAILED_URL') . '?reason=not_completed'
+                );
             }
 
             $purchaseUnit = $result['purchase_units'][0] ?? null;
+            $capture = $purchaseUnit['payments']['captures'][0] ?? null;
 
-            if (!$purchaseUnit || empty($purchaseUnit['custom_id'])) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Invalid PayPal response structure'
-                ], 400);
+            if (!$purchaseUnit || !$capture) {
+                return redirect()->away(
+                    env('FRONTEND_FAILED_URL') . '?reason=invalid_structure'
+                );
             }
 
-            $data = json_decode($purchaseUnit['custom_id'], true);
+            $customId = $capture['custom_id'] ?? null;
+
+            if (!$customId) {
+                return redirect()->away(
+                    env('FRONTEND_FAILED_URL') . '?reason=missing_metadata'
+                );
+            }
+
+            $data = json_decode($customId, true);
 
             if (!$data || !isset($data['payment_id'], $data['batch_id'])) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Invalid PayPal metadata'
-                ], 400);
+                return redirect()->away(
+                    env('FRONTEND_FAILED_URL') . '?reason=invalid_metadata'
+                );
             }
 
             DB::beginTransaction();
 
             try {
-                $payment = Payment::lockForUpdate()->findOrFail($data['payment_id']);
 
+                $payment = Payment::lockForUpdate()
+                    ->findOrFail($data['payment_id']);
+
+                // prevent double payment
                 if ($payment->status === 'paid') {
                     DB::commit();
 
-                    return response()->json([
-                        'status' => true,
-                        'message' => 'Already processed'
-                    ]);
+                    return redirect()->away(
+                        env('FRONTEND_SUCCESS_URL') . '?payment_id=' . $payment->id . '&status=already_processed'
+                    );
                 }
 
-                $paypalAmount = $purchaseUnit['amount']['value'] ?? null;
+                $paypalAmount = $capture['amount']['value'] ?? 0;
 
-                if ((float) $payment->amount !== (float) $paypalAmount) {
+                if ((float)$payment->amount !== (float)$paypalAmount) {
                     throw new \Exception('Amount mismatch detected');
                 }
 
                 $payment->update([
                     'status' => 'paid',
-                    'transaction_id' => $result['id'],
+                    'transaction_id' => $capture['id'],
                     'paid_at' => now(),
                 ]);
 
@@ -355,28 +366,32 @@ class PaymentController extends Controller
 
                 DB::commit();
 
-                return response()->json([
-                    'status'  => true,
-                    'message' => 'Payment successful'
-                ]);
+                return redirect()->away(
+                    env('FRONTEND_SUCCESS_URL') . '?payment_id=' . $payment->id . '&status=success'
+                );
 
             } catch (\Throwable $e) {
+
                 DB::rollBack();
 
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'Payment processing failed',
-                    'error'   => $e->getMessage()
-                ], 500);
+                Log::error('Payment Processing Error', [
+                    'error' => $e->getMessage()
+                ]);
+
+                return redirect()->away(
+                    env('FRONTEND_FAILED_URL') . '?reason=processing_failed'
+                );
             }
 
         } catch (\Throwable $e) {
 
-            return response()->json([
-                'status'  => false,
-                'message' => 'PayPal API error',
-                'error'   => $e->getMessage()
-            ], 500);
+            Log::error('PayPal API Error', [
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->away(
+                env('FRONTEND_FAILED_URL') . '?reason=api_error'
+            );
         }
     }
 
@@ -427,6 +442,17 @@ class PaymentController extends Controller
         } while (Payment::where('payment_id', $paymentId)->exists());
 
         return $paymentId;
+    }
+
+    public function paypalCancel(Request $request)
+    {
+        Log::info('PayPal Payment Cancelled', [
+            'request' => $request->all()
+        ]);
+
+        return redirect()->away(
+            config('app.frontend_cancel_url') . '?status=cancelled'
+        );
     }
 
 }
