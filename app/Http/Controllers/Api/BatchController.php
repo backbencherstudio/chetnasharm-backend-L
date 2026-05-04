@@ -572,4 +572,74 @@ class BatchController extends Controller
         ]);
     }
 
+    public function updateZoomLink(Request $request, $batchId)
+    {
+        $user = auth('api')->user();
+
+        $batch = Batch::find($batchId);
+
+        if (!$batch) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Batch not found'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'zoom_link' => 'required|url',
+        ]);
+
+        if ($user->hasRole('admin')) {
+            $batch->update([
+                'zoom_link' => $validated['zoom_link']
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Zoom link updated successfully',
+                'data' => [
+                    'id' => $batch->id,
+                    'zoom_link' => $batch->zoom_link
+                ]
+            ]);
+        }
+
+        if ($user->hasRole('teacher')) {
+
+            $teacher = $user->teacher;
+
+            if (!$teacher) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Teacher profile not found'
+                ], 403);
+            }
+
+            if ($batch->teacher_id !== $teacher->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You are not allowed to update this batch'
+                ], 403);
+            }
+
+            $batch->update([
+                'zoom_link' => $validated['zoom_link']
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Zoom link updated successfully',
+                'data' => [
+                    'id' => $batch->id,
+                    'zoom_link' => $batch->zoom_link
+                ]
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthorized access'
+        ], 403);
+    }
+
 }

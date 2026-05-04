@@ -132,6 +132,8 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
     Route::post('attendance-save', [AttendanceController::class, 'store']);
     Route::post('attendance-single', [AttendanceController::class, 'updateSingle']);
 
+    Route::patch('update-zoom-link/{batchId}', [BatchController::class, 'updateZoomLink']);
+
 });
 
 Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
