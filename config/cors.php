@@ -21,26 +21,19 @@
 
 return [
 
-    'paths' => [
-        'api/*',
-    ],
+    'paths' => ['api/*'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => explode(',', env(
-        'CORS_ALLOWED_ORIGINS'
-    )),
+    'allowed_origins' => [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'https://listenact.vercel.app',
+    ],
 
     'allowed_origins_patterns' => [],
-    'allowed_headers' => ['*'],
 
-    // 'allowed_headers' => [
-    //     'Content-Type',
-    //     'X-Requested-With',
-    //     'Authorization',
-    //     'Accept',
-    //     'Origin',
-    // ],
+    'allowed_headers' => ['*'],
 
     'exposed_headers' => [],
 
