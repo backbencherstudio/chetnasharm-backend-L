@@ -224,6 +224,7 @@ class RolePermissionSeeder extends Seeder
         }
         $setting = Setting::firstOrCreate([
             'class_time'=> '30',
+            'class_notify_time' => '30',
         ]);
         // $apiAdmin->syncPermissions(
         //     Permission::where('guard_name', 'api')->get()
