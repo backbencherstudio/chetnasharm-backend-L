@@ -642,4 +642,26 @@ class BatchController extends Controller
         ], 403);
     }
 
+    public function singleBatch($batchId)
+    {
+        $batch = Batch::with([
+            'class:id,title,description,image',
+            'teacher:id,name',
+            'schedules:id,batch_id,day_of_week,start_time,end_time'
+        ])->find($batchId);
+
+        if (!$batch) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Batch not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batch details fetched successfully',
+            'data' => $batch
+        ]);
+    }
+
 }

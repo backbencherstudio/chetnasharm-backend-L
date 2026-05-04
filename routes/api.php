@@ -167,6 +167,7 @@ Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(functi
     // Route::delete('/waitlist/{batchId}', [WaitlistController::class, 'destroy']);
 
     Route::get('/batches', [BatchController::class, 'studentBatch']);
+    Route::get('/single-batch/{batchId}', [BatchController::class, 'singleBatch']);
     Route::get('/recordings/{batchId}', [ClassRecordingController::class, 'forStudent']);
 
     Route::get('/notes/{batch_id}', [TeacherNoteController::class, 'forStudent']);
