@@ -225,7 +225,6 @@ class ClassController extends Controller
         $user = auth('api')->user();
 
         $batch = Batch::where('id', $batchId)
-            ->where('active_status', 1)
             ->select(
                 'id',
                 'class_id',
