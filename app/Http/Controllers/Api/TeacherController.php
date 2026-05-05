@@ -70,17 +70,15 @@ class TeacherController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name'       => 'required|string|max:255',
-            'email'      => 'required|email|unique:teachers,email|unique:users,email',
-            'mobile'     => 'nullable|string|max:20',
-            'bio'        => 'nullable|string',
-            'qualification' => 'nullable|string|max:500',
-            'expertise'  => 'nullable|string|max:255',
+            'name'         => 'required|string|max:255',
+            'email'        => 'required|email|unique:teachers,email|unique:users,email',
+            'mobile'       => 'nullable|string',
+            'bio'          => 'nullable|string',
+            'qualification'=> 'nullable|string|max:500',
+            'expertise'    => 'nullable|string|max:255',
             'years_of_exp' => 'nullable|integer|min:0',
-            'image'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'intro_video' => 'nullable|file|mimes:mp4,mov,avi,webm|max:20480',
-            // 'zoom_email' => 'nullable|email',
-            // 'zoom_account_id' => 'nullable|string',
+            'image'        => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'intro_video'  => 'nullable|file|mimes:mp4,mov,avi,webm|max:20480',
         ]);
 
         if ($validator->fails()) {
@@ -92,14 +90,33 @@ class TeacherController extends Controller
 
         $validated = $validator->validated();
 
+        if (!empty($request->mobile)) {
+            try {
+
+                $phone = phone($request->mobile);
+
+                $validated['mobile'] = $phone->formatE164();
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid phone number format.',
+                ], 422);
+            }
+        }
+
         DB::beginTransaction();
 
         try {
+
             if ($request->hasFile('image')) {
-                $validated['image'] = $request->file('image')->store('teachers', 'public');
+                $validated['image'] = $request->file('image')
+                    ->store('teachers', 'public');
             }
+
             if ($request->hasFile('intro_video')) {
-                $validated['intro_video'] = $request->file('intro_video')->store('teacher_videos', 'public');
+                $validated['intro_video'] = $request->file('intro_video')
+                    ->store('teacher_videos', 'public');
             }
 
             $randomPassword = '12345678';
@@ -126,10 +143,10 @@ class TeacherController extends Controller
                 'status'  => true,
                 'message' => 'Teacher created successfully.',
                 'data'    => [
-                    'id' => $teacher->id,
-                    'name' => $teacher->name,
+                    'id'    => $teacher->id,
+                    'name'  => $teacher->name,
                     'email' => $teacher->email,
-                    'user'    => [
+                    'user'  => [
                         'id'       => $user->id,
                         'email'    => $user->email,
                         'password' => $randomPassword,
@@ -179,16 +196,16 @@ class TeacherController extends Controller
         $linkedUser = $teacher->user;
 
         $validator = Validator::make($request->all(), [
-            'name'       => 'required|string|max:255',
-            'email'      => 'required|email|unique:users,email,' . $teacher->user_id,
-            'mobile'     => 'nullable|string|max:20',
-            'bio'        => 'nullable|string',
-            'expertise'  => 'nullable|string|max:255',
-            'qualification' => 'nullable|string|max:500',
-            'years_of_exp' => 'nullable|integer|min:0',
-            'image'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'intro_video' => 'nullable|file|mimes:mp4,mov,avi,webm|max:10240',
-            'suspend_status'  => 'nullable|in:0,1',
+            'name'           => 'required|string|max:255',
+            'email'          => 'required|email|unique:users,email,' . $teacher->user_id,
+            'mobile'         => 'nullable|string',
+            'bio'            => 'nullable|string',
+            'expertise'      => 'nullable|string|max:255',
+            'qualification'  => 'nullable|string|max:500',
+            'years_of_exp'   => 'nullable|integer|min:0',
+            'image'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'intro_video'    => 'nullable|file|mimes:mp4,mov,avi,webm|max:10240',
+            'suspend_status' => 'nullable|in:0,1',
         ]);
 
         if ($validator->fails()) {
@@ -200,21 +217,43 @@ class TeacherController extends Controller
 
         $validated = $validator->validated();
 
+        if (!empty($request->mobile)) {
+            try {
+
+                $phone = phone($request->mobile);
+
+                $validated['mobile'] = $phone->formatE164();
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid phone number format.',
+                ], 422);
+            }
+        }
+
         DB::beginTransaction();
 
         try {
+
             if ($request->hasFile('image')) {
+
                 if ($teacher->image && Storage::disk('public')->exists($teacher->image)) {
                     Storage::disk('public')->delete($teacher->image);
                 }
 
-                $validated['image'] = $request->file('image')->store('teachers', 'public');
+                $validated['image'] = $request->file('image')
+                    ->store('teachers', 'public');
             }
+
             if ($request->hasFile('intro_video')) {
+
                 if ($teacher->intro_video && Storage::disk('public')->exists($teacher->intro_video)) {
                     Storage::disk('public')->delete($teacher->intro_video);
                 }
-                $validated['intro_video'] = $request->file('intro_video')->store('teacher_videos', 'public');
+
+                $validated['intro_video'] = $request->file('intro_video')
+                    ->store('teacher_videos', 'public');
             }
 
             $teacher->update($validated);
@@ -234,13 +273,15 @@ class TeacherController extends Controller
                 'status'  => true,
                 'message' => 'Teacher updated successfully.',
                 'data'    => [
-                    'id'        => $teacher->id,
-                    'name'      => $teacher->name,
-                    'email'     => $teacher->email,
-                    'user_id'    => $teacher->user_id,
+                    'id'      => $teacher->id,
+                    'name'    => $teacher->name,
+                    'email'   => $teacher->email,
+                    'user_id' => $teacher->user_id,
                 ]
             ], 200);
+
         } catch (\Throwable $e) {
+
             DB::rollBack();
 
             return response()->json([

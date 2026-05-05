@@ -20,14 +20,15 @@ class UserController extends Controller
 {
     public function store(Request $request)
     {
-        $validator =Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'name'       => ['required', 'string', 'max:100'],
-            'mobile'     => ['nullable', 'string', 'max:20'],
+            'mobile'     => ['nullable', 'string'],
             'department' => ['nullable', 'string', 'max:100'],
             'email'      => ['required', 'email', 'max:255', 'unique:users,email'],
             'image'      => ['nullable', 'image', 'max:2048'],
             'password'   => ['required', 'confirmed', Password::defaults()],
         ]);
+
         if ($validator->fails()) {
             return response()->json([
                 'status'  => false,
@@ -38,6 +39,29 @@ class UserController extends Controller
 
         $validated = $validator->validated();
 
+        if (!empty($request->mobile)) {
+            try {
+                $phone = phone($request->mobile);
+
+                $validated['mobile'] = $phone->formatE164();
+
+                // $exists = User::where('mobile', $validated['mobile'])->exists();
+
+                // if ($exists) {
+                //     return response()->json([
+                //         'status' => false,
+                //         'message' => 'This mobile number is already in use.',
+                //     ], 422);
+                // }
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid phone number format.',
+                ], 422);
+            }
+        }
+
         DB::beginTransaction();
 
         try {
@@ -46,6 +70,7 @@ class UserController extends Controller
             if ($request->hasFile('image')) {
                 $imagePath = $request->file('image')->store('users', 'public');
             }
+
             $user = User::create([
                 'name'       => $validated['name'],
                 'email'      => $validated['email'],
@@ -64,16 +89,16 @@ class UserController extends Controller
             return response()->json([
                 'status'  => true,
                 'message' => 'User created successfully.',
-                    'data'    => [
-                        'id'         => $user->id,
-                        'name'       => $user->name,
-                        'email'      => $user->email,
-                        'department' => $user->department,
-                        'mobile'     => $user->mobile,
-                        'image'      => $user->image,
-                        'image_url'      => $user->image_url,
-                        'role'       => $user->getRoleNames()->first(),
-                    ]
+                'data'    => [
+                    'id'         => $user->id,
+                    'name'       => $user->name,
+                    'email'      => $user->email,
+                    'department' => $user->department,
+                    'mobile'     => $user->mobile,
+                    'image'      => $user->image,
+                    'image_url'  => $user->image_url,
+                    'role'       => $user->getRoleNames()->first(),
+                ]
             ], 200);
 
         } catch (\Throwable $e) {
@@ -114,7 +139,7 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name'       => ['required', 'string', 'max:100'],
-            'mobile'     => ['nullable', 'string', 'max:20'],
+            'mobile'     => ['nullable', 'string'],
             'department' => ['nullable', 'string', 'max:100'],
             'email'      => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'image'      => ['nullable', 'image', 'max:2048'],
@@ -131,6 +156,32 @@ class UserController extends Controller
 
         $validated = $validator->validated();
 
+        if (!empty($request->mobile)) {
+            try {
+
+                $phone = phone($request->mobile);
+
+                $validated['mobile'] = $phone->formatE164();
+
+                // $exists = User::where('mobile', $validated['mobile'])
+                //     ->where('id', '!=', $user->id)
+                //     ->exists();
+
+                // if ($exists) {
+                //     return response()->json([
+                //         'status' => false,
+                //         'message' => 'This mobile number is already in use.',
+                //     ], 422);
+                // }
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid phone number format.',
+                ], 422);
+            }
+        }
+
         DB::beginTransaction();
 
         try {
@@ -141,9 +192,8 @@ class UserController extends Controller
                     Storage::disk('public')->delete($user->image);
                 }
 
-                $imagePath = $request->file('image')->store('users', 'public');
-
-                $user->image = $imagePath;
+                $user->image = $request->file('image')
+                    ->store('users', 'public');
             }
 
             $user->name       = $validated['name'];
@@ -169,7 +219,7 @@ class UserController extends Controller
                     'department' => $user->department,
                     'mobile'     => $user->mobile,
                     'image'      => $user->image,
-                    'image_url'      => $user->image_url,
+                    'image_url'  => $user->image_url,
                     'role'       => $user->getRoleNames()->first(),
                 ]
             ], 200);
@@ -367,16 +417,16 @@ class UserController extends Controller
 
                 $validated['mobile'] = $phone->formatE164();
 
-                $exists = User::where('mobile', $validated['mobile'])
-                    ->where('id', '!=', $user->id)
-                    ->exists();
+                // $exists = User::where('mobile', $validated['mobile'])
+                //     ->where('id', '!=', $user->id)
+                //     ->exists();
 
-                if ($exists) {
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'This mobile number is already in use.',
-                    ], 422);
-                }
+                // if ($exists) {
+                //     return response()->json([
+                //         'status' => false,
+                //         'message' => 'This mobile number is already in use.',
+                //     ], 422);
+                // }
 
             } catch (\Exception $e) {
                 return response()->json([
