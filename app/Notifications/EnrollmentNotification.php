@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\NotificationLog;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -42,10 +43,23 @@ class EnrollmentNotification extends Notification implements ShouldQueue
         $schedules = $batch->schedules->map(function ($schedule) use ($days) {
             return [
                 'day' => $days[$schedule->day_of_week] ?? 'Unknown',
-                'start' => \Carbon\Carbon::parse($schedule->start_time)->format('H:i'),
-                'end' => \Carbon\Carbon::parse($schedule->end_time)->format('H:i'),
+                'start' => Carbon::parse($schedule->start_time)->format('H:i'),
+                'end' => Carbon::parse($schedule->end_time)->format('H:i'),
             ];
         });
+
+        // Log notification
+        $messageText = "Enrollment confirmation sent for {$class->title} (Batch {$batch->id})";
+
+        NotificationLog::create([
+            'user_id' => $notifiable->id,
+            'batch_id' => $batch->id,
+            'type' => 'email',
+            'message_type' => 'enrollment_confirmation',
+            'message' => $messageText,
+            'status' => 'sent',
+            'sent_at' => now(),
+        ]);
 
         return (new MailMessage)
             ->subject('Class Enrollment Confirmation')
@@ -56,5 +70,4 @@ class EnrollmentNotification extends Notification implements ShouldQueue
                 'schedules' => $schedules,
             ]);
     }
-    
 }

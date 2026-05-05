@@ -255,9 +255,9 @@ class AuthController extends Controller
             return redirect(config('app.frontend_url') . "/auth/callback?token={$token}");
 
         } catch (\Throwable $e) {
-            Log::error('Google login error', [
-                'error' => $e->getMessage()
-            ]);
+            // Log::error('Google login error', [
+            //     'error' => $e->getMessage()
+            // ]);
 
             return redirect(config('app.frontend_url') . "/login?error=google_login_failed");
         }

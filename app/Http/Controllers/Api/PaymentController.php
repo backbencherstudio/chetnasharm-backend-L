@@ -263,11 +263,11 @@ class PaymentController extends Controller
 
         } catch (\Throwable $e) {
 
-            Log::error('PayPal Checkout Error', [
-                'payment_id' => $payment->id ?? null,
-                'batch_id'   => $batch->id ?? null,
-                'error'      => $e->getMessage()
-            ]);
+            // Log::error('PayPal Checkout Error', [
+            //     'payment_id' => $payment->id ?? null,
+            //     'batch_id'   => $batch->id ?? null,
+            //     'error'      => $e->getMessage()
+            // ]);
 
             return response()->json([
                 'status' => false,
@@ -278,9 +278,9 @@ class PaymentController extends Controller
 
     public function paypalCapture(Request $request)
     {
-        Log::info('PayPal Capture Callback', [
-            'request' => $request->all()
-        ]);
+        // Log::info('PayPal Capture Callback', [
+        //     'request' => $request->all()
+        // ]);
 
         $request->validate([
             'token' => 'required'
@@ -374,9 +374,9 @@ class PaymentController extends Controller
 
                 DB::rollBack();
 
-                Log::error('Payment Processing Error', [
-                    'error' => $e->getMessage()
-                ]);
+                // Log::error('Payment Processing Error', [
+                //     'error' => $e->getMessage()
+                // ]);
 
                 return redirect()->away(
                     env('FRONTEND_FAILED_URL') . '?reason=processing_failed'
@@ -385,9 +385,9 @@ class PaymentController extends Controller
 
         } catch (\Throwable $e) {
 
-            Log::error('PayPal API Error', [
-                'error' => $e->getMessage()
-            ]);
+            // Log::error('PayPal API Error', [
+            //     'error' => $e->getMessage()
+            // ]);
 
             return redirect()->away(
                 env('FRONTEND_FAILED_URL') . '?reason=api_error'
@@ -446,9 +446,9 @@ class PaymentController extends Controller
 
     public function paypalCancel(Request $request)
     {
-        Log::info('PayPal Payment Cancelled', [
-            'request' => $request->all()
-        ]);
+        // Log::info('PayPal Payment Cancelled', [
+        //     'request' => $request->all()
+        // ]);
 
         return redirect()->away(
             config('app.frontend_cancel_url') . '?status=cancelled'
