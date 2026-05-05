@@ -346,7 +346,7 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name'       => 'required|string|max:255',
             'email'      => 'required|email|unique:users,email,' . $user->id,
-            'mobile'     => 'nullable|string|max:20',
+            'mobile'     => 'nullable|string',
             'department' => 'nullable|string|max:100',
             'image'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
@@ -361,16 +361,43 @@ class UserController extends Controller
 
         $validated = $validator->validated();
 
+        if (!empty($request->mobile)) {
+            try {
+                $phone = phone($request->mobile);
+
+                $validated['mobile'] = $phone->formatE164();
+
+                $exists = User::where('mobile', $validated['mobile'])
+                    ->where('id', '!=', $user->id)
+                    ->exists();
+
+                if ($exists) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'This mobile number is already in use.',
+                    ], 422);
+                }
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid phone number format.',
+                ], 422);
+            }
+        }
+
         if ($request->hasFile('image')) {
 
             if ($user->image && Storage::disk('public')->exists($user->image)) {
                 Storage::disk('public')->delete($user->image);
             }
 
-            $validated['image'] = $request->file('image')->store('users', 'public');
+            $validated['image'] = $request->file('image')
+                ->store('users', 'public');
         }
 
         $user->update($validated);
+        $user->refresh();
 
         return response()->json([
             'status'  => true,
@@ -382,7 +409,7 @@ class UserController extends Controller
                 'mobile'     => $user->mobile,
                 'department' => $user->department,
                 'image'      => $user->image,
-                'image_url'      => $user->image_url,
+                'image_url'  => $user->image_url,
             ],
         ], 200);
     }

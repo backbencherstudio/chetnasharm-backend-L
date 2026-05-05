@@ -58,7 +58,6 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/update-password', [UserController::class, 'updatePass']);
     Route::post('/profile-update', [UserController::class, 'profileUpdate']);
 
-
 });
 
 Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function () {
@@ -161,7 +160,7 @@ Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(functi
     Route::post('create-payment', [PaymentController::class, 'createPayment']);
 
     //Whatsapp
-    Route::post('whatsapp-number', [UserController::class, 'updateWhatsapp']);
+    // Route::post('whatsapp-number', [UserController::class, 'updateWhatsapp']);
 
     Route::get('/waiting-list', [WaitlistController::class, 'getForUser']);
     Route::post('/waiting-list', [WaitlistController::class, 'store']);
