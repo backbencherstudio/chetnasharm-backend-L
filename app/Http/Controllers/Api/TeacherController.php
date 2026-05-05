@@ -295,9 +295,28 @@ class TeacherController extends Controller
     public function landTeacher(Request $request)
     {
         $perPage = $request->per_page ?? 10;
+        $search = $request->search;
 
-        $teachers = Teacher::where('suspend_status', 0)->select('id', 'name', 'bio', 
-                            'expertise', 'qualification', 'years_of_exp', 'image', 'intro_video')
+        $teachers = Teacher::query()
+            ->where('suspend_status', 0)
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('bio', 'LIKE', "%{$search}%")
+                    ->orWhere('expertise', 'LIKE', "%{$search}%")
+                    ->orWhere('qualification', 'LIKE', "%{$search}%");
+                });
+            })
+            ->select(
+                'id',
+                'name',
+                'bio',
+                'expertise',
+                'qualification',
+                'years_of_exp',
+                'image',
+                'intro_video'
+            )
             ->latest()
             ->paginate($perPage);
 
