@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Batch;
 use App\Models\Enrollment;
 use Illuminate\Http\Request;
 use App\Models\User;
@@ -60,6 +61,19 @@ class DashboardController extends Controller
             'year' => (int) $year,
             'total_enrollments' => $totalEnrollments,
             'data' => $monthlyData,
+        ]);
+    }
+
+    public function totalBatchEnrolled()
+    {
+        $totalBatch = Batch::count();
+        $totalEnrolled = Batch::sum('filled_seat');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batch statistics retrieved successfully',
+            'total_batch' => $totalBatch,
+            'total_enrolled' => $totalEnrolled,
         ]);
     }
 
