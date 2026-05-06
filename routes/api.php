@@ -1,5 +1,8 @@
 <?php
 
+
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UserController;
@@ -18,8 +21,8 @@ use App\Http\Controllers\Api\ClassRecordingController;
 use App\Http\Controllers\Api\TeacherNoteController;
 use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\WebhookController;
-use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Http;
+use App\Http\Controllers\Api\DashboardController;
+
 
 Route::get('/login', function () {
     return response()->json([
@@ -101,15 +104,17 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('teacher-availablity/by-date', [AvailabilityController::class, 'availabilityByDate']);
     Route::get('teacher-busy-slots', [AvailabilityController::class, 'teacherBusySlots']);
 
-
     Route::get('/settings', [SettingController::class, 'show']);
     Route::post('/settings', [SettingController::class, 'update']);
 
     Route::get('/notification-logs', [SettingController::class, 'logs']);
 
-
     //payment
     Route::post('/mark-as-paid/{id}', [TransactionController::class, 'markAsPaid']);
+
+    //dashboard
+    Route::get('total-student-per-month', [DashboardController::class,'totalStudentMonthly']);
+    Route::get('total-enrollment-per-month', [DashboardController::class,'totalEnrollmentMonthly']);
 
 });
 
