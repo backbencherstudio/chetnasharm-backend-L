@@ -41,7 +41,15 @@ class User extends Authenticatable implements JWTSubject
 
     public function getImageUrlAttribute()
     {
-        return $this->image ? asset('storage/' . $this->image) : null;
+        if (!$this->image) {
+            return null;
+        }
+
+        if ($this->provider) {
+            return $this->image;
+        }
+
+        return asset('storage/' . $this->image);
     }
 
     public function getJWTIdentifier()

@@ -259,7 +259,7 @@ class UserController extends Controller
         }
 
         $query->with(['roles:id,name'])
-            ->select('id', 'name', 'email', 'mobile', 'department', 'image', 'suspend_status');
+            ->select('id', 'name', 'email', 'mobile', 'department', 'image', 'suspend_status', 'provider');
 
         $users = $query->paginate($perPage);
 
