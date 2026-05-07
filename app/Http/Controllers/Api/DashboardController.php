@@ -282,4 +282,141 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function studentDashboard()
+    {
+        $user = auth('api')->user();
+
+        $enrollments = Enrollment::with([
+            'class:id,title,image,price,duration_in_days,total_classes',
+            'batch:id,name,start_date,end_date,zoom_link,total_seat,filled_seat'
+        ])->where('user_id', $user->id);
+
+        $totalEnrollments = (clone $enrollments)->count();
+
+        $activeCourses = Enrollment::where('user_id', $user->id)
+            ->whereHas('batch', function ($q) {
+                $q->whereDate('end_date', '>=', now());
+            })
+            ->count();
+
+        $completedCourses = (clone $enrollments)
+            ->whereDate('expiry_date', '<', now())
+            ->count();
+
+        $totalSpent = Enrollment::join('classes', 'enrollments.class_id', '=', 'classes.id')
+            ->where('enrollments.user_id', $user->id)
+            ->sum('classes.price');
+
+        $activeCourseList = Enrollment::with([
+            'class:id,title,price',
+            'batch:id,name,start_date,end_date,total_seat,filled_seat'
+        ])
+            ->where('user_id', $user->id)
+            ->whereHas('batch', function ($q) {
+                $q->whereDate('end_date', '>=', now());
+            })
+            ->latest()
+            ->get()
+            ->map(function ($enrollment) {
+
+                $batch = $enrollment->batch;
+
+                $progress = 0;
+
+                if ($batch && $batch->start_date && $batch->end_date) {
+
+                    $totalDays = $batch->start_date->diffInDays($batch->end_date);
+
+                    $passedDays = $batch->start_date->diffInDays(now(), false);
+
+                    if ($totalDays > 0) {
+                        $progress = min(
+                            100,
+                            max(0, round(($passedDays / $totalDays) * 100))
+                        );
+                    }
+                }
+
+                return [
+                    'enrollment_id' => $enrollment->id,
+
+                    'class_title' => optional($enrollment->class)->title,
+
+                    'batch_name' => optional($batch)->name,
+
+                    'start_date' => optional($batch)->start_date,
+                    'end_date' => optional($batch)->end_date,
+
+                    'progress_percent' => $progress . '%',
+
+                    'expiry_date' => $enrollment->expiry_date,
+                ];
+            });
+
+        // Recent enrollments
+        $recentEnrollments = Enrollment::with([
+            'class:id,title,image',
+            'batch:id,name'
+        ])
+            ->where('user_id', $user->id)
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($enrollment) {
+                return [
+                    'id' => $enrollment->id,
+
+                    'class_title' => optional($enrollment->class)->title,
+
+                    'batch_name' => optional($enrollment->batch)->name,
+
+                    'status' => $enrollment->status,
+
+                    'enrolled_at' => $enrollment->enrolled_at,
+                ];
+            });
+
+        // Completed courses
+        $completedCourseList = Enrollment::with([
+            'class:id,title,image',
+            'batch:id,name,end_date'
+        ])
+            ->where('user_id', $user->id)
+            ->whereHas('batch', function ($q) {
+                $q->whereDate('end_date', '<', now());
+            })
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($enrollment) {
+                return [
+                    'id' => $enrollment->id,
+
+                    'class_title' => optional($enrollment->class)->title,
+
+                    'batch_name' => optional($enrollment->batch)->name,
+
+                    'completed_at' => optional($enrollment->batch)->end_date,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Student dashboard retrieved successfully',
+
+            'data' => [
+
+                'statistics' => [
+                    'total_enrollments' => $totalEnrollments,
+                    'active_courses' => $activeCourses,
+                    'completed_courses' => $completedCourses,
+                    'total_spent' => round($totalSpent ?? 0, 2),
+                ],
+                'active_courses' => $activeCourseList,
+                'recent_enrollments' => $recentEnrollments,
+                'completed_courses' => $completedCourseList,
+            ]
+        ]);
+    }
+
 }

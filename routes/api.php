@@ -180,6 +180,8 @@ Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(functi
 
     Route::get('/notes/{batch_id}', [TeacherNoteController::class, 'forStudent']);
 
+    Route::get('dashboard', [DashboardController::class, 'studentDashboard']);
+
 });
 
 Route::middleware(['auth:api', 'role:admin|student'])->group(function () {
