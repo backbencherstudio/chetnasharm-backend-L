@@ -115,7 +115,8 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     //dashboard
     Route::get('total-student-per-month', [DashboardController::class,'totalStudentMonthly']);
     Route::get('total-enrollment-per-month', [DashboardController::class,'totalEnrollmentMonthly']);
-    Route::get('total-batch-enrolled', [DashboardController::class,'totalBatchEnrolled']); 
+    Route::get('total-batch-enrolled', [DashboardController::class,'totalBatchEnrolled']);
+    Route::get('revenue-stats', [DashboardController::class,'revenueStats']);
 
 });
 
