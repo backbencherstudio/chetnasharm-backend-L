@@ -67,18 +67,18 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function totalBatchEnrolled()
-    {
-        $totalBatch = Batch::count();
-        $totalEnrolled = Batch::sum('filled_seat');
+    // public function totalBatchEnrolled()
+    // {
+    //     $totalBatch = Batch::count();
+    //     $totalEnrolled = Batch::sum('filled_seat');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batch statistics retrieved successfully',
-            'total_batch' => $totalBatch,
-            'total_enrolled' => $totalEnrolled,
-        ]);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Batch statistics retrieved successfully',
+    //         'total_batch' => $totalBatch,
+    //         'total_enrolled' => $totalEnrolled,
+    //     ]);
+    // }
 
     public function revenueStats()
     {
