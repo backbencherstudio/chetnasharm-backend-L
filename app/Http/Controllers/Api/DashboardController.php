@@ -82,6 +82,7 @@ class DashboardController extends Controller
 
     public function revenueStats()
     {
+        $totalBatches = Batch::count();
         $totalRevenue = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
             ->selectRaw('SUM(batches.filled_seat * classes.price) as total')
             ->value('total');
@@ -163,22 +164,16 @@ class DashboardController extends Controller
             'message' => 'Revenue statistics retrieved successfully',
 
             'data' => [
+
+                'total_batches' => $totalBatches,
                 'total_revenue' => round($totalRevenue ?? 0, 2),
-
                 'potential_revenue' => round($potentialRevenue ?? 0, 2),
-
                 'lost_revenue' => round($lostRevenue ?? 0, 2),
-
                 'average_revenue_per_batch' => round($averageRevenuePerBatch ?? 0, 2),
-
                 'seat_occupancy_rate' => $occupancyRate . '%',
-
                 'total_seats' => (int) ($seatStats->total_seats ?? 0),
-
                 'filled_seats' => (int) ($seatStats->filled_seats ?? 0),
-
                 'top_earning_classes' => $topClasses,
-
                 'top_earning_batches' => $topBatches,
             ]
         ]);
