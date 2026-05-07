@@ -42,6 +42,7 @@ class DashboardController extends Controller
 
     public function totalEnrollmentMonthly(Request $request)
     {
+        $totalBatches = Batch::count();
         $year = $request->year ?? now()->year;
 
         $enrollments = Enrollment::whereYear('created_at', $year)
@@ -63,6 +64,7 @@ class DashboardController extends Controller
             'message' => 'Enrollment monthly data retrieved successfully',
             'year' => (int) $year,
             'total_enrollments' => $totalEnrollments,
+            'total_batches' => $totalBatches,
             'data' => $monthlyData,
         ]);
     }
@@ -82,7 +84,6 @@ class DashboardController extends Controller
 
     public function revenueStats()
     {
-        $totalBatches = Batch::count();
         $totalRevenue = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
             ->selectRaw('SUM(batches.filled_seat * classes.price) as total')
             ->value('total');
@@ -165,7 +166,6 @@ class DashboardController extends Controller
 
             'data' => [
 
-                'total_batches' => $totalBatches,
                 'total_revenue' => round($totalRevenue ?? 0, 2),
                 'potential_revenue' => round($potentialRevenue ?? 0, 2),
                 'lost_revenue' => round($lostRevenue ?? 0, 2),
