@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
+use App\Models\Teacher;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -179,6 +180,104 @@ class DashboardController extends Controller
                 'top_earning_classes' => $topClasses,
 
                 'top_earning_batches' => $topBatches,
+            ]
+        ]);
+    }
+
+    public function teacherDashboard()
+    {
+        $user = auth('api')->user();
+
+        $teacher = Teacher::where('user_id', $user->id)->firstOrFail();
+
+        $batches = Batch::where('teacher_id', $teacher->id);
+
+        // Statistics
+        $totalBatches = (clone $batches)->count();
+
+        $activeBatches = (clone $batches)
+            ->where('active_status', 1)
+            ->count();
+
+        $completedBatches = (clone $batches)
+            ->whereDate('end_date', '<', now())
+            ->count();
+
+        $totalStudents = (clone $batches)
+            ->sum('filled_seat');
+
+        $totalSeats = (clone $batches)
+            ->sum('total_seat');
+
+        $occupancyRate = $totalSeats > 0
+            ? round(($totalStudents / $totalSeats) * 100, 2)
+            : 0;
+
+        // Revenue generated
+        $totalRevenue = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
+            ->where('batches.teacher_id', $teacher->id)
+            ->selectRaw('SUM(batches.filled_seat * classes.price) as total')
+            ->value('total');
+
+        // Upcoming classes/batches
+        $upcomingClasses = Batch::with('class:id,title')
+            ->where('teacher_id', $teacher->id)
+            ->whereDate('start_date', '>=', now())
+            ->orderBy('start_date')
+            ->take(5)
+            ->get()
+            ->map(function ($batch) {
+                return [
+                    'id' => $batch->id,
+                    'batch_name' => $batch->name,
+                    'class_title' => optional($batch->class)->title,
+                    'start_date' => $batch->start_date,
+                    'end_date' => $batch->end_date,
+                    'filled_seat' => $batch->filled_seat,
+                    'total_seat' => $batch->total_seat,
+                ];
+            });
+
+        // Top performing batches
+        $topBatches = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
+            ->where('batches.teacher_id', $teacher->id)
+            ->select(
+                'batches.id',
+                'batches.name',
+                'batches.filled_seat',
+                'batches.total_seat',
+                DB::raw('(batches.filled_seat * classes.price) as revenue')
+            )
+            ->orderByDesc('revenue')
+            ->take(5)
+            ->get()
+            ->map(function ($batch) {
+                return [
+                    'id' => $batch->id,
+                    'name' => $batch->name,
+                    'filled_seat' => (int) $batch->filled_seat,
+                    'total_seat' => (int) $batch->total_seat,
+                    'revenue' => round($batch->revenue, 2),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Teacher dashboard data retrieved successfully',
+
+            'data' => [
+                'statistics' => [
+                    'total_batches' => $totalBatches,
+                    'active_batches' => $activeBatches,
+                    'completed_batches' => $completedBatches,
+                    'total_students' => $totalStudents,
+                    'total_seats' => $totalSeats,
+                    'seat_occupancy_rate' => $occupancyRate . '%',
+                    'total_revenue_generated' => round($totalRevenue ?? 0, 2),
+                ],
+
+                'upcoming_batches' => $upcomingClasses,
+                'top_batches' => $topBatches,
             ]
         ]);
     }

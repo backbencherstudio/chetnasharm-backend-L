@@ -117,7 +117,6 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('total-enrollment-per-month', [DashboardController::class,'totalEnrollmentMonthly']);
     Route::get('total-batch-enrolled', [DashboardController::class,'totalBatchEnrolled']);
     Route::get('revenue-stats', [DashboardController::class,'revenueStats']);
-
 });
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
@@ -159,6 +158,8 @@ Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(functi
     Route::get('/notes-edit/{id}', [TeacherNoteController::class, 'show']);
     Route::post('/notes/{id}', [TeacherNoteController::class, 'update']);
     Route::delete('/notes/{id}', [TeacherNoteController::class, 'destroy']);
+
+    Route::get('dashboard', [DashboardController::class, 'teacherDashboard']);
 
 });
 
