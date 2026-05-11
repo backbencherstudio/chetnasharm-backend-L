@@ -71,6 +71,7 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('/user-edit-data/{id}', [UserController::class, 'edit']);
     Route::post('/user-update/{id}', [UserController::class, 'update']);
     Route::patch('/user-suspend/{id}', [UserController::class, 'suspend']);
+    Route::delete('/user/{id}', [UserController::class, 'destroy']);
 
     //Teacher Management
     Route::get('/teachers', [TeacherController::class, 'data']);

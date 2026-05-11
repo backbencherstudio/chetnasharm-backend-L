@@ -494,4 +494,62 @@ class UserController extends Controller
         }
     }
 
+    public function destroy($id)
+    {
+        $user = User::findOrFail($id);
+
+        if ($id == auth('api')->id()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'You cannot delete your own account.',
+            ], 400);
+        }
+
+        if ($user->teacher) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Cannot delete user with associated teacher profile',
+            ], 400);
+        }
+
+        if ($user->enrollments()->exists()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Cannot delete user with associated enrollments',
+            ], 400);
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+            if (
+                $user->image &&
+                !filter_var($user->image, FILTER_VALIDATE_URL) &&
+                Storage::disk('public')->exists($user->image)
+            ) {
+                Storage::disk('public')->delete($user->image);
+            }
+
+            $user->syncRoles([]);
+            $user->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'User deleted successfully.',
+            ], 200);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'User deletion failed.',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }
