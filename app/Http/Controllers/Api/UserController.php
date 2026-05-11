@@ -417,17 +417,6 @@ class UserController extends Controller
 
                 $validated['mobile'] = $phone->formatE164();
 
-                // $exists = User::where('mobile', $validated['mobile'])
-                //     ->where('id', '!=', $user->id)
-                //     ->exists();
-
-                // if ($exists) {
-                //     return response()->json([
-                //         'status' => false,
-                //         'message' => 'This mobile number is already in use.',
-                //     ], 422);
-                // }
-
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => false,

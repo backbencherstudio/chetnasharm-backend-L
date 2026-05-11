@@ -45,10 +45,9 @@ class User extends Authenticatable implements JWTSubject
             return null;
         }
 
-        if ($this->provider) {
+        if (filter_var($this->image, FILTER_VALIDATE_URL)) {
             return $this->image;
         }
-
         return asset('storage/' . $this->image);
     }
 
