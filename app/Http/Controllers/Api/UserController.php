@@ -360,10 +360,15 @@ class UserController extends Controller
     {
         $user = Auth::guard('api')->user();
 
-        $validator = Validator::make($request->all(), [
-            'current_password' => 'required|string',
-            'new_password'     => 'required|string|min:6|confirmed',
-        ]);
+        $rules = [
+            'new_password' => 'required|string|min:6|confirmed',
+        ];
+
+        if (!$user->provider) {
+            $rules['current_password'] = 'required|string';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json([
@@ -373,15 +378,18 @@ class UserController extends Controller
             ], 422);
         }
 
-        if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Current password is incorrect.',
-            ], 422);
+        if (!$user->provider) {
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Current password is incorrect.',
+                ], 422);
+            }
         }
 
-        $user->password = Hash::make($request->new_password);
-        $user->save();
+        $user->update([
+            'password' => $request->new_password
+        ]);
 
         return response()->json([
             'status'  => true,
