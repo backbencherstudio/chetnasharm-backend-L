@@ -85,6 +85,7 @@ class AuthController extends Controller
                 'image_url' => $user->image_url,
                 'role' => $user->roles->pluck('name')->implode(', '),
                 'teacher_id' => $user->teacher ? $user->teacher->id : null,
+                'has_password' => $user->password ? true : false,
             ],
         ]);
     }
