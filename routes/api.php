@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\TeacherNoteController;
 use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\VocabularyController;
 
 
 Route::get('/login', function () {
@@ -118,6 +119,13 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('total-enrollment-per-month', [DashboardController::class,'totalEnrollmentMonthly']);
     // Route::get('total-batch-enrolled', [DashboardController::class,'totalBatchEnrolled']);
     Route::get('revenue-stats', [DashboardController::class,'revenueStats']);
+
+    Route::get('vocabularies', [VocabularyController::class, 'index']);
+    Route::post('vocabularies', [VocabularyController::class, 'store']);
+    Route::get('vocabularies/{id}', [VocabularyController::class, 'show']);
+    Route::post('vocabularies/{id}', [VocabularyController::class, 'update']);
+    Route::delete('vocabularies/{id}', [VocabularyController::class, 'destroy']);
+
 });
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
