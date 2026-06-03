@@ -24,4 +24,29 @@ class VocabularyController extends Controller
         ]);
     }
 
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'word' => 'required|string|max:255',
+            'meaning' => 'required|string',
+            'example' => 'nullable|string',
+            'pronunciation' => 'nullable|string',
+            'part_of_speech' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')
+                ->store('vocabulary', 'public');
+        }
+
+        $vocabulary = Vocabulary::create($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Vocabulary created successfully',
+            'data' => $vocabulary
+        ]);
+    }
+
 }
