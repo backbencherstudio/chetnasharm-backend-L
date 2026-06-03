@@ -99,4 +99,20 @@ class VocabularyController extends Controller
         ]);
     }
 
+    public function destroy($id)
+    {
+        $vocabulary = Vocabulary::findOrFail($id);
+
+        if ($vocabulary->image) {
+            Storage::disk('public')->delete($vocabulary->image);
+        }
+
+        $vocabulary->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Vocabulary deleted successfully'
+        ]);
+    }
+
 }
