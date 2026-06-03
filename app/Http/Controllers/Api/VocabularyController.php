@@ -49,4 +49,23 @@ class VocabularyController extends Controller
         ]);
     }
 
+    public function show($id)
+    {
+        $vocabulary = Vocabulary::find($id);
+
+        if (!$vocabulary) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vocabulary not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $vocabulary
+        ]);
+    }
+
+    
+
 }
