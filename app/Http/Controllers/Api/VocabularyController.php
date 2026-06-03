@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Vocabulary;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class VocabularyController extends Controller
 {
@@ -66,6 +67,36 @@ class VocabularyController extends Controller
         ]);
     }
 
-    
+    public function update(Request $request, $id)
+    {
+        $vocabulary = Vocabulary::findOrFail($id);
+
+        $validated = $request->validate([
+            'word' => 'required|string|max:255',
+            'meaning' => 'required|string',
+            'example' => 'nullable|string',
+            'pronunciation' => 'nullable|string',
+            'part_of_speech' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
+            'status' => 'nullable|boolean',
+        ]);
+
+        if ($request->hasFile('image')) {
+            if ($vocabulary->image) {
+                Storage::disk('public')->delete($vocabulary->image);
+            }
+
+            $validated['image'] = $request->file('image')
+                ->store('vocabulary', 'public');
+        }
+
+        $vocabulary->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Vocabulary updated successfully',
+            'data' => $vocabulary
+        ]);
+    }
 
 }
