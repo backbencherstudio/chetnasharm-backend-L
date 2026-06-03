@@ -54,6 +54,8 @@ Route::get('single-batch/{batchId}', [ClassController::class, 'singleBatch']);
 
 Route::get('/support', [SettingController::class, 'support']);
 
+Route::get('vocabularies', [VocabularyController::class, 'vocabularies']);
+
 Route::middleware('auth:api')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);

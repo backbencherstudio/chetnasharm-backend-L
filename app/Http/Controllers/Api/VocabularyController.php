@@ -115,4 +115,16 @@ class VocabularyController extends Controller
         ]);
     }
 
+    public function vocabularies()
+    {
+        $vocabularies = Vocabulary::where('status', true)
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $vocabularies
+        ]);
+    }
+
 }
