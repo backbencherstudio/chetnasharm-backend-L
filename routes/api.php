@@ -133,7 +133,7 @@ Route::get('vocabularies', [VocabularyController::class, 'vocabularies']);
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 
-    Route::get('/class-time', [SettingController::class, 'getClassTime']);
+    Route::get('class-time', [SettingController::class, 'getClassTime']);
     Route::get('teacher-availability', [AvailabilityController::class, 'index']);
     Route::post('teacher-availability', [AvailabilityController::class, 'store']);
     Route::get('teacher-availability/edit', [AvailabilityController::class, 'edit']);
@@ -142,7 +142,7 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 
     Route::get('teachers-schedule', [AvailabilityController::class, 'teacherSchedule']);
 
-    Route::get('/enrollments/{batchId}', [EnrollmentController::class, 'getEnrollmentsByBatch']);
+    Route::get('enrollments/{batchId}', [EnrollmentController::class, 'getEnrollmentsByBatch']);
 
     Route::get('attendance-monthly/{batchId}', [AttendanceController::class, 'getMonthlyAttendance']);
     Route::get('attendances/{batchId}', [AttendanceController::class, 'getAttendanceSheet']);

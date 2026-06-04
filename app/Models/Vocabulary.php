@@ -18,4 +18,11 @@ class Vocabulary extends Model
         'image',
         'status'
     ];
+
+    protected $appends = ['image_url'];
+    
+    public function getImageUrlAttribute()
+    {
+        return $this->image ? asset('storage/' . $this->image) : null;
+    }
 }

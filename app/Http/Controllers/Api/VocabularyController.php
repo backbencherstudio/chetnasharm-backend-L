@@ -21,14 +21,20 @@ class VocabularyController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $vocabularies
+            'data' => $vocabularies->items(),
+            'pagination' => [
+                'current_page' => $vocabularies->currentPage(),
+                'per_page'     => $vocabularies->perPage(),
+                'total'        => $vocabularies->total(),
+                'last_page'    => $vocabularies->lastPage(),
+            ],
         ]);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'word' => 'required|string|max:255',
+            'word' => 'required|string|max:255|unique:vocabularies,word',
             'meaning' => 'required|string',
             'example' => 'nullable|string',
             'pronunciation' => 'nullable|string',
@@ -72,7 +78,7 @@ class VocabularyController extends Controller
         $vocabulary = Vocabulary::findOrFail($id);
 
         $validated = $request->validate([
-            'word' => 'required|string|max:255',
+            'word' => 'required|string|max:255|unique:vocabularies,word,' . $vocabulary->id,
             'meaning' => 'required|string',
             'example' => 'nullable|string',
             'pronunciation' => 'nullable|string',
