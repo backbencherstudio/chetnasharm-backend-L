@@ -121,15 +121,23 @@ class VocabularyController extends Controller
         ]);
     }
 
-    public function vocabularies()
+    public function vocabularies(Request $request)
     {
+        $perPage = $request->get('per_page', 10);
+
         $vocabularies = Vocabulary::where('status', 1)
             ->latest()
-            ->get();
+            ->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => $vocabularies
+            'data' => $vocabularies->items(),
+            'pagination' => [
+                'current_page' => $vocabularies->currentPage(),
+                'per_page'     => $vocabularies->perPage(),
+                'total'        => $vocabularies->total(),
+                'last_page'    => $vocabularies->lastPage(),
+            ],
         ]);
     }
 

@@ -53,7 +53,7 @@ Route::get('/batches/{classId}', [ClassController::class, 'landBatch']);
 Route::get('single-batch/{batchId}', [ClassController::class, 'singleBatch']);
 
 Route::get('/support', [SettingController::class, 'support']);
-
+Route::get('vocabularies', [VocabularyController::class, 'vocabularies']);
 
 Route::middleware('auth:api')->group(function () {
 
@@ -128,8 +128,6 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::delete('vocabularies/{id}', [VocabularyController::class, 'destroy']);
 
 });
-
-Route::get('vocabularies', [VocabularyController::class, 'vocabularies']);
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 
