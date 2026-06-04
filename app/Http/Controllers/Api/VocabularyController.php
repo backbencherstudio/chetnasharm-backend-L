@@ -78,7 +78,7 @@ class VocabularyController extends Controller
             'pronunciation' => 'nullable|string',
             'part_of_speech' => 'nullable|string',
             'image' => 'nullable|image|max:2048',
-            'status' => 'nullable|boolean',
+            'status' => 'nullable|integer|in:1,0',
         ]);
 
         if ($request->hasFile('image')) {
@@ -117,7 +117,7 @@ class VocabularyController extends Controller
 
     public function vocabularies()
     {
-        $vocabularies = Vocabulary::where('status', true)
+        $vocabularies = Vocabulary::where('status', 1)
             ->latest()
             ->get();
 
