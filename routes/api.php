@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\BasicQuestionController;
 use App\Http\Controllers\Api\ClassRecordingController;
 use App\Http\Controllers\Api\TeacherNoteController;
 use App\Http\Controllers\Api\WaitlistController;
@@ -56,6 +57,7 @@ Route::get('single-batch/{batchId}', [ClassController::class, 'singleBatch']);
 Route::get('/support', [SettingController::class, 'support']);
 Route::get('vocabularies', [VocabularyController::class, 'vocabularies']);
 Route::get('speaking-topics', [SpeakingTopicController::class, 'frontendList']);
+Route::get('basic-questions', [BasicQuestionController::class, 'frontendList']);
 
 Route::middleware('auth:api')->group(function () {
 
@@ -134,6 +136,12 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('speaking-topics/{id}', [SpeakingTopicController::class, 'show']);
     Route::post('speaking-topics/{id}', [SpeakingTopicController::class, 'update']);
     Route::delete('speaking-topics/{id}', [SpeakingTopicController::class, 'destroy']);
+
+    Route::get('basic-questions', [BasicQuestionController::class, 'index']);
+    Route::post('basic-questions', [BasicQuestionController::class, 'store']);
+    Route::get('basic-questions/{id}', [BasicQuestionController::class, 'show']);
+    Route::post('basic-questions/{id}', [BasicQuestionController::class, 'update']);
+    Route::delete('basic-questions/{id}', [BasicQuestionController::class, 'destroy']);
 
 });
 
