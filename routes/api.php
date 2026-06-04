@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\TeacherNoteController;
 use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\SpeakingTopicController;
 use App\Http\Controllers\Api\VocabularyController;
 
 
@@ -54,6 +55,7 @@ Route::get('single-batch/{batchId}', [ClassController::class, 'singleBatch']);
 
 Route::get('/support', [SettingController::class, 'support']);
 Route::get('vocabularies', [VocabularyController::class, 'vocabularies']);
+Route::get('speaking-topics', [SpeakingTopicController::class, 'frontendList']);
 
 Route::middleware('auth:api')->group(function () {
 
@@ -126,6 +128,12 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('vocabularies/{id}', [VocabularyController::class, 'show']);
     Route::post('vocabularies/{id}', [VocabularyController::class, 'update']);
     Route::delete('vocabularies/{id}', [VocabularyController::class, 'destroy']);
+
+    Route::get('speaking-topics', [SpeakingTopicController::class, 'index']);
+    Route::post('speaking-topics', [SpeakingTopicController::class, 'store']);
+    Route::get('speaking-topics/{id}', [SpeakingTopicController::class, 'show']);
+    Route::post('speaking-topics/{id}', [SpeakingTopicController::class, 'update']);
+    Route::delete('speaking-topics/{id}', [SpeakingTopicController::class, 'destroy']);
 
 });
 

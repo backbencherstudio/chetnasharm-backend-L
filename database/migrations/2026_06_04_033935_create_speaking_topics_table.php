@@ -10,9 +10,9 @@ return new class extends Migration
     {
         Schema::create('speaking_topics', function (Blueprint $table) {
             $table->id();
-            $table->string('title');
+            $table->text('topic');
             $table->string('level')->nullable(); // A1, A2, B1 etc.
-            $table->boolean('status')->default(true);
+            $table->tinyInteger('status')->default(1);
             $table->timestamps();
         });
     }
