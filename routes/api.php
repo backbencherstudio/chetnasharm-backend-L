@@ -143,6 +143,9 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::post('basic-questions/{id}', [BasicQuestionController::class, 'update']);
     Route::delete('basic-questions/{id}', [BasicQuestionController::class, 'destroy']);
 
+    Route::get('/env-settings', [SettingController::class, 'getEnvSettings']);
+    Route::post('/env-settings', [SettingController::class, 'updateEnvSettings']);
+
 });
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
