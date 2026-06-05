@@ -144,23 +144,32 @@ class SettingController extends Controller
 
             'stripe' => [
                 'key' => config('services.stripe.key'),
-                'secret_configured' => !empty(config('services.stripe.secret')),
-                'webhook_secret_configured' => !empty(config('services.stripe.webhook_secret')),
+                'secret' => $this->maskSecret(config('services.stripe.secret')),
+                'webhook_secret' => $this->maskSecret(config('services.stripe.webhook_secret')),
             ],
 
             'paypal' => [
                 'client_id' => config('services.paypal.client_id'),
-                'client_secret_configured' => !empty(config('services.paypal.client_secret')),
+                'client_secret' => $this->maskSecret(config('services.paypal.client_secret')),
                 'mode' => config('services.paypal.mode'),
                 'base_url' => config('services.paypal.base_url'),
             ],
 
             'whatsapp' => [
-                'token_configured' => !empty(config('services.whatsapp.token')),
+                'token' => $this->maskSecret(config('services.whatsapp.token')),
                 'phone_number_id' => config('services.whatsapp.phone_number_id'),
                 'url' => config('services.whatsapp.url'),
             ],
         ]);
+    }
+
+    private function maskSecret(?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        return '******' . substr($value, -6);
     }
 
     public function updateEnvSettings(Request $request)
