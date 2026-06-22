@@ -85,6 +85,8 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::get('/teacher-edit-data/{id}', [TeacherController::class, 'edit']);
     Route::post('/teacher-update/{id}', [TeacherController::class, 'update']);
     Route::patch('/teacher-suspend/{id}', [TeacherController::class, 'suspend']);
+    //teacher top status
+    Route::post('/teachers/{id}/toggle-top', [TeacherController::class, 'toggleTopStatus']);
 
     // Class Management
     Route::get('classes/', [ClassController::class, 'index']);
