@@ -25,11 +25,11 @@ class TeacherController extends Controller
 
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
-                ->orWhere('mobile', 'like', "%{$search}%")
-                ->orWhere('bio', 'like', "%{$search}%")
-                ->orWhere('expertise', 'like', "%{$search}%")
-                ->orWhere('qualification', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('mobile', 'like', "%{$search}%")
+                    ->orWhere('bio', 'like', "%{$search}%")
+                    ->orWhere('expertise', 'like', "%{$search}%")
+                    ->orWhere('qualification', 'like', "%{$search}%");
             });
         }
 
@@ -56,6 +56,7 @@ class TeacherController extends Controller
                     'intro_video' => $t->intro_video,
                     'intro_video_url' => $t->intro_video ? asset('storage/' . $t->intro_video) : null,
                     'suspend_status' => $t->suspend_status,
+                    'is_top' => $t->is_top,
                 ];
             }),
             'pagination' => [
@@ -74,7 +75,7 @@ class TeacherController extends Controller
             'email'        => 'required|email|unique:teachers,email|unique:users,email',
             'mobile'       => 'nullable|string',
             'bio'          => 'nullable|string',
-            'qualification'=> 'nullable|string|max:500',
+            'qualification' => 'nullable|string|max:500',
             'expertise'    => 'nullable|string|max:255',
             'years_of_exp' => 'nullable|integer|min:0',
             'image'        => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
@@ -96,7 +97,6 @@ class TeacherController extends Controller
                 $phone = phone($request->mobile);
 
                 $validated['mobile'] = $phone->formatE164();
-
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => false,
@@ -153,7 +153,6 @@ class TeacherController extends Controller
                     ]
                 ]
             ], 201);
-
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -223,7 +222,6 @@ class TeacherController extends Controller
                 $phone = phone($request->mobile);
 
                 $validated['mobile'] = $phone->formatE164();
-
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => false,
@@ -279,7 +277,6 @@ class TeacherController extends Controller
                     'user_id' => $teacher->user_id,
                 ]
             ], 200);
-
         } catch (\Throwable $e) {
 
             DB::rollBack();
@@ -321,7 +318,6 @@ class TeacherController extends Controller
                     'suspend_status' => $teacher->suspend_status
                 ]
             ], 200);
-
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -337,15 +333,19 @@ class TeacherController extends Controller
     {
         $perPage = $request->per_page ?? 10;
         $search = $request->search;
+        $isTop = $request->is_top;
 
         $teachers = Teacher::query()
             ->where('suspend_status', 0)
+            ->when($isTop !== null, function ($query) use ($isTop) {
+                $query->where('is_top', (int) $isTop);
+            })
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'LIKE', "%{$search}%")
-                    ->orWhere('bio', 'LIKE', "%{$search}%")
-                    ->orWhere('expertise', 'LIKE', "%{$search}%")
-                    ->orWhere('qualification', 'LIKE', "%{$search}%");
+                        ->orWhere('bio', 'LIKE', "%{$search}%")
+                        ->orWhere('expertise', 'LIKE', "%{$search}%")
+                        ->orWhere('qualification', 'LIKE', "%{$search}%");
                 });
             })
             ->select(
@@ -356,7 +356,8 @@ class TeacherController extends Controller
                 'qualification',
                 'years_of_exp',
                 'image',
-                'intro_video'
+                'intro_video',
+                'is_top'
             )
             ->latest()
             ->paginate($perPage);
@@ -374,4 +375,17 @@ class TeacherController extends Controller
         ], 200);
     }
 
+    public function toggleTopStatus($id)
+    {
+        $teacher = Teacher::findOrFail($id);
+
+        $teacher->is_top = !$teacher->is_top;
+
+        $teacher->save();
+
+        return response()->json([
+            'message' => 'Teacher top status updated successfully',
+            'is_top' => $teacher->is_top
+        ]);
+    }
 }
