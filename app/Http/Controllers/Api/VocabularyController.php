@@ -17,7 +17,8 @@ class VocabularyController extends Controller
             $query->where('word', 'like', '%' . $request->search . '%');
         }
 
-        $vocabularies = $query->latest()->paginate(10);
+        // $vocabularies = $query->latest()->paginate(10);
+        $vocabularies = $query->oldest()->paginate(10);
 
         return response()->json([
             'success' => true,
@@ -126,7 +127,7 @@ class VocabularyController extends Controller
         $perPage = $request->get('per_page', 10);
 
         $vocabularies = Vocabulary::where('status', 1)
-            ->latest()
+            ->oldest()
             ->paginate($perPage);
 
         return response()->json([

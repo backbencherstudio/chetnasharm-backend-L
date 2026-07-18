@@ -17,7 +17,8 @@ class SpeakingTopicController extends Controller
         }
 
         $speakingTopics = $query
-            ->latest()
+            // ->latest()
+            ->oldest()
             ->paginate($request->per_page ?? 10);
 
         return response()->json([
@@ -100,7 +101,7 @@ class SpeakingTopicController extends Controller
     public function frontendList(Request $request)
     {
         $topics = SpeakingTopic::where('status', 1)
-            ->latest()
+            ->oldest()
             ->paginate($request->per_page ?? 10);
 
         return response()->json([

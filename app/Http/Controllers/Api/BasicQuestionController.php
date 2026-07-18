@@ -17,7 +17,8 @@ class BasicQuestionController extends Controller
         }
 
         $basicQuestions = $query
-            ->latest()
+            // ->latest()
+            ->oldest()
             ->paginate($request->per_page ?? 10);
 
         return response()->json([
@@ -100,7 +101,7 @@ class BasicQuestionController extends Controller
     public function frontendList(Request $request)
     {
         $topics = BasicQuestion::where('status', 1)
-            ->latest()
+            ->oldest()
             ->paginate($request->per_page ?? 10);
 
         return response()->json([
