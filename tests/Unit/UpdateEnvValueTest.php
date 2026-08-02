@@ -1,43 +1,36 @@
 <?php
 
-namespace Tests\Unit;
+use App\Common\UpdateEnvValue;
 
-use App\Actions\UpdateEnvValue;
-use PHPUnit\Framework\TestCase;
+test('it updates an existing env key', function () {
+    $path = tempnam(sys_get_temp_dir(), 'env');
+    file_put_contents($path, "APP_NAME=Laravel\nSTRIPE_KEY=old-key\n");
 
-class UpdateEnvValueTest extends TestCase
-{
-    public function test_it_updates_an_existing_env_key(): void
-    {
-        $path = tempnam(sys_get_temp_dir(), 'env');
-        file_put_contents($path, "APP_NAME=Laravel\nSTRIPE_KEY=old-key\n");
+    $result = (new UpdateEnvValue)->handle('STRIPE_KEY', 'new-key', $path);
 
-        $result = (new UpdateEnvValue)->handle('STRIPE_KEY', 'new-key', $path);
+    expect($result)->toBeTrue()
+        ->and(file_get_contents($path))
+        ->toContain('STRIPE_KEY="new-key"')
+        ->not->toContain('old-key');
 
-        $this->assertTrue($result);
-        $this->assertStringContainsString('STRIPE_KEY="new-key"', file_get_contents($path));
-        $this->assertStringNotContainsString('old-key', file_get_contents($path));
+    unlink($path);
+});
 
-        unlink($path);
-    }
+test('it appends a missing env key', function () {
+    $path = tempnam(sys_get_temp_dir(), 'env');
+    file_put_contents($path, "APP_NAME=Laravel\n");
 
-    public function test_it_appends_a_missing_env_key(): void
-    {
-        $path = tempnam(sys_get_temp_dir(), 'env');
-        file_put_contents($path, "APP_NAME=Laravel\n");
+    $result = (new UpdateEnvValue)->handle('PAYPAL_MODE', 'live', $path);
 
-        $result = (new UpdateEnvValue)->handle('PAYPAL_MODE', 'live', $path);
+    expect($result)->toBeTrue()
+        ->and(file_get_contents($path))
+        ->toContain('PAYPAL_MODE="live"');
 
-        $this->assertTrue($result);
-        $this->assertStringContainsString('PAYPAL_MODE="live"', file_get_contents($path));
+    unlink($path);
+});
 
-        unlink($path);
-    }
+test('it returns false when env file is missing', function () {
+    $result = (new UpdateEnvValue)->handle('APP_NAME', 'Demo', '/tmp/does-not-exist.env');
 
-    public function test_it_returns_false_when_env_file_is_missing(): void
-    {
-        $result = (new UpdateEnvValue)->handle('APP_NAME', 'Demo', '/tmp/does-not-exist.env');
-
-        $this->assertFalse($result);
-    }
-}
+    expect($result)->toBeFalse();
+});

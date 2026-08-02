@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\EnrollStudentFromPayment;
+use App\Common\EnrollStudentFromPayment;
+use App\Common\Pagination;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\Enrollment;
 use App\Models\Payment;
-use App\Support\Pagination;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

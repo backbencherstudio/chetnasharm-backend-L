@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\EnrollStudentFromPayment;
+use App\Common\EnrollStudentFromPayment;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\Enrollment;

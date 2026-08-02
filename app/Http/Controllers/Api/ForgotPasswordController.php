@@ -3,14 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Mail\PasswordOtpMail;
 use App\Models\User;
+use App\Notifications\PasswordOtpNotification;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class ForgotPasswordController extends Controller
@@ -47,7 +46,7 @@ class ForgotPasswordController extends Controller
             ]
         );
 
-        Mail::to($user->email)->queue(new PasswordOtpMail($otp));
+        $user->notify(new PasswordOtpNotification($otp));
 
         return response()->json([
             'status' => true,

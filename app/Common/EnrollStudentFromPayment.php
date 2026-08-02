@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Actions;
+namespace App\Common;
 
 use App\Models\Batch;
 use App\Models\Enrollment;
@@ -13,8 +13,6 @@ class EnrollStudentFromPayment
 {
     /**
      * Execute the primary class operation.
-     *
-     * @return Enrollment|null
      */
     public function handle(Payment $payment, ?int $batchId = null, bool $wrapInTransaction = true): ?Enrollment
     {

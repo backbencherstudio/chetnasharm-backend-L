@@ -1,13 +1,11 @@
 <?php
 
-namespace App\Support;
+namespace App\Common;
 
 class PhoneNormalizer
 {
     /**
      * Normalize a phone number to E.164 format.
-     *
-     * @return string
      */
     public static function toE164(string $mobile): string
     {

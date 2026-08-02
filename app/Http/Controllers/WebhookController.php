@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\EnrollStudentFromPayment;
+use App\Common\EnrollStudentFromPayment;
 use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

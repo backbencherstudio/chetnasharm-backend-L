@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Common\Pagination;
+use App\Common\PhoneNormalizer;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Support\Pagination;
-use App\Support\PhoneNormalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -417,7 +417,7 @@ class UserController extends Controller
             'mobile' => 'nullable|string',
             'department' => 'nullable|string|max:100',
             'image' => $request->hasFile('image')
-                ? ['nullable', 'image']
+                ? ['nullable', 'image', 'max:5120']
                 : ['nullable'],
         ]);
 

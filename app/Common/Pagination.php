@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support;
+namespace App\Common;
 
 use Illuminate\Http\Request;
 
@@ -8,8 +8,6 @@ class Pagination
 {
     /**
      * Resolve a capped pagination page size.
-     *
-     * @return int
      */
     public static function perPage(Request $request, int $default = 10, int $max = 50): int
     {

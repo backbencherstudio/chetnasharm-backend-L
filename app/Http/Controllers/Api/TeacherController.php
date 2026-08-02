@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Common\Pagination;
+use App\Common\PhoneNormalizer;
 use App\Http\Controllers\Controller;
 use App\Models\Teacher;
 use App\Models\User;
-use App\Support\Pagination;
-use App\Support\PhoneNormalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

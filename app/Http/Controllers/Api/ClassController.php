@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Common\Pagination;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
 use App\Models\Teacher;
-use App\Support\Pagination;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -402,8 +402,6 @@ class ClassController extends Controller
 
     /**
      * Eager-load teachers onto class collections.
-     *
-     * @return void
      */
     private function withTeachers($classes): void
     {

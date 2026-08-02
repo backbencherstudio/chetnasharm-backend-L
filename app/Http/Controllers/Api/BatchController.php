@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Common\Pagination;
 use App\Http\Controllers\Concerns\AuthorizesBatchAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
@@ -11,7 +12,6 @@ use App\Models\Enrollment;
 use App\Models\Setting;
 use App\Models\Teacher;
 use App\Models\TeacherAvailability;
-use App\Support\Pagination;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -676,7 +676,6 @@ class BatchController extends Controller
      * Validate and sync batch schedule slots.
      *
      * @param  array<int, array{day_of_week: int, start_time: string}>  $schedules
-     * @return void
      */
     private function syncSchedules(
         Batch $batch,
