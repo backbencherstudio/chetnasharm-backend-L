@@ -416,7 +416,9 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,'.$user->id,
             'mobile' => 'nullable|string',
             'department' => 'nullable|string|max:100',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png',
+            'image' => $request->hasFile('image')
+                ? ['nullable', 'image']
+                : ['nullable'],
         ]);
 
         if ($validator->fails()) {
@@ -428,6 +430,7 @@ class UserController extends Controller
         }
 
         $validated = $validator->validated();
+        unset($validated['image']);
 
         if (! empty($request->mobile)) {
             try {

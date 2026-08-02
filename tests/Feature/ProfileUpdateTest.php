@@ -70,4 +70,48 @@ class ProfileUpdateTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath('status', false);
     }
+
+    public function test_profile_update_accepts_webp_image(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create([
+            'email' => 'profile3@example.com',
+        ]);
+        $user->assignRole('student');
+
+        $token = auth('api')->login($user);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->post('/api/profile-update', [
+                'name' => 'Webp User',
+                'email' => 'profile3@example.com',
+                'image' => UploadedFile::fake()->image('avatar.webp', 800, 600),
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', true);
+    }
+
+    public function test_profile_update_ignores_non_file_image_value(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Keep Name',
+            'email' => 'profile4@example.com',
+            'image' => 'users/existing.jpg',
+        ]);
+        $user->assignRole('student');
+
+        $token = auth('api')->login($user);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/profile-update', [
+                'name' => 'Updated Name',
+                'email' => 'profile4@example.com',
+                'image' => 'https://example.com/old.jpg',
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', true)
+            ->assertJsonPath('data.name', 'Updated Name')
+            ->assertJsonPath('data.image', 'users/existing.jpg');
+    }
 }
