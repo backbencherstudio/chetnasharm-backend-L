@@ -9,17 +9,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Tymon\JWTAuth\Exceptions\TokenExpiredException;
-use Tymon\JWTAuth\Exceptions\JWTException;
 use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Support\Str;
+use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class AuthController extends Controller
 {
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required|string|min:6',
         ]);
 
@@ -27,7 +26,7 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -47,7 +46,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Your account has been suspended. Please contact admin.'
+                'message' => 'Your account has been suspended. Please contact admin.',
             ], 403);
         }
 
@@ -68,7 +67,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Your account has been suspended. Please contact admin.'
+                'message' => 'Your account has been suspended. Please contact admin.',
             ], 403);
         }
 
@@ -113,14 +112,14 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Refresh token expired. Please login again.'
+                'message' => 'Refresh token expired. Please login again.',
             ], 401);
 
         } catch (JWTException $e) {
 
             return response()->json([
                 'success' => false,
-                'message' => 'Token invalid or not provided'
+                'message' => 'Token invalid or not provided',
             ], 401);
         }
     }
@@ -139,16 +138,16 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Validation failed.',
-                'errors'  => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -173,27 +172,29 @@ class AuthController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'User registered successfully.',
-                'data' => $user
+                'data' => $user,
             ], 201);
 
         } catch (\Throwable $e) {
             DB::rollBack();
 
             Log::error('Registration failed', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'status' => false,
                 'message' => 'User registration failed.',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     public function googleRedirect()
     {
-        return Socialite::driver('google')->stateless()->redirect();
+        return Socialite::driver('google')->stateless()
+            ->with(['prompt' => 'select_account'])
+            ->redirect();
     }
 
     // public function googleCallback()
@@ -231,7 +232,7 @@ class AuthController extends Controller
 
             $user = User::where('email', $googleUser->email)->first();
 
-            if (!$user) {
+            if (! $user) {
                 $user = User::create([
                     'name' => $googleUser->name,
                     'email' => $googleUser->email,
@@ -249,18 +250,18 @@ class AuthController extends Controller
             }
 
             if ($user->suspend_status == 1) {
-                return redirect(config('app.frontend_url') . "/login?error=account_suspended");
+                return redirect(config('app.frontend_url').'/login?error=account_suspended');
             }
             $token = auth('api')->login($user);
 
-            return redirect(config('app.frontend_url') . "/auth/callback?token={$token}");
+            return redirect(config('app.frontend_url')."/auth/callback?token={$token}");
 
         } catch (\Throwable $e) {
             // Log::error('Google login error', [
             //     'error' => $e->getMessage()
             // ]);
 
-            return redirect(config('app.frontend_url') . "/login?error=google_login_failed");
+            return redirect(config('app.frontend_url').'/login?error=google_login_failed');
         }
     }
 }

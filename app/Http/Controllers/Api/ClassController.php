@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
+use App\Models\Teacher;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -25,6 +27,8 @@ class ClassController extends Controller
             })
             ->latest()
             ->paginate($perPage);
+
+        $this->withTeachers($classes);
 
         return response()->json([
             'success' => true,
@@ -61,6 +65,8 @@ class ClassController extends Controller
         }
 
         $class = ClassModel::create($validated);
+
+        $this->withTeachers(collect([$class]));
 
         return response()->json([
             'success' => true,
@@ -125,6 +131,8 @@ class ClassController extends Controller
 
         $class->update($validated);
 
+        $this->withTeachers(collect([$class]));
+
         return response()->json([
             'success' => true,
             'message' => 'Class updated successfully',
@@ -171,6 +179,7 @@ class ClassController extends Controller
                 'short_description',
                 'who_is_for',
                 'curriculum',
+                'teacher_ids',
                 'price',
                 'duration_in_days',
                 'total_classes',
@@ -180,9 +189,7 @@ class ClassController extends Controller
             ->latest()
             ->paginate($perPage);
 
-        foreach ($classes as $class) {
-            $class->setAttribute('teachers', $class->teachers());
-        }
+        $this->withTeachers($classes);
 
         return response()->json([
             'success' => true,
@@ -315,6 +322,7 @@ class ClassController extends Controller
                 'short_description',
                 'who_is_for',
                 'curriculum',
+                'teacher_ids',
                 'price',
                 'duration_in_days',
                 'total_classes',
@@ -330,12 +338,44 @@ class ClassController extends Controller
             ], 404);
         }
 
-        $class->setAttribute('teachers', $class->teachers());
+        $class->setAttribute('teachers', $this->loadTeachers([$class]));
+        unset($class->teacher_ids);
 
         return response()->json([
             'success' => true,
             'message' => 'Class fetched successfully',
             'data' => $class,
         ]);
+    }
+
+    private function withTeachers($classes): void
+    {
+        $teachers = $this->loadTeachers($classes);
+
+        foreach ($classes as $class) {
+            $class->setAttribute('teachers', collect($class->teacher_ids ?? [])
+                ->map(fn ($id) => $teachers->get($id))
+                ->filter()
+                ->values());
+
+            unset($class->teacher_ids);
+        }
+    }
+
+    private function loadTeachers($classes)
+    {
+        if ($classes instanceof LengthAwarePaginator) {
+            $classes = $classes->items();
+        }
+
+        $teacherIds = collect($classes)
+            ->flatMap(fn ($class) => $class->teacher_ids ?? [])
+            ->unique()
+            ->values();
+
+        return Teacher::whereIn('id', $teacherIds)
+            ->get(['id', 'name', 'image'])
+            ->keyBy('id')
+            ->map(fn ($teacher) => $teacher->setHidden(['image_url', 'intro_video_url']));
     }
 }
