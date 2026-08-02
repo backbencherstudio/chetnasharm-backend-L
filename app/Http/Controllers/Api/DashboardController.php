@@ -7,19 +7,25 @@ use App\Models\Batch;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
 use App\Models\Teacher;
-use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    /**
+     * Get monthly student registration totals.
+     *
+     * @return JsonResponse
+     */
     public function totalStudentMonthly(Request $request)
     {
         $year = $request->year ?? now()->year;
 
         $students = User::whereHas('roles', function ($query) {
-                $query->where('name', 'student');
-            })
+            $query->where('name', 'student');
+        })
             ->whereYear('created_at', $year)
             ->selectRaw('MONTH(created_at) as month, COUNT(*) as count')
             ->groupByRaw('MONTH(created_at)')
@@ -40,6 +46,11 @@ class DashboardController extends Controller
         ]);
     }
 
+    /**
+     * Get monthly enrollment totals.
+     *
+     * @return JsonResponse
+     */
     public function totalEnrollmentMonthly(Request $request)
     {
         $year = $request->year ?? now()->year;
@@ -67,39 +78,29 @@ class DashboardController extends Controller
         ]);
     }
 
-    // public function totalBatchEnrolled()
-    // {
-    //     $totalBatch = Batch::count();
-    //     $totalEnrolled = Batch::sum('filled_seat');
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Batch statistics retrieved successfully',
-    //         'total_batch' => $totalBatch,
-    //         'total_enrolled' => $totalEnrolled,
-    //     ]);
-    // }
-
+    /**
+     * Get admin revenue statistics.
+     *
+     * @return JsonResponse
+     */
     public function revenueStats()
     {
         $totalBatches = Batch::count();
-        $totalRevenue = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
-            ->selectRaw('SUM(batches.filled_seat * classes.price) as total')
-            ->value('total');
 
-        $potentialRevenue = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
-            ->selectRaw('SUM(batches.total_seat * classes.price) as total')
-            ->value('total');
+        $revenueAggregates = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
+            ->selectRaw('
+                SUM(batches.filled_seat * classes.price) as total_revenue,
+                SUM(batches.total_seat * classes.price) as potential_revenue,
+                SUM((batches.total_seat - batches.filled_seat) * classes.price) as lost_revenue,
+                AVG(batches.filled_seat * classes.price) as average_revenue
+            ')
+            ->first();
 
-        $lostRevenue = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
-            ->selectRaw('SUM((batches.total_seat - batches.filled_seat) * classes.price) as total')
-            ->value('total');
+        $totalRevenue = $revenueAggregates->total_revenue ?? 0;
+        $potentialRevenue = $revenueAggregates->potential_revenue ?? 0;
+        $lostRevenue = $revenueAggregates->lost_revenue ?? 0;
+        $averageRevenuePerBatch = $revenueAggregates->average_revenue ?? 0;
 
-        $averageRevenuePerBatch = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
-            ->selectRaw('AVG(batches.filled_seat * classes.price) as average')
-            ->value('average');
-
-        // Top earning classes
         $topClasses = ClassModel::join('batches', 'classes.id', '=', 'batches.class_id')
             ->select(
                 'classes.id',
@@ -122,7 +123,6 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Top earning batches
         $topBatches = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
             ->leftJoin('teachers', 'batches.teacher_id', '=', 'teachers.id')
             ->leftJoin('users', 'teachers.user_id', '=', 'users.id')
@@ -170,51 +170,51 @@ class DashboardController extends Controller
                 'potential_revenue' => round($potentialRevenue ?? 0, 2),
                 'lost_revenue' => round($lostRevenue ?? 0, 2),
                 'average_revenue_per_batch' => round($averageRevenuePerBatch ?? 0, 2),
-                'seat_occupancy_rate' => $occupancyRate . '%',
+                'seat_occupancy_rate' => $occupancyRate.'%',
                 'total_seats' => (int) ($seatStats->total_seats ?? 0),
                 'filled_seats' => (int) ($seatStats->filled_seats ?? 0),
                 'top_earning_classes' => $topClasses,
                 'top_earning_batches' => $topBatches,
-            ]
+            ],
         ]);
     }
 
+    /**
+     * Get dashboard data for a teacher.
+     *
+     * @return JsonResponse
+     */
     public function teacherDashboard()
     {
         $user = auth('api')->user();
 
         $teacher = Teacher::where('user_id', $user->id)->firstOrFail();
 
-        $batches = Batch::where('teacher_id', $teacher->id);
+        $stats = Batch::where('teacher_id', $teacher->id)
+            ->selectRaw('
+                COUNT(*) as total_batches,
+                SUM(CASE WHEN active_status = 1 THEN 1 ELSE 0 END) as active_batches,
+                SUM(CASE WHEN end_date < ? THEN 1 ELSE 0 END) as completed_batches,
+                SUM(filled_seat) as total_students,
+                SUM(total_seat) as total_seats
+            ', [now()->toDateString()])
+            ->first();
 
-        // Statistics
-        $totalBatches = (clone $batches)->count();
-
-        $activeBatches = (clone $batches)
-            ->where('active_status', 1)
-            ->count();
-
-        $completedBatches = (clone $batches)
-            ->whereDate('end_date', '<', now())
-            ->count();
-
-        $totalStudents = (clone $batches)
-            ->sum('filled_seat');
-
-        $totalSeats = (clone $batches)
-            ->sum('total_seat');
+        $totalBatches = (int) ($stats->total_batches ?? 0);
+        $activeBatches = (int) ($stats->active_batches ?? 0);
+        $completedBatches = (int) ($stats->completed_batches ?? 0);
+        $totalStudents = (int) ($stats->total_students ?? 0);
+        $totalSeats = (int) ($stats->total_seats ?? 0);
 
         $occupancyRate = $totalSeats > 0
             ? round(($totalStudents / $totalSeats) * 100, 2)
             : 0;
 
-        // Revenue generated
         $totalRevenue = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
             ->where('batches.teacher_id', $teacher->id)
             ->selectRaw('SUM(batches.filled_seat * classes.price) as total')
             ->value('total');
 
-        // Upcoming classes/batches
         $upcomingClasses = Batch::with('class:id,title')
             ->where('teacher_id', $teacher->id)
             ->whereDate('start_date', '>=', now())
@@ -233,7 +233,6 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Top performing batches
         $topBatches = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
             ->where('batches.teacher_id', $teacher->id)
             ->select(
@@ -267,23 +266,28 @@ class DashboardController extends Controller
                     'completed_batches' => $completedBatches,
                     'total_students' => $totalStudents,
                     'total_seats' => $totalSeats,
-                    'seat_occupancy_rate' => $occupancyRate . '%',
+                    'seat_occupancy_rate' => $occupancyRate.'%',
                     'total_revenue_generated' => round($totalRevenue ?? 0, 2),
                 ],
 
                 'upcoming_batches' => $upcomingClasses,
                 'top_batches' => $topBatches,
-            ]
+            ],
         ]);
     }
 
+    /**
+     * Get dashboard data for a student.
+     *
+     * @return JsonResponse
+     */
     public function studentDashboard()
     {
         $user = auth('api')->user();
 
         $enrollments = Enrollment::with([
             'class:id,title,image,price,duration_in_days,total_classes',
-            'batch:id,name,start_date,end_date,zoom_link,total_seat,filled_seat'
+            'batch:id,name,start_date,end_date,zoom_link,total_seat,filled_seat',
         ])->where('user_id', $user->id);
 
         $totalEnrollments = (clone $enrollments)->count();
@@ -304,7 +308,7 @@ class DashboardController extends Controller
 
         $activeCourseList = Enrollment::with([
             'class:id,title,price',
-            'batch:id,name,start_date,end_date,total_seat,filled_seat'
+            'batch:id,name,start_date,end_date,total_seat,filled_seat',
         ])
             ->where('user_id', $user->id)
             ->whereHas('batch', function ($q) {
@@ -342,16 +346,15 @@ class DashboardController extends Controller
                     'start_date' => optional($batch)->start_date,
                     'end_date' => optional($batch)->end_date,
 
-                    'progress_percent' => $progress . '%',
+                    'progress_percent' => $progress.'%',
 
                     'expiry_date' => $enrollment->expiry_date,
                 ];
             });
 
-        // Recent enrollments
         $recentEnrollments = Enrollment::with([
             'class:id,title,image',
-            'batch:id,name'
+            'batch:id,name',
         ])
             ->where('user_id', $user->id)
             ->latest()
@@ -371,10 +374,9 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Completed courses
         $completedCourseList = Enrollment::with([
             'class:id,title,image',
-            'batch:id,name,end_date'
+            'batch:id,name,end_date',
         ])
             ->where('user_id', $user->id)
             ->whereHas('batch', function ($q) {
@@ -410,8 +412,7 @@ class DashboardController extends Controller
                 'active_courses' => $activeCourseList,
                 'recent_enrollments' => $recentEnrollments,
                 'completed_courses' => $completedCourseList,
-            ]
+            ],
         ]);
     }
-
 }

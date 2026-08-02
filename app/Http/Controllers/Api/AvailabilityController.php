@@ -4,15 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BatchSchedule;
-use Carbon\Carbon;
 use App\Models\Setting;
-use Illuminate\Http\Request;
 use App\Models\TeacherAvailability;
-
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AvailabilityController extends Controller
 {
-
+    /**
+     * Display a listing of the resource.
+     *
+     * @return JsonResponse
+     */
     public function index(Request $request)
     {
         $user = auth('api')->user();
@@ -52,20 +56,25 @@ class AvailabilityController extends Controller
                         return [
                             'id' => $slot->id,
                             'start_time' => Carbon::parse($slot->start_time)->format('H:i'),
-                            'end_time'   => Carbon::parse($slot->end_time)->format('H:i'),
+                            'end_time' => Carbon::parse($slot->end_time)->format('H:i'),
                         ];
                     })->values()
-                    : []
+                    : [],
             ];
         })->values();
 
         return response()->json([
             'success' => true,
             'message' => 'Availability fetched successfully',
-            'data' => $result
+            'data' => $result,
         ]);
     }
 
+    /**
+     * Store a newly created resource.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $user = auth('api')->user();
@@ -87,10 +96,10 @@ class AvailabilityController extends Controller
 
         $setting = Setting::first();
 
-        if (!$setting || !$setting->class_time) {
+        if (! $setting || ! $setting->class_time) {
             return response()->json([
                 'success' => false,
-                'message' => 'Class time not configured'
+                'message' => 'Class time not configured',
             ], 422);
         }
 
@@ -102,13 +111,14 @@ class AvailabilityController extends Controller
         foreach ($validated['slots'] as $slot) {
 
             $startTime = Carbon::createFromFormat('H:i', $slot['start_time']);
-            $endTime   = $startTime->copy()->addMinutes($classTime);
+            $endTime = $startTime->copy()->addMinutes($classTime);
 
             if ($endTime->gt(Carbon::createFromTime(23, 59))) {
                 $failedSlots[] = [
                     'start_time' => $startTime->format('H:i'),
-                    'message' => 'Exceeds day limit'
+                    'message' => 'Exceeds day limit',
                 ];
+
                 continue;
             }
 
@@ -116,25 +126,26 @@ class AvailabilityController extends Controller
                 ->where('day_of_week', $validated['day_of_week'])
                 ->where(function ($q) use ($startTime, $endTime) {
                     $q->where('start_time', '<', $endTime->format('H:i:s'))
-                    ->where('end_time', '>', $startTime->format('H:i:s'));
+                        ->where('end_time', '>', $startTime->format('H:i:s'));
                 })
                 ->exists();
 
             if ($overlap) {
                 $failedSlots[] = [
                     'start_time' => $startTime->format('H:i'),
-                    'message' => 'Overlaps with existing slot'
+                    'message' => 'Overlaps with existing slot',
                 ];
+
                 continue;
             }
 
             $createdSlots[] = TeacherAvailability::create([
-                'teacher_id'    => $teacherId,
-                'day_of_week'   => $validated['day_of_week'],
-                'start_time'    => $startTime->format('H:i:s'),
-                'end_time'      => $endTime->format('H:i:s'),
+                'teacher_id' => $teacherId,
+                'day_of_week' => $validated['day_of_week'],
+                'start_time' => $startTime->format('H:i:s'),
+                'end_time' => $endTime->format('H:i:s'),
                 'booked_status' => 0,
-                'booked_until'  => null,
+                'booked_until' => null,
             ]);
         }
 
@@ -147,10 +158,15 @@ class AvailabilityController extends Controller
                 'total' => count($validated['slots']),
                 'created' => count($createdSlots),
                 'failed' => count($failedSlots),
-            ]
+            ],
         ]);
     }
 
+    /**
+     * Get data for editing the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function edit(Request $request)
     {
         $user = auth('api')->user();
@@ -176,10 +192,15 @@ class AvailabilityController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Availability slots retrieved successfully',
-            'data' => $slots
+            'data' => $slots,
         ]);
     }
 
+    /**
+     * Update the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function update(Request $request)
     {
         $user = auth('api')->user();
@@ -201,10 +222,10 @@ class AvailabilityController extends Controller
 
         $setting = Setting::first();
 
-        if (!$setting || !$setting->class_time) {
+        if (! $setting || ! $setting->class_time) {
             return response()->json([
                 'success' => false,
-                'message' => 'Class time not configured'
+                'message' => 'Class time not configured',
             ], 422);
         }
 
@@ -216,27 +237,28 @@ class AvailabilityController extends Controller
 
         $existingMap = $existing->mapWithKeys(function ($slot) {
             $key = Carbon::parse($slot->start_time)->format('H:i');
+
             return [$key => $slot];
         });
 
         $newSlots = collect($validated['slots'])->mapWithKeys(function ($slot) use ($classTime) {
             $start = Carbon::createFromFormat('H:i', $slot['start_time']);
-            $end   = $start->copy()->addMinutes($classTime);
+            $end = $start->copy()->addMinutes($classTime);
 
             return [
                 $start->format('H:i') => [
                     'start_time' => $start,
-                    'end_time'   => $end,
-                ]
+                    'end_time' => $end,
+                ],
             ];
         });
 
         $createdSlots = [];
         $deletedSlots = [];
-        $failedSlots  = [];
+        $failedSlots = [];
 
         foreach ($existingMap as $start => $slot) {
-            if (!$newSlots->has($start)) {
+            if (! $newSlots->has($start)) {
                 $slot->delete();
                 $deletedSlots[] = $start;
             }
@@ -249,13 +271,14 @@ class AvailabilityController extends Controller
             }
 
             $startTime = $slotData['start_time'];
-            $endTime   = $slotData['end_time'];
+            $endTime = $slotData['end_time'];
 
             if ($endTime->gt(Carbon::createFromTime(23, 59))) {
                 $failedSlots[] = [
                     'start_time' => $start,
-                    'message' => 'Exceeds day limit'
+                    'message' => 'Exceeds day limit',
                 ];
+
                 continue;
             }
 
@@ -263,23 +286,24 @@ class AvailabilityController extends Controller
                 ->where('day_of_week', $validated['day_of_week'])
                 ->where(function ($q) use ($startTime, $endTime) {
                     $q->where('start_time', '<', $endTime->format('H:i:s'))
-                    ->where('end_time', '>', $startTime->format('H:i:s'));
+                        ->where('end_time', '>', $startTime->format('H:i:s'));
                 })
                 ->exists();
 
             if ($overlap) {
                 $failedSlots[] = [
                     'start_time' => $start,
-                    'message' => 'Overlaps with existing slot'
+                    'message' => 'Overlaps with existing slot',
                 ];
+
                 continue;
             }
 
             $createdSlots[] = TeacherAvailability::create([
-                'teacher_id'    => $teacherId,
-                'day_of_week'   => $validated['day_of_week'],
-                'start_time'    => $startTime->format('H:i:s'),
-                'end_time'      => $endTime->format('H:i:s'),
+                'teacher_id' => $teacherId,
+                'day_of_week' => $validated['day_of_week'],
+                'start_time' => $startTime->format('H:i:s'),
+                'end_time' => $endTime->format('H:i:s'),
             ]);
         }
 
@@ -288,20 +312,25 @@ class AvailabilityController extends Controller
             'message' => 'Availability synced successfully',
             'created' => $createdSlots,
             'deleted' => $deletedSlots,
-            'failed'  => $failedSlots,
+            'failed' => $failedSlots,
         ]);
     }
 
+    /**
+     * Remove the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function destroy($id)
     {
         $user = auth('api')->user();
 
         $availability = TeacherAvailability::find($id);
 
-        if (!$availability) {
+        if (! $availability) {
             return response()->json([
                 'success' => false,
-                'message' => 'Availability not found'
+                'message' => 'Availability not found',
             ], 404);
         }
 
@@ -310,7 +339,7 @@ class AvailabilityController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized action'
+                'message' => 'Unauthorized action',
             ], 403);
         }
 
@@ -318,73 +347,82 @@ class AvailabilityController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Availability deleted successfully'
+            'message' => 'Availability deleted successfully',
         ]);
     }
 
+    /**
+     * Get available teacher slots for a date range.
+     *
+     * @return JsonResponse
+     */
     public function availabilityByDate(Request $request)
     {
         $validated = $request->validate([
             'teacher_id' => 'required|exists:teachers,id',
             'start_date' => 'required|date',
-            'end_date'   => 'required|date|after_or_equal:start_date',
+            'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
         $teacherId = $validated['teacher_id'];
         $startDate = Carbon::parse($validated['start_date']);
-        $endDate   = Carbon::parse($validated['end_date']);
+        $endDate = Carbon::parse($validated['end_date']);
 
         $classTime = Setting::first()?->class_time;
 
-        if (!$classTime) {
+        if (! $classTime) {
             return response()->json([
                 'success' => false,
-                'message' => 'Class time not set in settings'
+                'message' => 'Class time not set in settings',
             ], 422);
         }
+
+        $availabilities = TeacherAvailability::where('teacher_id', $teacherId)->get()->groupBy('day_of_week');
+
+        $schedules = BatchSchedule::with('batch:id,start_date,end_date')
+            ->where('teacher_id', $teacherId)
+            ->get();
 
         $result = [];
 
         while ($startDate->lte($endDate)) {
 
             $dayOfWeek = $startDate->dayOfWeek;
-
-            $availabilities = TeacherAvailability::where('teacher_id', $teacherId)
-                ->where('day_of_week', $dayOfWeek)
-                ->get();
-
             $daySlots = [];
 
-            foreach ($availabilities as $availability) {
+            foreach ($availabilities->get($dayOfWeek, collect()) as $availability) {
 
                 $slotStart = Carbon::parse($availability->start_time);
-                $slotEnd   = Carbon::parse($availability->end_time);
+                $slotEnd = Carbon::parse($availability->end_time);
 
                 while ($slotStart->copy()->addMinutes($classTime)->lte($slotEnd)) {
 
                     $startTime = $slotStart->format('H:i:s');
-                    $endTime   = $slotStart->copy()->addMinutes($classTime)->format('H:i:s');
+                    $endTime = $slotStart->copy()->addMinutes($classTime)->format('H:i:s');
 
-                    $conflict = BatchSchedule::where('teacher_id', $teacherId)
-                        ->where('day_of_week', $dayOfWeek)
-                        ->whereHas('batch', function ($q) use ($startDate) {
-                            $q->where('start_date', '<=', $startDate)
-                            ->where('end_date', '>=', $startDate);
-                        })
-                        ->where(function ($q) use ($startTime, $endTime) {
-                            $q->whereBetween('start_time', [$startTime, $endTime])
-                            ->orWhereBetween('end_time', [$startTime, $endTime])
-                            ->orWhere(function ($q2) use ($startTime, $endTime) {
-                                $q2->where('start_time', '<=', $startTime)
-                                    ->where('end_time', '>=', $endTime);
-                            });
-                        })
-                        ->exists();
+                    $conflict = $schedules->contains(function ($schedule) use ($dayOfWeek, $startDate, $startTime, $endTime) {
+                        $batch = $schedule->batch;
 
-                    if (!$conflict) {
+                        if (
+                            ! $batch ||
+                            (int) $schedule->day_of_week !== (int) $dayOfWeek ||
+                            ! $startDate->between(
+                                Carbon::parse($batch->start_date)->startOfDay(),
+                                Carbon::parse($batch->end_date)->endOfDay()
+                            )
+                        ) {
+                            return false;
+                        }
+
+                        return ($startTime >= $schedule->start_time && $startTime < $schedule->end_time)
+                            || ($endTime > $schedule->start_time && $endTime <= $schedule->end_time)
+                            || ($startTime <= $schedule->start_time && $endTime >= $schedule->end_time);
+                    });
+
+                    if (! $conflict) {
                         $daySlots[] = [
                             'start_time' => $startTime,
-                            'end_time'   => $endTime,
+                            'end_time' => $endTime,
                         ];
                     }
 
@@ -393,9 +431,9 @@ class AvailabilityController extends Controller
             }
 
             $result[] = [
-                'date'  => $startDate->toDateString(),
-                'day'   => $dayOfWeek,
-                'slots' => $daySlots
+                'date' => $startDate->toDateString(),
+                'day' => $dayOfWeek,
+                'slots' => $daySlots,
             ];
 
             $startDate->addDay();
@@ -404,21 +442,26 @@ class AvailabilityController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Teacher availability fetched successfully',
-            'data'    => $result
+            'data' => $result,
         ]);
     }
 
+    /**
+     * Get busy teacher slots for a date range.
+     *
+     * @return JsonResponse
+     */
     public function teacherBusySlots(Request $request)
     {
         $validated = $request->validate([
             'teacher_id' => 'required|exists:teachers,id',
             'start_date' => 'required|date',
-            'end_date'   => 'required|date|after_or_equal:start_date',
+            'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
         $teacherId = $validated['teacher_id'];
         $startDate = Carbon::parse($validated['start_date']);
-        $endDate   = Carbon::parse($validated['end_date']);
+        $endDate = Carbon::parse($validated['end_date']);
 
         $schedules = BatchSchedule::with('batch:id,name,start_date,end_date')
             ->where('teacher_id', $teacherId)
@@ -446,17 +489,17 @@ class AvailabilityController extends Controller
                 ) {
                     $dayBusy[] = [
                         'start_time' => $schedule->start_time,
-                        'end_time'   => $schedule->end_time,
-                        'batch_id'   => $batch->id,
+                        'end_time' => $schedule->end_time,
+                        'batch_id' => $batch->id,
                         'batch_name' => $batch->name,
                     ];
                 }
             }
 
             $result[] = [
-                'date'       => $startDate->toDateString(),
-                'day'        => $dayOfWeek,
-                'busy_slots' => $dayBusy
+                'date' => $startDate->toDateString(),
+                'day' => $dayOfWeek,
+                'busy_slots' => $dayBusy,
             ];
 
             $startDate->addDay();
@@ -465,32 +508,49 @@ class AvailabilityController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Teacher busy schedule fetched successfully',
-            'data'    => $result
+            'data' => $result,
         ]);
     }
 
+    /**
+     * Get busy and available slots for a teacher schedule.
+     *
+     * @return JsonResponse
+     */
     public function teacherSchedule(Request $request)
     {
         $validated = $request->validate([
             'teacher_id' => 'required|exists:teachers,id',
             'start_date' => 'required|date',
-            'end_date'   => 'required|date|after_or_equal:start_date',
+            'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
+        $user = auth('api')->user();
         $teacherId = $validated['teacher_id'];
+
+        if ($user->hasRole('teacher') && ! $user->hasRole('admin')) {
+            $teacherId = $user->teacher->id ?? 0;
+
+            if ((int) $teacherId !== (int) $validated['teacher_id']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+        }
+
         $startDate = Carbon::parse($validated['start_date']);
-        $endDate   = Carbon::parse($validated['end_date']);
+        $endDate = Carbon::parse($validated['end_date']);
 
         $classTime = Setting::value('class_time');
 
-        if (!$classTime) {
+        if (! $classTime) {
             return response()->json([
                 'success' => false,
-                'message' => 'Class time not set in settings'
+                'message' => 'Class time not set in settings',
             ], 422);
         }
 
-        // ✅ Load once (IMPORTANT)
         $schedules = BatchSchedule::with('batch:id,name,start_date,end_date')
             ->where('teacher_id', $teacherId)
             ->get();
@@ -504,14 +564,11 @@ class AvailabilityController extends Controller
         while ($startDate->lte($endDate)) {
 
             $currentDate = $startDate->copy();
-            $dayOfWeek   = $currentDate->dayOfWeek;
+            $dayOfWeek = $currentDate->dayOfWeek;
 
             $busySlots = [];
             $availableSlots = [];
 
-            // =========================
-            // ✅ 1. Get Busy Slots
-            // =========================
             foreach ($schedules as $schedule) {
 
                 $batch = $schedule->batch;
@@ -526,40 +583,35 @@ class AvailabilityController extends Controller
                 ) {
                     $busySlots[] = [
                         'start_time' => $schedule->start_time,
-                        'end_time'   => $schedule->end_time,
-                        'batch_id'   => $batch->id,
+                        'end_time' => $schedule->end_time,
+                        'batch_id' => $batch->id,
                         'batch_name' => $batch->name,
                     ];
                 }
             }
 
-            // =========================
-            // ✅ 2. Generate Available Slots
-            // =========================
             $dayAvailabilities = $availabilities[$dayOfWeek] ?? collect();
 
             foreach ($dayAvailabilities as $availability) {
 
                 $slotStart = Carbon::parse($availability->start_time);
-                $slotEnd   = Carbon::parse($availability->end_time);
+                $slotEnd = Carbon::parse($availability->end_time);
 
                 while ($slotStart->copy()->addMinutes($classTime)->lte($slotEnd)) {
 
                     $startTime = $slotStart->format('H:i:s');
-                    $endTime   = $slotStart->copy()->addMinutes($classTime)->format('H:i:s');
+                    $endTime = $slotStart->copy()->addMinutes($classTime)->format('H:i:s');
 
-                    // 🔥 Check against busy slots (IN-MEMORY, FAST)
                     $isBusy = collect($busySlots)->contains(function ($busy) use ($startTime, $endTime) {
-                        return (
+                        return
                             $busy['start_time'] < $endTime &&
-                            $busy['end_time'] > $startTime
-                        );
+                            $busy['end_time'] > $startTime;
                     });
 
-                    if (!$isBusy) {
+                    if (! $isBusy) {
                         $availableSlots[] = [
                             'start_time' => $startTime,
-                            'end_time'   => $endTime,
+                            'end_time' => $endTime,
                         ];
                     }
 
@@ -568,9 +620,9 @@ class AvailabilityController extends Controller
             }
 
             $result[] = [
-                'date'            => $currentDate->toDateString(),
-                'day'             => $dayOfWeek,
-                'busy_slots'      => $busySlots,
+                'date' => $currentDate->toDateString(),
+                'day' => $dayOfWeek,
+                'busy_slots' => $busySlots,
                 'available_slots' => $availableSlots,
             ];
 
@@ -580,8 +632,7 @@ class AvailabilityController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Teacher schedule fetched successfully',
-            'data'    => $result
+            'data' => $result,
         ]);
     }
-
 }
