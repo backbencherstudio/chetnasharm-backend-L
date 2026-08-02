@@ -3,20 +3,29 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Teacher;
 use App\Models\User;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Hash;
+use App\Support\Pagination;
+use App\Support\PhoneNormalizer;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class TeacherController extends Controller
 {
+    /**
+     * Fetch the paginated list for admin management.
+     *
+     * @return JsonResponse
+     */
     public function data(Request $request)
     {
-        $perPage = $request->query('per_page', 10);
+        $perPage = Pagination::perPage($request);
 
         $query = Teacher::query();
 
@@ -43,60 +52,62 @@ class TeacherController extends Controller
             'status' => true,
             'data' => collect($teachers->items())->map(function ($t) {
                 return [
-                    'id'        => $t->id,
-                    'name'      => $t->name,
-                    'email'     => $t->email,
-                    'mobile'    => $t->mobile,
-                    'bio'       => $t->bio,
+                    'id' => $t->id,
+                    'name' => $t->name,
+                    'email' => $t->email,
+                    'mobile' => $t->mobile,
+                    'bio' => $t->bio,
                     'expertise' => $t->expertise,
                     'qualification' => $t->qualification,
                     'years_of_exp' => $t->years_of_exp,
-                    'image'     => $t->image,
-                    'image_url'     => $t->image ? asset('storage/' . $t->image) : null,
+                    'image' => $t->image,
+                    'image_url' => $t->image ? asset('storage/'.$t->image) : null,
                     'intro_video' => $t->intro_video,
-                    'intro_video_url' => $t->intro_video ? asset('storage/' . $t->intro_video) : null,
+                    'intro_video_url' => $t->intro_video ? asset('storage/'.$t->intro_video) : null,
                     'suspend_status' => $t->suspend_status,
                     'is_top' => $t->is_top,
                 ];
             }),
             'pagination' => [
                 'current_page' => $teachers->currentPage(),
-                'per_page'     => $teachers->perPage(),
-                'total'        => $teachers->total(),
-                'last_page'    => $teachers->lastPage(),
-            ]
+                'per_page' => $teachers->perPage(),
+                'total' => $teachers->total(),
+                'last_page' => $teachers->lastPage(),
+            ],
         ], 200);
     }
 
+    /**
+     * Store a newly created resource.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name'         => 'required|string|max:255',
-            'email'        => 'required|email|unique:teachers,email|unique:users,email',
-            'mobile'       => 'nullable|string',
-            'bio'          => 'nullable|string',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:teachers,email|unique:users,email',
+            'mobile' => 'nullable|string',
+            'bio' => 'nullable|string',
             'qualification' => 'nullable|string|max:500',
-            'expertise'    => 'nullable|string|max:255',
+            'expertise' => 'nullable|string|max:255',
             'years_of_exp' => 'nullable|integer|min:0',
-            'image'        => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'intro_video'  => 'nullable|file|mimes:mp4,mov,avi,webm|max:20480',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'intro_video' => 'nullable|file|mimes:mp4,mov,avi,webm|max:20480',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         $validated = $validator->validated();
 
-        if (!empty($request->mobile)) {
+        if (! empty($request->mobile)) {
             try {
-
-                $phone = phone($request->mobile);
-
-                $validated['mobile'] = $phone->formatE164();
+                $validated['mobile'] = PhoneNormalizer::toE164($request->mobile);
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => false,
@@ -119,15 +130,15 @@ class TeacherController extends Controller
                     ->store('teacher_videos', 'public');
             }
 
-            $randomPassword = '12345678';
+            $randomPassword = Str::password(12);
 
             $user = User::create([
-                'name'       => $validated['name'],
-                'email'      => $validated['email'],
-                'mobile'     => $validated['mobile'] ?? null,
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'mobile' => $validated['mobile'] ?? null,
                 'department' => 'Teacher',
-                'password'   => Hash::make($randomPassword),
-                'image'      => $validated['image'] ?? null,
+                'password' => Hash::make($randomPassword),
+                'image' => $validated['image'] ?? null,
             ]);
 
             $role = Role::where('name', 'teacher')->firstOrFail();
@@ -140,88 +151,95 @@ class TeacherController extends Controller
             DB::commit();
 
             return response()->json([
-                'status'  => true,
+                'status' => true,
                 'message' => 'Teacher created successfully.',
-                'data'    => [
-                    'id'    => $teacher->id,
-                    'name'  => $teacher->name,
+                'data' => [
+                    'id' => $teacher->id,
+                    'name' => $teacher->name,
                     'email' => $teacher->email,
-                    'user'  => [
-                        'id'       => $user->id,
-                        'email'    => $user->email,
+                    'user' => [
+                        'id' => $user->id,
+                        'email' => $user->email,
                         'password' => $randomPassword,
-                    ]
-                ]
+                    ],
+                ],
             ], 201);
         } catch (\Throwable $e) {
             DB::rollBack();
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Failed to create teacher.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Get data for editing the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function edit($id)
     {
         $teacher = Teacher::with('user')->findOrFail($id);
 
         return response()->json([
             'status' => true,
-            'data'   => [
-                'id'        => $teacher->id,
-                'name'      => $teacher->name,
-                'email'     => $teacher->email,
-                'mobile'    => $teacher->mobile,
-                'bio'       => $teacher->bio,
+            'data' => [
+                'id' => $teacher->id,
+                'name' => $teacher->name,
+                'email' => $teacher->email,
+                'mobile' => $teacher->mobile,
+                'bio' => $teacher->bio,
                 'expertise' => $teacher->expertise,
                 'years_of_exp' => $teacher->years_of_exp,
                 'qualification' => $teacher->qualification,
                 'intro_video' => $teacher->intro_video,
                 'intro_video_url' => $teacher->intro_video_url,
-                'image'     => $teacher->image,
-                'image_url'     => $teacher->image_url,
+                'image' => $teacher->image,
+                'image_url' => $teacher->image_url,
                 'suspend_status' => $teacher->suspend_status,
-                'user_id'    => $teacher->user_id,
-            ]
+                'user_id' => $teacher->user_id,
+            ],
         ], 200);
     }
 
+    /**
+     * Update the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $teacher = Teacher::with('user')->findOrFail($id);
         $linkedUser = $teacher->user;
 
         $validator = Validator::make($request->all(), [
-            'name'           => 'required|string|max:255',
-            'email'          => 'required|email|unique:users,email,' . $teacher->user_id,
-            'mobile'         => 'nullable|string',
-            'bio'            => 'nullable|string',
-            'expertise'      => 'nullable|string|max:255',
-            'qualification'  => 'nullable|string|max:500',
-            'years_of_exp'   => 'nullable|integer|min:0',
-            'image'          => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'intro_video'    => 'nullable|file|mimes:mp4,mov,avi,webm|max:10240',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,'.$teacher->user_id,
+            'mobile' => 'nullable|string',
+            'bio' => 'nullable|string',
+            'expertise' => 'nullable|string|max:255',
+            'qualification' => 'nullable|string|max:500',
+            'years_of_exp' => 'nullable|integer|min:0',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'intro_video' => 'nullable|file|mimes:mp4,mov,avi,webm|max:10240',
             'suspend_status' => 'nullable|in:0,1',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         $validated = $validator->validated();
 
-        if (!empty($request->mobile)) {
+        if (! empty($request->mobile)) {
             try {
-
-                $phone = phone($request->mobile);
-
-                $validated['mobile'] = $phone->formatE164();
+                $validated['mobile'] = PhoneNormalizer::toE164($request->mobile);
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => false,
@@ -268,27 +286,32 @@ class TeacherController extends Controller
             DB::commit();
 
             return response()->json([
-                'status'  => true,
+                'status' => true,
                 'message' => 'Teacher updated successfully.',
-                'data'    => [
-                    'id'      => $teacher->id,
-                    'name'    => $teacher->name,
-                    'email'   => $teacher->email,
+                'data' => [
+                    'id' => $teacher->id,
+                    'name' => $teacher->name,
+                    'email' => $teacher->email,
                     'user_id' => $teacher->user_id,
-                ]
+                ],
             ], 200);
         } catch (\Throwable $e) {
 
             DB::rollBack();
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Failed to update teacher.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Toggle the suspend status of the resource.
+     *
+     * @return JsonResponse
+     */
     public function suspend($id)
     {
         $teacher = Teacher::with('user')->findOrFail($id);
@@ -309,29 +332,34 @@ class TeacherController extends Controller
             DB::commit();
 
             return response()->json([
-                'status'  => true,
+                'status' => true,
                 'message' => $teacher->suspend_status
                     ? 'Teacher suspended successfully.'
                     : 'Teacher reactivated successfully.',
                 'data' => [
                     'teacher_id' => $teacher->id,
-                    'suspend_status' => $teacher->suspend_status
-                ]
+                    'suspend_status' => $teacher->suspend_status,
+                ],
             ], 200);
         } catch (\Throwable $e) {
             DB::rollBack();
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Operation failed.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * List teachers for the public landing page.
+     *
+     * @return JsonResponse
+     */
     public function landTeacher(Request $request)
     {
-        $perPage = $request->per_page ?? 10;
+        $perPage = Pagination::perPage($request);
         $search = $request->search;
         $isTop = $request->is_top;
 
@@ -368,24 +396,29 @@ class TeacherController extends Controller
 
             'pagination' => [
                 'current_page' => $teachers->currentPage(),
-                'per_page'     => $teachers->perPage(),
-                'total'        => $teachers->total(),
-                'last_page'    => $teachers->lastPage(),
-            ]
+                'per_page' => $teachers->perPage(),
+                'total' => $teachers->total(),
+                'last_page' => $teachers->lastPage(),
+            ],
         ], 200);
     }
 
+    /**
+     * Toggle the teacher top status flag.
+     *
+     * @return JsonResponse
+     */
     public function toggleTopStatus($id)
     {
         $teacher = Teacher::findOrFail($id);
 
-        $teacher->is_top = !$teacher->is_top;
+        $teacher->is_top = ! $teacher->is_top;
 
         $teacher->save();
 
         return response()->json([
             'message' => 'Teacher top status updated successfully',
-            'is_top' => $teacher->is_top
+            'is_top' => $teacher->is_top,
         ]);
     }
 }

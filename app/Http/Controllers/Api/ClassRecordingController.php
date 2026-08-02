@@ -7,10 +7,17 @@ use App\Models\Batch;
 use App\Models\ClassRecording;
 use App\Models\Enrollment;
 use App\Models\Teacher;
+use App\Support\Pagination;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ClassRecordingController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     * @return JsonResponse
+     */
     public function index(Request $request, $batch_id)
     {
         $user = auth('api')->user();
@@ -31,7 +38,7 @@ class ClassRecordingController extends Controller
             });
         }
 
-        $perPage = $request->get('per_page', 10);
+        $perPage = Pagination::perPage($request);
 
         $recordings = $query->latest()->paginate($perPage);
 
@@ -41,13 +48,18 @@ class ClassRecordingController extends Controller
             'data' => $recordings->items(),
             'pagination' => [
                 'current_page' => $recordings->currentPage(),
-                'per_page'     => $recordings->perPage(),
-                'total'        => $recordings->total(),
-                'last_page'    => $recordings->lastPage(),
-            ]
+                'per_page' => $recordings->perPage(),
+                'total' => $recordings->total(),
+                'last_page' => $recordings->lastPage(),
+            ],
         ]);
     }
 
+    /**
+     * Store a newly created resource.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $user = auth('api')->user();
@@ -60,10 +72,10 @@ class ClassRecordingController extends Controller
 
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        if (!$teacher) {
+        if (! $teacher) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: You are not a teacher'
+                'message' => 'Unauthorized: You are not a teacher',
             ], 403);
         }
 
@@ -72,7 +84,7 @@ class ClassRecordingController extends Controller
         if ($batch->teacher_id !== $teacher->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: You are not assigned to this batch'
+                'message' => 'Unauthorized: You are not assigned to this batch',
             ], 403);
         }
 
@@ -85,10 +97,15 @@ class ClassRecordingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Recording created successfully',
-            'data' => $recording
+            'data' => $recording,
         ]);
     }
 
+    /**
+     * Display the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function show($id)
     {
         $user = auth('api')->user();
@@ -101,16 +118,16 @@ class ClassRecordingController extends Controller
             if ($recording->batch->teacher_id !== $teacher->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized: You do not have permission to view this recording'
+                    'message' => 'Unauthorized: You do not have permission to view this recording',
                 ], 403);
             }
         } else {
             $enrolled = $recording->batch->enrollments()->where('user_id', $user->id)->exists();
 
-            if (!$enrolled) {
+            if (! $enrolled) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized: You are not enrolled in this batch'
+                    'message' => 'Unauthorized: You are not enrolled in this batch',
                 ], 403);
             }
         }
@@ -118,10 +135,15 @@ class ClassRecordingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Recording fetched successfully',
-            'data' => $recording
+            'data' => $recording,
         ]);
     }
 
+    /**
+     * Update the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $user = auth('api')->user();
@@ -136,22 +158,33 @@ class ClassRecordingController extends Controller
 
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        if (!$teacher) {
+        if (! $teacher) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: You are not a teacher'
+                'message' => 'Unauthorized: You are not a teacher',
+            ], 403);
+        }
+
+        $recording->loadMissing('batch:id,teacher_id');
+
+        if (! $recording->batch || $recording->batch->teacher_id !== $teacher->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: You are not assigned to this batch',
             ], 403);
         }
 
         $batchId = $request->batch_id ?? $recording->batch_id;
 
-        $batch = Batch::findOrFail($batchId);
+        if ((int) $batchId !== (int) $recording->batch_id) {
+            $destinationBatch = Batch::findOrFail($batchId);
 
-        if ($batch->teacher_id !== $teacher->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not assigned to this batch'
-            ], 403);
+            if ($destinationBatch->teacher_id !== $teacher->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized: You are not assigned to this batch',
+                ], 403);
+            }
         }
 
         $recording->update([
@@ -163,10 +196,15 @@ class ClassRecordingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Recording updated successfully',
-            'data' => $recording
+            'data' => $recording,
         ]);
     }
 
+    /**
+     * Remove the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function destroy($id)
     {
         $user = auth('api')->user();
@@ -175,17 +213,17 @@ class ClassRecordingController extends Controller
 
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        if (!$teacher) {
+        if (! $teacher) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: You are not a teacher'
+                'message' => 'Unauthorized: You are not a teacher',
             ], 403);
         }
 
         if ($recording->batch->teacher_id !== $teacher->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: You cannot delete this recording'
+                'message' => 'Unauthorized: You cannot delete this recording',
             ], 403);
         }
 
@@ -193,10 +231,15 @@ class ClassRecordingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Recording deleted successfully'
+            'message' => 'Recording deleted successfully',
         ]);
     }
 
+    /**
+     * List resources available to an enrolled student.
+     *
+     * @return JsonResponse
+     */
     public function forStudent(Request $request, $batch_id)
     {
         $user = auth('api')->user();
@@ -205,17 +248,17 @@ class ClassRecordingController extends Controller
             ->where('batch_id', $batch_id)
             ->exists();
 
-        if (!$isEnrolled) {
+        if (! $isEnrolled) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: You are not enrolled in this batch'
+                'message' => 'Unauthorized: You are not enrolled in this batch',
             ], 403);
         }
 
         $query = ClassRecording::with('batch:id,name')
             ->where('batch_id', $batch_id);
 
-        $perPage = $request->get('per_page', 10);
+        $perPage = Pagination::perPage($request);
 
         $recordings = $query->latest()->paginate($perPage);
 
@@ -225,10 +268,10 @@ class ClassRecordingController extends Controller
             'data' => $recordings->items(),
             'pagination' => [
                 'current_page' => $recordings->currentPage(),
-                'per_page'     => $recordings->perPage(),
-                'total'        => $recordings->total(),
-                'last_page'    => $recordings->lastPage(),
-            ]
+                'per_page' => $recordings->perPage(),
+                'total' => $recordings->total(),
+                'last_page' => $recordings->lastPage(),
+            ],
         ]);
     }
 }

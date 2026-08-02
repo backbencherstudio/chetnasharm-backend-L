@@ -5,30 +5,42 @@ namespace App\Http\Controllers\Api;
 use App\Helpers\EnvHelper;
 use App\Http\Controllers\Controller;
 use App\Models\NotificationLog;
-use Illuminate\Http\Request;
 use App\Models\Setting;
+use App\Support\Pagination;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 
 class SettingController extends Controller
 {
+    /**
+     * Display the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function show()
     {
-        $setting = Setting::get()->first();
+        $setting = Setting::query()->first();
 
         return response()->json([
             'success' => true,
             'message' => 'Settings retrieved successfully',
-            'data' => $setting
+            'data' => $setting,
         ]);
     }
 
+    /**
+     * Update the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function update(Request $request)
     {
         $request->validate([
             'class_time' => 'required|integer|min:1',
             'support_number' => 'required|string|max:20',
             'support_email' => 'required|email|max:255',
-            'class_notify_time' => 'required|integer|min:1'
+            'class_notify_time' => 'required|integer|min:1',
         ]);
 
         $setting = Setting::first();
@@ -38,59 +50,73 @@ class SettingController extends Controller
                 'class_time' => $request->class_time,
                 'support_number' => $request->support_number,
                 'support_email' => $request->support_email,
-                'class_notify_time' => $request->class_notify_time
+                'class_notify_time' => $request->class_notify_time,
             ]);
         } else {
             $setting = Setting::create([
                 'class_time' => $request->class_time,
                 'support_number' => $request->support_number,
                 'support_email' => $request->support_email,
-                'class_notify_time' => $request->class_notify_time
+                'class_notify_time' => $request->class_notify_time,
             ]);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Setting updated successfully',
-            'data' => $setting
+            'data' => $setting,
         ]);
     }
 
-    public function getClassTime(){
-
+    /**
+     * Get the configured class duration.
+     *
+     * @return JsonResponse
+     */
+    public function getClassTime()
+    {
         $time = Setting::select('class_time')->first();
+
+        if (! $time) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Class time not set in settings',
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Time retrieved successfully',
-            'class_time' => $time->class_time
+            'class_time' => $time->class_time,
         ]);
     }
 
+    /**
+     * Fetch notification logs.
+     *
+     * @return JsonResponse
+     */
     public function logs(Request $request)
     {
-        $perPage = $request->get('per_page', 10);
+        $perPage = Pagination::perPage($request);
 
         $query = NotificationLog::with([
             'user:id,name,email',
-            'batch:id,name'
+            'batch:id,name',
         ]);
 
-        // Search
         if ($request->filled('search')) {
             $search = trim($request->search);
 
             $query->where(function ($q) use ($search) {
                 $q->where('message', 'like', "%{$search}%")
-                ->orWhereHas('user', function ($userQuery) use ($search) {
-                    $userQuery->where('first_name', 'like', "%{$search}%")
-                                ->orWhere('last_name', 'like', "%{$search}%")
-                                ->orWhere('email', 'like', "%{$search}%");
-                });
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
             });
         }
 
-        // Filters
         if ($request->filled('batch_id')) {
             $query->where('batch_id', $request->batch_id);
         }
@@ -109,21 +135,26 @@ class SettingController extends Controller
             'data' => $logs->items(),
             'pagination' => [
                 'current_page' => $logs->currentPage(),
-                'per_page'     => $logs->perPage(),
-                'total'        => $logs->total(),
-                'last_page'    => $logs->lastPage(),
-            ]
+                'per_page' => $logs->perPage(),
+                'total' => $logs->total(),
+                'last_page' => $logs->lastPage(),
+            ],
         ]);
     }
 
+    /**
+     * Get public support contact settings.
+     *
+     * @return JsonResponse
+     */
     public function support()
     {
         $setting = Setting::select('support_number', 'support_email')->first();
 
-        if (!$setting) {
+        if (! $setting) {
             return response()->json([
                 'success' => false,
-                'message' => 'Settings not found'
+                'message' => 'Settings not found',
             ], 404);
         }
 
@@ -133,10 +164,15 @@ class SettingController extends Controller
             'data' => [
                 'support_number' => $setting->support_number,
                 'support_email' => $setting->support_email,
-            ]
+            ],
         ]);
     }
 
+    /**
+     * Get masked environment settings for admin.
+     *
+     * @return JsonResponse
+     */
     public function getEnvSettings()
     {
         return response()->json([
@@ -163,15 +199,25 @@ class SettingController extends Controller
         ]);
     }
 
+    /**
+     * Mask a sensitive setting value.
+     *
+     * @return string|null
+     */
     private function maskSecret(?string $value): ?string
     {
         if (blank($value)) {
             return null;
         }
 
-        return '******' . substr($value, -6);
+        return '******'.substr($value, -6);
     }
 
+    /**
+     * Update environment settings from admin input.
+     *
+     * @return JsonResponse
+     */
     public function updateEnvSettings(Request $request)
     {
         $validated = $request->validate([
@@ -191,7 +237,6 @@ class SettingController extends Controller
 
         try {
 
-            // Stripe
             if (filled(data_get($validated, 'stripe.key'))) {
                 EnvHelper::set('STRIPE_KEY', data_get($validated, 'stripe.key'));
             }
@@ -204,7 +249,6 @@ class SettingController extends Controller
                 EnvHelper::set('STRIPE_WEBHOOK_SECRET', data_get($validated, 'stripe.webhook_secret'));
             }
 
-            // PayPal
             if (filled(data_get($validated, 'paypal.client_id'))) {
                 EnvHelper::set('PAYPAL_CLIENT_ID', data_get($validated, 'paypal.client_id'));
             }
@@ -221,7 +265,6 @@ class SettingController extends Controller
                 EnvHelper::set('PAYPAL_BASE_URL', data_get($validated, 'paypal.base_url'));
             }
 
-            // WhatsApp
             if (filled(data_get($validated, 'whatsapp.token'))) {
                 EnvHelper::set('WHATSAPP_TOKEN', data_get($validated, 'whatsapp.token'));
             }
@@ -240,7 +283,7 @@ class SettingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Environment settings updated successfully.'
+                'message' => 'Environment settings updated successfully.',
             ]);
 
         } catch (\Throwable $e) {
@@ -250,9 +293,8 @@ class SettingController extends Controller
                 'message' => 'Failed to update settings.',
                 'error' => app()->environment('local')
                     ? $e->getMessage()
-                    : null
+                    : null,
             ], 500);
         }
     }
-
 }

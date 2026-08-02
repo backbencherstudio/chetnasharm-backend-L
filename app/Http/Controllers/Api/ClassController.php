@@ -7,15 +7,22 @@ use App\Models\Batch;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
 use App\Models\Teacher;
+use App\Support\Pagination;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ClassController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     * @return JsonResponse
+     */
     public function index(Request $request)
     {
-        $perPage = $request->per_page ?? 10;
+        $perPage = Pagination::perPage($request);
         $search = $request->search;
 
         $classes = ClassModel::query()
@@ -43,6 +50,11 @@ class ClassController extends Controller
         ]);
     }
 
+    /**
+     * Store a newly created resource.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -75,6 +87,11 @@ class ClassController extends Controller
         ], 201);
     }
 
+    /**
+     * Get data for editing the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function edit($id)
     {
         $class = ClassModel::find($id);
@@ -93,6 +110,11 @@ class ClassController extends Controller
         ]);
     }
 
+    /**
+     * Update the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $class = ClassModel::find($id);
@@ -140,6 +162,11 @@ class ClassController extends Controller
         ]);
     }
 
+    /**
+     * Toggle the active status of the resource.
+     *
+     * @return JsonResponse
+     */
     public function status($id)
     {
         $class = ClassModel::find($id);
@@ -160,6 +187,11 @@ class ClassController extends Controller
         ]);
     }
 
+    /**
+     * List classes for the public landing page.
+     *
+     * @return JsonResponse
+     */
     public function landClass(Request $request)
     {
         $query = ClassModel::where('is_active', 1);
@@ -169,7 +201,7 @@ class ClassController extends Controller
             $query->where('title', 'like', "%{$search}%");
         }
 
-        $perPage = $request->get('per_page', 10);
+        $perPage = Pagination::perPage($request);
 
         $classes = $query
             ->select(
@@ -206,12 +238,17 @@ class ClassController extends Controller
         ]);
     }
 
+    /**
+     * List batches for a class on the landing page.
+     *
+     * @return JsonResponse
+     */
     public function landBatch(Request $request, $classId)
     {
         $query = Batch::where('class_id', $classId)
             ->where('active_status', 1);
 
-        $perPage = min($request->get('per_page', 10), 50);
+        $perPage = Pagination::perPage($request);
 
         $batches = $query
             ->select(
@@ -247,6 +284,11 @@ class ClassController extends Controller
         ]);
     }
 
+    /**
+     * Get details for a single batch.
+     *
+     * @return JsonResponse
+     */
     public function singleBatch($batchId)
     {
         $user = auth('api')->user();
@@ -293,6 +335,11 @@ class ClassController extends Controller
         ]);
     }
 
+    /**
+     * List teachers linked to a class.
+     *
+     * @return JsonResponse
+     */
     public function classTeachers($classId)
     {
         $class = ClassModel::find($classId);
@@ -311,6 +358,11 @@ class ClassController extends Controller
         ]);
     }
 
+    /**
+     * Get public details for a class.
+     *
+     * @return JsonResponse
+     */
     public function singleClass($classId)
     {
         $class = ClassModel::where('id', $classId)
@@ -348,6 +400,11 @@ class ClassController extends Controller
         ]);
     }
 
+    /**
+     * Eager-load teachers onto class collections.
+     *
+     * @return void
+     */
     private function withTeachers($classes): void
     {
         $teachers = $this->loadTeachers($classes);
@@ -362,6 +419,11 @@ class ClassController extends Controller
         }
     }
 
+    /**
+     * Load teachers.
+     *
+     * @return mixed
+     */
     private function loadTeachers($classes)
     {
         if ($classes instanceof LengthAwarePaginator) {

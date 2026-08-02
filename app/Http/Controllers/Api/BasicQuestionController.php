@@ -3,47 +3,59 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\BasicQuestion;
+use App\Support\Pagination;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class BasicQuestionController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     * @return JsonResponse
+     */
     public function index(Request $request)
     {
         $query = BasicQuestion::query();
 
         if ($request->filled('search')) {
-            $query->where('question', 'like', '%' . $request->search . '%');
+            $query->where('question', 'like', '%'.$request->search.'%');
         }
 
         $basicQuestions = $query
-            // ->latest()
+
             ->oldest()
-            ->paginate($request->per_page ?? 10);
+            ->paginate(Pagination::perPage($request));
 
         return response()->json([
             'success' => true,
             'data' => $basicQuestions->items(),
             'pagination' => [
                 'current_page' => $basicQuestions->currentPage(),
-                'per_page'     => $basicQuestions->perPage(),
-                'total'        => $basicQuestions->total(),
-                'last_page'    => $basicQuestions->lastPage(),
+                'per_page' => $basicQuestions->perPage(),
+                'total' => $basicQuestions->total(),
+                'last_page' => $basicQuestions->lastPage(),
             ],
         ]);
     }
 
+    /**
+     * Store a newly created resource.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'question' => 'required|string',
-            'level'    => 'nullable|string|max:50',
+            'level' => 'nullable|string|max:50',
         ]);
 
         $basicQuestion = BasicQuestion::create([
             'question' => $validated['question'],
-            'level'    => $validated['level'] ?? null,
-            'status'   => 1,
+            'level' => $validated['level'] ?? null,
+            'status' => 1,
         ]);
 
         return response()->json([
@@ -53,6 +65,11 @@ class BasicQuestionController extends Controller
         ]);
     }
 
+    /**
+     * Display the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function show($id)
     {
         $basicQuestion = BasicQuestion::findOrFail($id);
@@ -63,20 +80,25 @@ class BasicQuestionController extends Controller
         ]);
     }
 
+    /**
+     * Update the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $basicQuestion = BasicQuestion::findOrFail($id);
 
         $validated = $request->validate([
             'question' => 'required|string',
-            'level'    => 'nullable|string|max:50',
+            'level' => 'nullable|string|max:50',
             'status' => 'nullable|in:0,1',
         ]);
 
         $basicQuestion->update([
             'question' => $validated['question'],
-            'level'    => $validated['level'] ?? null,
-            'status'   => $validated['status'] ?? $basicQuestion->status,
+            'level' => $validated['level'] ?? null,
+            'status' => $validated['status'] ?? $basicQuestion->status,
         ]);
 
         return response()->json([
@@ -86,6 +108,11 @@ class BasicQuestionController extends Controller
         ]);
     }
 
+    /**
+     * Remove the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function destroy($id)
     {
         $basicQuestion = BasicQuestion::findOrFail($id);
@@ -98,20 +125,25 @@ class BasicQuestionController extends Controller
         ]);
     }
 
+    /**
+     * List resources for the frontend.
+     *
+     * @return JsonResponse
+     */
     public function frontendList(Request $request)
     {
         $topics = BasicQuestion::where('status', 1)
             ->oldest()
-            ->paginate($request->per_page ?? 10);
+            ->paginate(Pagination::perPage($request));
 
         return response()->json([
             'success' => true,
             'data' => $topics->items(),
             'pagination' => [
                 'current_page' => $topics->currentPage(),
-                'per_page'     => $topics->perPage(),
-                'total'        => $topics->total(),
-                'last_page'    => $topics->lastPage(),
+                'per_page' => $topics->perPage(),
+                'total' => $topics->total(),
+                'last_page' => $topics->lastPage(),
             ],
         ]);
     }

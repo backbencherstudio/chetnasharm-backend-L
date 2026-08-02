@@ -4,34 +4,45 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Vocabulary;
+use App\Support\Pagination;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class VocabularyController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     * @return JsonResponse
+     */
     public function index(Request $request)
     {
         $query = Vocabulary::query();
 
         if ($request->search) {
-            $query->where('word', 'like', '%' . $request->search . '%');
+            $query->where('word', 'like', '%'.$request->search.'%');
         }
 
-        // $vocabularies = $query->latest()->paginate(10);
-        $vocabularies = $query->oldest()->paginate(10);
+        $vocabularies = $query->oldest()->paginate(Pagination::perPage($request));
 
         return response()->json([
             'success' => true,
             'data' => $vocabularies->items(),
             'pagination' => [
                 'current_page' => $vocabularies->currentPage(),
-                'per_page'     => $vocabularies->perPage(),
-                'total'        => $vocabularies->total(),
-                'last_page'    => $vocabularies->lastPage(),
+                'per_page' => $vocabularies->perPage(),
+                'total' => $vocabularies->total(),
+                'last_page' => $vocabularies->lastPage(),
             ],
         ]);
     }
 
+    /**
+     * Store a newly created resource.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -53,33 +64,43 @@ class VocabularyController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Vocabulary created successfully',
-            'data' => $vocabulary
+            'data' => $vocabulary,
         ]);
     }
 
+    /**
+     * Display the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function show($id)
     {
         $vocabulary = Vocabulary::find($id);
 
-        if (!$vocabulary) {
+        if (! $vocabulary) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vocabulary not found'
+                'message' => 'Vocabulary not found',
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $vocabulary
+            'data' => $vocabulary,
         ]);
     }
 
+    /**
+     * Update the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $vocabulary = Vocabulary::findOrFail($id);
 
         $validated = $request->validate([
-            'word' => 'required|string|max:255|unique:vocabularies,word,' . $vocabulary->id,
+            'word' => 'required|string|max:255|unique:vocabularies,word,'.$vocabulary->id,
             'meaning' => 'required|string',
             'example' => 'nullable|string',
             'pronunciation' => 'nullable|string',
@@ -102,10 +123,15 @@ class VocabularyController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Vocabulary updated successfully',
-            'data' => $vocabulary
+            'data' => $vocabulary,
         ]);
     }
 
+    /**
+     * Remove the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function destroy($id)
     {
         $vocabulary = Vocabulary::findOrFail($id);
@@ -118,13 +144,18 @@ class VocabularyController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Vocabulary deleted successfully'
+            'message' => 'Vocabulary deleted successfully',
         ]);
     }
 
+    /**
+     * List vocabularies for the frontend.
+     *
+     * @return JsonResponse
+     */
     public function vocabularies(Request $request)
     {
-        $perPage = $request->get('per_page', 10);
+        $perPage = Pagination::perPage($request);
 
         $vocabularies = Vocabulary::where('status', 1)
             ->oldest()
@@ -135,11 +166,10 @@ class VocabularyController extends Controller
             'data' => $vocabularies->items(),
             'pagination' => [
                 'current_page' => $vocabularies->currentPage(),
-                'per_page'     => $vocabularies->perPage(),
-                'total'        => $vocabularies->total(),
-                'last_page'    => $vocabularies->lastPage(),
+                'per_page' => $vocabularies->perPage(),
+                'total' => $vocabularies->total(),
+                'last_page' => $vocabularies->lastPage(),
             ],
         ]);
     }
-
 }

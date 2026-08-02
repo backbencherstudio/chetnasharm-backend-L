@@ -3,57 +3,50 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\User;
+use App\Support\Pagination;
+use App\Support\PhoneNormalizer;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
-use Propaganistas\LaravelPhone\PhoneNumber;
 
 class UserController extends Controller
 {
+    /**
+     * Store a newly created resource.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name'       => ['required', 'string', 'max:100'],
-            'mobile'     => ['nullable', 'string'],
+            'name' => ['required', 'string', 'max:100'],
+            'mobile' => ['nullable', 'string'],
             'department' => ['nullable', 'string', 'max:100'],
-            'email'      => ['required', 'email', 'max:255', 'unique:users,email'],
-            'image'      => ['nullable', 'image', 'max:2048'],
-            'password'   => ['required', 'confirmed', Password::defaults()],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'image' => ['nullable', 'image', 'max:2048'],
+            'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Validation errors',
-                'errors'  => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         $validated = $validator->validated();
 
-        if (!empty($request->mobile)) {
+        if (! empty($request->mobile)) {
             try {
-                $phone = phone($request->mobile);
-
-                $validated['mobile'] = $phone->formatE164();
-
-                // $exists = User::where('mobile', $validated['mobile'])->exists();
-
-                // if ($exists) {
-                //     return response()->json([
-                //         'status' => false,
-                //         'message' => 'This mobile number is already in use.',
-                //     ], 422);
-                // }
-
+                $validated['mobile'] = PhoneNormalizer::toE164($request->mobile);
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => false,
@@ -72,12 +65,12 @@ class UserController extends Controller
             }
 
             $user = User::create([
-                'name'       => $validated['name'],
-                'email'      => $validated['email'],
-                'mobile'     => $validated['mobile'] ?? null,
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'mobile' => $validated['mobile'] ?? null,
                 'department' => $validated['department'] ?? null,
-                'image'      => $imagePath,
-                'password'   => Hash::make($validated['password']),
+                'image' => $imagePath,
+                'password' => Hash::make($validated['password']),
             ]);
 
             $role = Role::where('name', 'admin')->firstOrFail();
@@ -87,93 +80,88 @@ class UserController extends Controller
             DB::commit();
 
             return response()->json([
-                'status'  => true,
+                'status' => true,
                 'message' => 'User created successfully.',
-                'data'    => [
-                    'id'         => $user->id,
-                    'name'       => $user->name,
-                    'email'      => $user->email,
+                'data' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
                     'department' => $user->department,
-                    'mobile'     => $user->mobile,
-                    'image'      => $user->image,
-                    'image_url'  => $user->image_url,
-                    'role'       => $user->getRoleNames()->first(),
-                ]
+                    'mobile' => $user->mobile,
+                    'image' => $user->image,
+                    'image_url' => $user->image_url,
+                    'role' => $user->getRoleNames()->first(),
+                ],
             ], 200);
 
         } catch (\Throwable $e) {
             DB::rollBack();
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'User creation failed.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Get data for editing the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function edit($id)
     {
         $user = User::findOrFail($id);
 
         return response()->json([
             'status' => true,
-            'data'   => [
+            'data' => [
                 'user' => [
-                    'id'         => $user->id,
-                    'name'       => $user->name,
-                    'email'      => $user->email,
-                    'mobile'     => $user->mobile,
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'mobile' => $user->mobile,
                     'department' => $user->department,
-                    'image'      => $user->image,
-                    'image_url'      => $user->image_url,
-                    'role'       => $user->getRoleNames()->first(),
+                    'image' => $user->image,
+                    'image_url' => $user->image_url,
+                    'role' => $user->getRoleNames()->first(),
                 ],
-            ]
+            ],
         ]);
     }
 
+    /**
+     * Update the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'name'       => ['required', 'string', 'max:100'],
-            'mobile'     => ['nullable', 'string'],
+            'name' => ['required', 'string', 'max:100'],
+            'mobile' => ['nullable', 'string'],
             'department' => ['nullable', 'string', 'max:100'],
-            'email'      => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'image'      => ['nullable', 'image', 'max:2048'],
-            'password'   => ['nullable', 'confirmed', Password::defaults()],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
+            'image' => ['nullable', 'image', 'max:2048'],
+            'password' => ['nullable', 'confirmed', Password::defaults()],
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Validation errors',
-                'errors'  => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         $validated = $validator->validated();
 
-        if (!empty($request->mobile)) {
+        if (! empty($request->mobile)) {
             try {
-
-                $phone = phone($request->mobile);
-
-                $validated['mobile'] = $phone->formatE164();
-
-                // $exists = User::where('mobile', $validated['mobile'])
-                //     ->where('id', '!=', $user->id)
-                //     ->exists();
-
-                // if ($exists) {
-                //     return response()->json([
-                //         'status' => false,
-                //         'message' => 'This mobile number is already in use.',
-                //     ], 422);
-                // }
-
+                $validated['mobile'] = PhoneNormalizer::toE164($request->mobile);
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => false,
@@ -196,12 +184,12 @@ class UserController extends Controller
                     ->store('users', 'public');
             }
 
-            $user->name       = $validated['name'];
-            $user->email      = $validated['email'];
-            $user->mobile     = $validated['mobile'] ?? $user->mobile;
+            $user->name = $validated['name'];
+            $user->email = $validated['email'];
+            $user->mobile = $validated['mobile'] ?? $user->mobile;
             $user->department = $validated['department'] ?? $user->department;
 
-            if (!empty($validated['password'])) {
+            if (! empty($validated['password'])) {
                 $user->password = Hash::make($validated['password']);
             }
 
@@ -210,36 +198,41 @@ class UserController extends Controller
             DB::commit();
 
             return response()->json([
-                'status'  => true,
+                'status' => true,
                 'message' => 'User updated successfully.',
-                'data'    => [
-                    'id'         => $user->id,
-                    'name'       => $user->name,
-                    'email'      => $user->email,
+                'data' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
                     'department' => $user->department,
-                    'mobile'     => $user->mobile,
-                    'image'      => $user->image,
-                    'image_url'  => $user->image_url,
-                    'role'       => $user->getRoleNames()->first(),
-                ]
+                    'mobile' => $user->mobile,
+                    'image' => $user->image,
+                    'image_url' => $user->image_url,
+                    'role' => $user->getRoleNames()->first(),
+                ],
             ], 200);
 
         } catch (\Throwable $e) {
             DB::rollBack();
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'User update failed.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Fetch the paginated list for admin management.
+     *
+     * @return JsonResponse
+     */
     public function data(Request $request)
     {
-        $perPage = $request->query('limit', $request->query('per_page', 10));
-        $search  = $request->query('search');
-        $role    = $request->query('role');
+        $perPage = Pagination::perPage($request);
+        $search = $request->query('search');
+        $role = $request->query('role');
 
         $query = User::query();
 
@@ -254,7 +247,7 @@ class UserController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                ->orWhere('email', 'LIKE', "%{$search}%");
+                    ->orWhere('email', 'LIKE', "%{$search}%");
             });
         }
 
@@ -265,64 +258,74 @@ class UserController extends Controller
 
         $users->getCollection()->transform(function ($user) {
             return [
-                'id'         => $user->id,
-                'name'       => $user->name,
-                'email'      => $user->email,
-                'mobile'     => $user->mobile,
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'mobile' => $user->mobile,
                 'department' => $user->department,
-                'image'      => $user->image,
-                'image_url'  => $user->image_url,
-                'suspended'  => $user->suspend_status,
-                'role'       => $user->roles->pluck('name')->map(fn($r) => ucfirst($r))->implode(', '),
+                'image' => $user->image,
+                'image_url' => $user->image_url,
+                'suspended' => $user->suspend_status,
+                'role' => $user->roles->pluck('name')->map(fn ($r) => ucfirst($r))->implode(', '),
             ];
         });
 
-        $totalUsers = User::whereHas('roles')->count();
+        $roleCounts = DB::table('model_has_roles')
+            ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->where('model_has_roles.model_type', User::class)
+            ->selectRaw('roles.name as role_name, COUNT(DISTINCT model_has_roles.model_id) as total')
+            ->groupBy('roles.name')
+            ->pluck('total', 'role_name');
 
-        $adminCount = User::whereHas('roles', fn($q) => $q->where('name', 'admin'))->count();
-        $teacherCount = User::whereHas('roles', fn($q) => $q->where('name', 'teacher'))->count();
-        $studentCount = User::whereHas('roles', fn($q) => $q->where('name', 'student'))->count();
+        $totalUsers = (int) DB::table('model_has_roles')
+            ->where('model_type', User::class)
+            ->distinct()
+            ->count('model_id');
 
         return response()->json([
             'status' => true,
-            'data'   => $users->items(),
+            'data' => $users->items(),
 
             'pagination' => [
                 'current_page' => $users->currentPage(),
-                'per_page'     => $users->perPage(),
-                'total'        => $users->total(),
-                'last_page'    => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+                'last_page' => $users->lastPage(),
             ],
 
             'counts' => [
                 'total_users' => $totalUsers,
-                'admin'       => $adminCount,
-                'teacher'     => $teacherCount,
-                'student'     => $studentCount,
-            ]
+                'admin' => (int) ($roleCounts['admin'] ?? 0),
+                'teacher' => (int) ($roleCounts['teacher'] ?? 0),
+                'student' => (int) ($roleCounts['student'] ?? 0),
+            ],
         ]);
     }
 
-
+    /**
+     * Toggle the suspend status of the resource.
+     *
+     * @return JsonResponse
+     */
     public function suspend($id)
     {
         $user = User::findOrFail($id);
-        if (!$user) {
+        if (! $user) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'User not found.',
             ], 404);
         }
         if ($id == auth('api')->id()) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'You cannot suspend your own account.',
             ], 400);
         }
 
         if ($id == 1) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'You cannot suspend super admin account.',
             ], 403);
         }
@@ -337,25 +340,30 @@ class UserController extends Controller
             DB::commit();
 
             return response()->json([
-                'status'  => true,
+                'status' => true,
                 'message' => $user->suspend_status ? 'User suspended successfully.' : 'User reactivated successfully.',
-                'data'    => [
+                'data' => [
                     'user_id' => $user->id,
-                    'suspend_status' => $user->suspend_status
-                ]
+                    'suspend_status' => $user->suspend_status,
+                ],
             ], 200);
 
         } catch (\Throwable $e) {
             DB::rollBack();
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Operation failed.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Update the authenticated user password.
+     *
+     * @return JsonResponse
+     */
     public function updatePass(Request $request)
     {
         $user = Auth::guard('api')->user();
@@ -364,7 +372,7 @@ class UserController extends Controller
             'new_password' => 'required|string|min:6|confirmed',
         ];
 
-        if (!$user->provider) {
+        if (! $user->provider) {
             $rules['current_password'] = 'required|string';
         }
 
@@ -372,59 +380,61 @@ class UserController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Validation errors',
-                'errors'  => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
-        if (!$user->provider) {
-            if (!Hash::check($request->current_password, $user->password)) {
+        if (! $user->provider) {
+            if (! Hash::check($request->current_password, $user->password)) {
                 return response()->json([
-                    'status'  => false,
+                    'status' => false,
                     'message' => 'Current password is incorrect.',
                 ], 422);
             }
         }
 
         $user->update([
-            'password' => $request->new_password
+            'password' => $request->new_password,
         ]);
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'Password updated successfully.',
         ], 200);
     }
 
+    /**
+     * Update the authenticated user profile.
+     *
+     * @return JsonResponse
+     */
     public function profileUpdate(Request $request)
     {
         $user = Auth::guard('api')->user();
 
         $validator = Validator::make($request->all(), [
-            'name'       => 'required|string|max:255',
-            'email'      => 'required|email|unique:users,email,' . $user->id,
-            'mobile'     => 'nullable|string',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,'.$user->id,
+            'mobile' => 'nullable|string',
             'department' => 'nullable|string|max:100',
-            'image'      => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Validation errors',
-                'errors'  => $validator->errors(),
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         $validated = $validator->validated();
 
-        if (!empty($request->mobile)) {
+        if (! empty($request->mobile)) {
             try {
-                $phone = phone($request->mobile);
-
-                $validated['mobile'] = $phone->formatE164();
-
+                $validated['mobile'] = PhoneNormalizer::toE164($request->mobile);
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => false,
@@ -447,33 +457,36 @@ class UserController extends Controller
         $user->refresh();
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'Profile updated successfully.',
-            'data'    => [
-                'id'         => $user->id,
-                'name'       => $user->name,
-                'email'      => $user->email,
-                'mobile'     => $user->mobile,
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'mobile' => $user->mobile,
                 'department' => $user->department,
-                'image'      => $user->image,
-                'image_url'  => $user->image_url,
+                'image' => $user->image,
+                'image_url' => $user->image_url,
             ],
         ], 200);
     }
 
+    /**
+     * Update a user WhatsApp mobile number.
+     *
+     * @return JsonResponse
+     */
     public function updateWhatsapp(Request $request)
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'mobile'  => 'required|string',
+            'mobile' => 'required|string',
         ]);
 
         $user = User::findOrFail($request->user_id);
 
         try {
-            $phone = phone($request->mobile);
-
-            $mobile = $phone->formatE164();
+            $mobile = PhoneNormalizer::toE164($request->mobile);
 
             $user->update([
                 'mobile' => $mobile,
@@ -482,7 +495,7 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'WhatsApp number updated successfully',
-                'mobile'  => $mobile,
+                'mobile' => $mobile,
             ]);
 
         } catch (\Exception $e) {
@@ -494,27 +507,32 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Remove the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function destroy($id)
     {
         $user = User::findOrFail($id);
 
         if ($id == auth('api')->id()) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'You cannot delete your own account.',
             ], 400);
         }
 
         if ($user->teacher) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Cannot delete user with associated teacher profile',
             ], 400);
         }
 
         if ($user->enrollments()->exists()) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Cannot delete user with associated enrollments',
             ], 400);
         }
@@ -525,7 +543,7 @@ class UserController extends Controller
 
             if (
                 $user->image &&
-                !filter_var($user->image, FILTER_VALIDATE_URL) &&
+                ! filter_var($user->image, FILTER_VALIDATE_URL) &&
                 Storage::disk('public')->exists($user->image)
             ) {
                 Storage::disk('public')->delete($user->image);
@@ -537,7 +555,7 @@ class UserController extends Controller
             DB::commit();
 
             return response()->json([
-                'status'  => true,
+                'status' => true,
                 'message' => 'User deleted successfully.',
             ], 200);
 
@@ -545,11 +563,10 @@ class UserController extends Controller
             DB::rollBack();
 
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'User deletion failed.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
-
 }

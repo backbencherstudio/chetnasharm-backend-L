@@ -7,21 +7,28 @@ use App\Models\Batch;
 use App\Models\Enrollment;
 use App\Models\Teacher;
 use App\Models\TeacherNote;
+use App\Support\Pagination;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class TeacherNoteController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     *
+     * @return JsonResponse
+     */
     public function index(Request $request, $batch_id)
     {
         $user = auth('api')->user();
 
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        if (!$teacher) {
+        if (! $teacher) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: You are not a teacher'
+                'message' => 'Unauthorized: You are not a teacher',
             ], 403);
         }
 
@@ -29,17 +36,17 @@ class TeacherNoteController extends Controller
             ->where('teacher_id', $teacher->id)
             ->first();
 
-        if (!$batch) {
+        if (! $batch) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: Invalid batch access'
+                'message' => 'Unauthorized: Invalid batch access',
             ], 403);
         }
 
         $notes = TeacherNote::where('batch_id', $batch->id)
             ->with('batch:id,name,teacher_id')
             ->latest()
-            ->paginate($request->get('per_page', 10));
+            ->paginate(Pagination::perPage($request));
 
         $formattedNotes = collect($notes->items())->map(function ($note) {
             return [
@@ -51,7 +58,7 @@ class TeacherNoteController extends Controller
                 'note_link' => $note->note_link,
 
                 'note_file' => $note->note_file
-                    ? asset('storage/' . $note->note_file)
+                    ? asset('storage/'.$note->note_file)
                     : null,
 
                 'created_at' => $note->created_at,
@@ -68,39 +75,44 @@ class TeacherNoteController extends Controller
                 'per_page' => $notes->perPage(),
                 'total' => $notes->total(),
                 'last_page' => $notes->lastPage(),
-            ]
+            ],
         ]);
     }
 
+    /**
+     * Store a newly created resource.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $user = auth('api')->user();
 
         $request->validate([
-            'title'     => 'required|string',
-            'batch_id'  => 'required|exists:batches,id',
-            'note'      => 'nullable|string',
+            'title' => 'required|string',
+            'batch_id' => 'required|exists:batches,id',
+            'note' => 'nullable|string',
             'note_link' => 'nullable|url',
             'note_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
         if (
-            !$request->filled('note') &&
-            !$request->filled('note_link') &&
-            !$request->hasFile('note_file')
+            ! $request->filled('note') &&
+            ! $request->filled('note_link') &&
+            ! $request->hasFile('note_file')
         ) {
             return response()->json([
                 'success' => false,
-                'message' => 'Please provide note, file, or link'
+                'message' => 'Please provide note, file, or link',
             ], 422);
         }
 
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        if (!$teacher) {
+        if (! $teacher) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: You are not a teacher'
+                'message' => 'Unauthorized: You are not a teacher',
             ], 403);
         }
 
@@ -109,7 +121,7 @@ class TeacherNoteController extends Controller
         if ($batch->teacher_id != $teacher->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: You are not assigned to this batch'
+                'message' => 'Unauthorized: You are not assigned to this batch',
             ], 403);
         }
 
@@ -139,14 +151,18 @@ class TeacherNoteController extends Controller
                 'note' => $note->note,
                 'note_link' => $note->note_link,
                 'note_file' => $note->note_file
-                    ? asset('storage/' . $note->note_file)
+                    ? asset('storage/'.$note->note_file)
                     : null,
                 'created_at' => $note->created_at,
-            ]
+            ],
         ]);
     }
 
-
+    /**
+     * Display the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function show($id)
     {
         $user = auth('api')->user();
@@ -161,7 +177,7 @@ class TeacherNoteController extends Controller
             if ($note->batch->teacher_id != $teacher->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized'
+                    'message' => 'Unauthorized',
                 ], 403);
             }
 
@@ -172,10 +188,10 @@ class TeacherNoteController extends Controller
                 ->where('user_id', $user->id)
                 ->exists();
 
-            if (!$isEnrolled) {
+            if (! $isEnrolled) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized'
+                    'message' => 'Unauthorized',
                 ], 403);
             }
         }
@@ -194,44 +210,49 @@ class TeacherNoteController extends Controller
                 'note_link' => $note->note_link,
 
                 'note_file' => $note->note_file
-                    ? asset('storage/' . $note->note_file)
+                    ? asset('storage/'.$note->note_file)
                     : null,
 
                 'created_at' => $note->created_at,
 
-                'batch' => $note->batch
-            ]
+                'batch' => $note->batch,
+            ],
         ]);
     }
 
+    /**
+     * Update the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $user = auth('api')->user();
 
         $request->validate([
-            'title'     => 'required|string',
-            'note'      => 'nullable|string',
+            'title' => 'required|string',
+            'note' => 'nullable|string',
             'note_link' => 'nullable|url',
             'note_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
         if (
-            !$request->filled('note') &&
-            !$request->filled('note_link') &&
-            !$request->hasFile('note_file')
+            ! $request->filled('note') &&
+            ! $request->filled('note_link') &&
+            ! $request->hasFile('note_file')
         ) {
             return response()->json([
                 'success' => false,
-                'message' => 'Please provide note, file, or link'
+                'message' => 'Please provide note, file, or link',
             ], 422);
         }
 
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        if (!$teacher) {
+        if (! $teacher) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 403);
         }
 
@@ -241,7 +262,7 @@ class TeacherNoteController extends Controller
         if ($note->batch->teacher_id != $teacher->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 403);
         }
 
@@ -258,7 +279,7 @@ class TeacherNoteController extends Controller
         }
 
         $note->update([
-            'title' => $note->title,
+            'title' => $request->title,
             'note' => $request->note,
             'note_link' => $request->note_link,
             'note_file' => $filePath,
@@ -273,23 +294,28 @@ class TeacherNoteController extends Controller
                 'note' => $note->note,
                 'note_link' => $note->note_link,
                 'note_file' => $note->note_file
-                    ? asset('storage/' . $note->note_file)
+                    ? asset('storage/'.$note->note_file)
                     : null,
                 'updated_at' => $note->updated_at,
-            ]
+            ],
         ]);
     }
 
+    /**
+     * Remove the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function destroy($id)
     {
         $user = auth('api')->user();
 
         $teacher = Teacher::where('user_id', $user->id)->first();
 
-        if (!$teacher) {
+        if (! $teacher) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 403);
         }
 
@@ -299,7 +325,7 @@ class TeacherNoteController extends Controller
         if ($note->batch->teacher_id != $teacher->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 403);
         }
 
@@ -314,10 +340,15 @@ class TeacherNoteController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Note deleted successfully'
+            'message' => 'Note deleted successfully',
         ]);
     }
 
+    /**
+     * List resources available to an enrolled student.
+     *
+     * @return JsonResponse
+     */
     public function forStudent(Request $request, $batch_id)
     {
         $user = auth('api')->user();
@@ -326,14 +357,14 @@ class TeacherNoteController extends Controller
             ->where('batch_id', $batch_id)
             ->exists();
 
-        if (!$isEnrolled) {
+        if (! $isEnrolled) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 403);
         }
 
-        $perPage = $request->get('per_page', 10);
+        $perPage = Pagination::perPage($request);
 
         $notes = TeacherNote::with('batch:id,name')
             ->where('batch_id', $batch_id)
@@ -352,12 +383,12 @@ class TeacherNoteController extends Controller
                 'note_link' => $note->note_link,
 
                 'note_file' => $note->note_file
-                    ? asset('storage/' . $note->note_file)
+                    ? asset('storage/'.$note->note_file)
                     : null,
 
                 'created_at' => $note->created_at,
 
-                'batch' => $note->batch
+                'batch' => $note->batch,
             ];
         });
 
@@ -370,8 +401,7 @@ class TeacherNoteController extends Controller
                 'per_page' => $notes->perPage(),
                 'total' => $notes->total(),
                 'last_page' => $notes->lastPage(),
-            ]
+            ],
         ]);
     }
-
 }
