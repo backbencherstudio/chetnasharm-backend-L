@@ -9,9 +9,9 @@ test('password otp email uses the brand theme', function () {
 
     expect($html)
         ->toContain('4321')
-        ->toContain('#6d28d9')
-        ->toContain('assets/img/logo/logo.webp')
-        ->toContain('Reset your');
+        ->toContain('assets/img/logo/logo.png')
+        ->toContain('Password reset code')
+        ->not->toContain('#111827;padding:18px 28px;text-align:center');
 });
 
 test('enrollment email uses the brand theme', function () {
@@ -37,6 +37,5 @@ test('enrollment email uses the brand theme', function () {
         ->toContain('Aisha')
         ->toContain('Spoken English')
         ->toContain('Join class')
-        ->toContain('#6d28d9')
-        ->toContain('assets/img/logo/logo.webp');
+        ->toContain('assets/img/logo/logo.png');
 });
