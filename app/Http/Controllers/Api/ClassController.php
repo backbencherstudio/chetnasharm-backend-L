@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
-use Illuminate\Http\Request;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ClassController extends Controller
@@ -14,13 +14,13 @@ class ClassController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->per_page ?? 10;
-        $search  = $request->search;
+        $search = $request->search;
 
         $classes = ClassModel::query()
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+                        ->orWhere('description', 'like', "%{$search}%");
                 });
             })
             ->latest()
@@ -32,10 +32,10 @@ class ClassController extends Controller
             'data' => $classes->items(),
             'pagination' => [
                 'current_page' => $classes->currentPage(),
-                'per_page'     => $classes->perPage(),
-                'total'        => $classes->total(),
-                'last_page'    => $classes->lastPage(),
-            ]
+                'per_page' => $classes->perPage(),
+                'total' => $classes->total(),
+                'last_page' => $classes->lastPage(),
+            ],
         ]);
     }
 
@@ -44,6 +44,12 @@ class ClassController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'short_description' => 'nullable|string',
+            'who_is_for' => 'nullable|string',
+            'curriculum' => 'nullable|string',
+            'teacher_ids' => 'nullable|array',
+            'teacher_ids.*' => 'exists:teachers,id',
+            'is_class_recording' => 'nullable|in:0,1',
             'price' => 'required|numeric|min:0',
             'duration_in_days' => 'required|integer|min:1',
             'total_classes' => 'required|integer|min:1',
@@ -59,7 +65,7 @@ class ClassController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Class created successfully',
-            'data' => $class
+            'data' => $class,
         ], 201);
     }
 
@@ -67,17 +73,17 @@ class ClassController extends Controller
     {
         $class = ClassModel::find($id);
 
-        if (!$class) {
+        if (! $class) {
             return response()->json([
                 'success' => false,
-                'message' => 'Class not found'
+                'message' => 'Class not found',
             ], 404);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Class retrieved successfully',
-            'data' => $class
+            'data' => $class,
         ]);
     }
 
@@ -85,16 +91,22 @@ class ClassController extends Controller
     {
         $class = ClassModel::find($id);
 
-        if (!$class) {
+        if (! $class) {
             return response()->json([
                 'success' => false,
-                'message' => 'Class not found'
+                'message' => 'Class not found',
             ], 404);
         }
 
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
+            'short_description' => 'nullable|string',
+            'who_is_for' => 'nullable|string',
+            'curriculum' => 'nullable|string',
+            'teacher_ids' => 'nullable|array',
+            'teacher_ids.*' => 'exists:teachers,id',
+            'is_class_recording' => 'nullable|in:0,1',
             'price' => 'sometimes|numeric|min:0',
             'duration_in_days' => 'sometimes|integer|min:1',
             'total_classes' => 'sometimes|integer|min:1',
@@ -116,7 +128,7 @@ class ClassController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Class updated successfully',
-            'data' => $class
+            'data' => $class,
         ]);
     }
 
@@ -124,10 +136,10 @@ class ClassController extends Controller
     {
         $class = ClassModel::find($id);
 
-        if (!$class) {
+        if (! $class) {
             return response()->json([
                 'success' => false,
-                'message' => 'Class not found'
+                'message' => 'Class not found',
             ], 404);
         }
         $class->is_active = $class->is_active == 1 ? 0 : 1;
@@ -136,7 +148,7 @@ class ClassController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Class status updated successfully',
-            'status' => $class->is_active
+            'status' => $class->is_active,
         ]);
     }
 
@@ -156,13 +168,21 @@ class ClassController extends Controller
                 'id',
                 'title',
                 'description',
+                'short_description',
+                'who_is_for',
+                'curriculum',
                 'price',
                 'duration_in_days',
                 'total_classes',
-                'image'
+                'image',
+                'is_class_recording'
             )
             ->latest()
             ->paginate($perPage);
+
+        foreach ($classes as $class) {
+            $class->setAttribute('teachers', $class->teachers());
+        }
 
         return response()->json([
             'success' => true,
@@ -172,10 +192,10 @@ class ClassController extends Controller
 
             'pagination' => [
                 'current_page' => $classes->currentPage(),
-                'per_page'     => $classes->perPage(),
-                'total'        => $classes->total(),
-                'last_page'    => $classes->lastPage(),
-            ]
+                'per_page' => $classes->perPage(),
+                'total' => $classes->total(),
+                'last_page' => $classes->lastPage(),
+            ],
         ]);
     }
 
@@ -200,7 +220,7 @@ class ClassController extends Controller
             ->with([
                 'teacher:id,name,image,intro_video',
                 'class:id,title,image',
-                'schedules:id,batch_id,day_of_week,start_time,end_time'
+                'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
             ->latest()
             ->paginate($perPage);
@@ -213,10 +233,10 @@ class ClassController extends Controller
 
             'pagination' => [
                 'current_page' => $batches->currentPage(),
-                'per_page'     => $batches->perPage(),
-                'total'        => $batches->total(),
-                'last_page'    => $batches->lastPage(),
-            ]
+                'per_page' => $batches->perPage(),
+                'total' => $batches->total(),
+                'last_page' => $batches->lastPage(),
+            ],
         ]);
     }
 
@@ -239,14 +259,14 @@ class ClassController extends Controller
             ->with([
                 'teacher:id,name,image,intro_video',
                 'class:id,title,image,description,price',
-                'schedules:id,batch_id,day_of_week,start_time,end_time'
+                'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
             ->first();
 
-        if (!$batch) {
+        if (! $batch) {
             return response()->json([
                 'success' => false,
-                'message' => 'Batch not found'
+                'message' => 'Batch not found',
             ], 404);
         }
 
@@ -262,7 +282,25 @@ class ClassController extends Controller
             'success' => true,
             'message' => 'Batch fetched successfully',
             'data' => $batch,
-            'enrolled_status' => $enrolled
+            'enrolled_status' => $enrolled,
+        ]);
+    }
+
+    public function classTeachers($classId)
+    {
+        $class = ClassModel::find($classId);
+
+        if (! $class) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Class not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Class teachers retrieved successfully',
+            'data' => $class->teachers(),
         ]);
     }
 
@@ -274,25 +312,30 @@ class ClassController extends Controller
                 'id',
                 'title',
                 'description',
+                'short_description',
+                'who_is_for',
+                'curriculum',
                 'price',
                 'duration_in_days',
                 'total_classes',
-                'image'
+                'image',
+                'is_class_recording'
             )
             ->first();
 
-        if (!$class) {
+        if (! $class) {
             return response()->json([
                 'success' => false,
-                'message' => 'Class not found'
+                'message' => 'Class not found',
             ], 404);
         }
+
+        $class->setAttribute('teachers', $class->teachers());
 
         return response()->json([
             'success' => true,
             'message' => 'Class fetched successfully',
-            'data' => $class
+            'data' => $class,
         ]);
     }
-
 }
