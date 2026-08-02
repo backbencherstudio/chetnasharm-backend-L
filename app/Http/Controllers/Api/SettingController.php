@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Helpers\EnvHelper;
+use App\Actions\UpdateEnvValue;
 use App\Http\Controllers\Controller;
 use App\Models\NotificationLog;
 use App\Models\Setting;
@@ -13,6 +13,13 @@ use Illuminate\Support\Facades\Artisan;
 
 class SettingController extends Controller
 {
+    /**
+     * Create a new class instance.
+     *
+     * @return void
+     */
+    public function __construct(private UpdateEnvValue $updateEnvValue) {}
+
     /**
      * Display the specified resource.
      *
@@ -201,8 +208,6 @@ class SettingController extends Controller
 
     /**
      * Mask a sensitive setting value.
-     *
-     * @return string|null
      */
     private function maskSecret(?string $value): ?string
     {
@@ -238,43 +243,43 @@ class SettingController extends Controller
         try {
 
             if (filled(data_get($validated, 'stripe.key'))) {
-                EnvHelper::set('STRIPE_KEY', data_get($validated, 'stripe.key'));
+                $this->updateEnvValue->handle('STRIPE_KEY', data_get($validated, 'stripe.key'));
             }
 
             if (filled(data_get($validated, 'stripe.secret'))) {
-                EnvHelper::set('STRIPE_SECRET', data_get($validated, 'stripe.secret'));
+                $this->updateEnvValue->handle('STRIPE_SECRET', data_get($validated, 'stripe.secret'));
             }
 
             if (filled(data_get($validated, 'stripe.webhook_secret'))) {
-                EnvHelper::set('STRIPE_WEBHOOK_SECRET', data_get($validated, 'stripe.webhook_secret'));
+                $this->updateEnvValue->handle('STRIPE_WEBHOOK_SECRET', data_get($validated, 'stripe.webhook_secret'));
             }
 
             if (filled(data_get($validated, 'paypal.client_id'))) {
-                EnvHelper::set('PAYPAL_CLIENT_ID', data_get($validated, 'paypal.client_id'));
+                $this->updateEnvValue->handle('PAYPAL_CLIENT_ID', data_get($validated, 'paypal.client_id'));
             }
 
             if (filled(data_get($validated, 'paypal.client_secret'))) {
-                EnvHelper::set('PAYPAL_CLIENT_SECRET', data_get($validated, 'paypal.client_secret'));
+                $this->updateEnvValue->handle('PAYPAL_CLIENT_SECRET', data_get($validated, 'paypal.client_secret'));
             }
 
             if (filled(data_get($validated, 'paypal.mode'))) {
-                EnvHelper::set('PAYPAL_MODE', data_get($validated, 'paypal.mode'));
+                $this->updateEnvValue->handle('PAYPAL_MODE', data_get($validated, 'paypal.mode'));
             }
 
             if (filled(data_get($validated, 'paypal.base_url'))) {
-                EnvHelper::set('PAYPAL_BASE_URL', data_get($validated, 'paypal.base_url'));
+                $this->updateEnvValue->handle('PAYPAL_BASE_URL', data_get($validated, 'paypal.base_url'));
             }
 
             if (filled(data_get($validated, 'whatsapp.token'))) {
-                EnvHelper::set('WHATSAPP_TOKEN', data_get($validated, 'whatsapp.token'));
+                $this->updateEnvValue->handle('WHATSAPP_TOKEN', data_get($validated, 'whatsapp.token'));
             }
 
             if (filled(data_get($validated, 'whatsapp.phone_number_id'))) {
-                EnvHelper::set('WHATSAPP_PHONE_NUMBER_ID', data_get($validated, 'whatsapp.phone_number_id'));
+                $this->updateEnvValue->handle('WHATSAPP_PHONE_NUMBER_ID', data_get($validated, 'whatsapp.phone_number_id'));
             }
 
             if (filled(data_get($validated, 'whatsapp.url'))) {
-                EnvHelper::set('WHATSAPP_API_URL', data_get($validated, 'whatsapp.url'));
+                $this->updateEnvValue->handle('WHATSAPP_API_URL', data_get($validated, 'whatsapp.url'));
             }
 
             Artisan::call('config:clear');
