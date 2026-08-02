@@ -2,40 +2,42 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\AuthorizesBatchAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
-use App\Models\Batch;
 use App\Models\Enrollment;
-use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
 {
+    use AuthorizesBatchAccess;
+
+    /**
+     * Get the attendance sheet for a batch date.
+     *
+     * @return JsonResponse
+     */
     public function getAttendanceSheet(Request $request, $batchId)
     {
-        $user   = auth('api')->user();
-        $date   = $request->query('date');
+        $user = auth('api')->user();
+        $date = $request->query('date');
         $search = $request->query('search');
 
-        if (!$date) {
+        if (! $date) {
             return response()->json([
                 'success' => false,
-                'message' => 'Date is required'
+                'message' => 'Date is required',
             ], 422);
         }
 
-        if (!$user->hasRole('admin')) {
-            $isTeacher = Batch::where('id', $batchId)
-                ->where('teacher_id', $user->teacher->id ?? 0)
-                ->exists();
-
-            if (!$isTeacher) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
+        if (! $this->canManageBatch($user, (int) $batchId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 403);
         }
 
         $query = Enrollment::with('user:id,name,email')
@@ -45,7 +47,7 @@ class AttendanceController extends Controller
         if ($search) {
             $query->whereHas('user', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -60,19 +62,24 @@ class AttendanceController extends Controller
 
             return [
                 'user_id' => $user->id,
-                'name'    => $user->name,
-                'email'   => $user->email,
-                'status'  => $attendanceMap[$user->id] ?? 'absent'
+                'name' => $user->name,
+                'email' => $user->email,
+                'status' => $attendanceMap[$user->id] ?? 'absent',
             ];
         });
 
         return response()->json([
             'success' => true,
             'message' => 'Attendance sheet fetched',
-            'data' => $data
+            'data' => $data,
         ]);
     }
 
+    /**
+     * Store a newly created resource.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $user = auth('api')->user();
@@ -85,126 +92,130 @@ class AttendanceController extends Controller
             'attendances.*.status' => 'required|in:present,absent',
         ]);
 
-        if (!$user->hasRole('admin')) {
-            $isTeacher = Batch::where('id', $request->batch_id)
-                ->where('teacher_id', $user->teacher->id ?? 0)
-                ->exists();
-
-            if (!$isTeacher) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
+        if (! $this->canManageBatch($user, (int) $request->batch_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 403);
         }
 
+        $enrolledUserIds = Enrollment::where('batch_id', $request->batch_id)
+            ->whereIn('user_id', collect($request->attendances)->pluck('user_id'))
+            ->pluck('user_id')
+            ->all();
+
+        $enrolledLookup = array_flip($enrolledUserIds);
+        $now = now();
+        $rows = [];
+
         foreach ($request->attendances as $item) {
+            if (! isset($enrolledLookup[$item['user_id']])) {
+                continue;
+            }
 
-            $isEnrolled = Enrollment::where('batch_id', $request->batch_id)
-                ->where('user_id', $item['user_id'])
-                ->exists();
+            $rows[] = [
+                'batch_id' => $request->batch_id,
+                'user_id' => $item['user_id'],
+                'class_date' => $request->class_date,
+                'status' => $item['status'],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
 
-            if (!$isEnrolled) continue;
-
-            Attendance::updateOrCreate(
-                [
-                    'batch_id'   => $request->batch_id,
-                    'user_id'    => $item['user_id'],
-                    'class_date' => $request->class_date,
-                ],
-                [
-                    'status' => $item['status']
-                ]
+        if ($rows !== []) {
+            Attendance::upsert(
+                $rows,
+                ['batch_id', 'user_id', 'class_date'],
+                ['status', 'updated_at']
             );
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Attendance saved successfully'
+            'message' => 'Attendance saved successfully',
         ]);
     }
 
+    /**
+     * Update a single attendance record.
+     *
+     * @return JsonResponse
+     */
     public function updateSingle(Request $request)
     {
         $user = auth('api')->user();
 
         $request->validate([
-            'batch_id'   => 'required|exists:batches,id',
-            'user_id'    => 'required|exists:users,id',
+            'batch_id' => 'required|exists:batches,id',
+            'user_id' => 'required|exists:users,id',
             'class_date' => 'required|date',
-            'status'     => 'required|in:present,absent',
+            'status' => 'required|in:present,absent',
         ]);
 
-        if (!$user->hasRole('admin')) {
-            $isTeacher = Batch::where('id', $request->batch_id)
-                ->where('teacher_id', $user->teacher->id ?? 0)
-                ->exists();
-
-            if (!$isTeacher) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
+        if (! $this->canManageBatch($user, (int) $request->batch_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 403);
         }
 
         $isEnrolled = Enrollment::where('batch_id', $request->batch_id)
             ->where('user_id', $request->user_id)
             ->exists();
 
-        if (!$isEnrolled) {
+        if (! $isEnrolled) {
             return response()->json([
                 'success' => false,
-                'message' => 'Student not enrolled in this batch'
+                'message' => 'Student not enrolled in this batch',
             ], 422);
         }
 
         $attendance = Attendance::updateOrCreate(
             [
-                'batch_id'   => $request->batch_id,
-                'user_id'    => $request->user_id,
+                'batch_id' => $request->batch_id,
+                'user_id' => $request->user_id,
                 'class_date' => $request->class_date,
             ],
             [
-                'status' => $request->status
+                'status' => $request->status,
             ]
         );
 
         return response()->json([
             'success' => true,
             'message' => 'Attendance updated successfully',
-            'data' => $attendance
+            'data' => $attendance,
         ]);
     }
 
+    /**
+     * Get monthly attendance markers for a batch.
+     *
+     * @return JsonResponse
+     */
     public function getMonthlyAttendance(Request $request, $batchId)
     {
         $user = auth('api')->user();
 
         $month = $request->query('month');
 
-        if (!$month) {
+        if (! $month) {
             return response()->json([
                 'success' => false,
-                'message' => 'Month is required (format: YYYY-MM)'
+                'message' => 'Month is required (format: YYYY-MM)',
             ], 422);
         }
 
-        if (!$user->hasRole('admin')) {
-            $isTeacher = Batch::where('id', $batchId)
-                ->where('teacher_id', $user->teacher->id ?? 0)
-                ->exists();
-
-            if (!$isTeacher) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
+        if (! $this->canManageBatch($user, (int) $batchId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 403);
         }
 
-        $start = Carbon::parse($month . '-01')->startOfMonth();
-        $end   = Carbon::parse($month . '-01')->endOfMonth();
+        $start = Carbon::parse($month.'-01')->startOfMonth();
+        $end = Carbon::parse($month.'-01')->endOfMonth();
 
         $attendanceDates = Attendance::where('batch_id', $batchId)
             ->whereBetween('class_date', [$start, $end])
@@ -222,15 +233,14 @@ class AttendanceController extends Controller
 
             $data[] = [
                 'date' => $formattedDate,
-                'has_status' => in_array($formattedDate, $attendanceDates) ? 1 : 0
+                'has_status' => in_array($formattedDate, $attendanceDates) ? 1 : 0,
             ];
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Monthly attendance fetched',
-            'data' => $data
+            'data' => $data,
         ]);
     }
-
 }

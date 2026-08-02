@@ -2,55 +2,65 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Concerns\AuthorizesBatchAccess;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Batch;
 use App\Models\BatchSchedule;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
 use App\Models\Setting;
 use App\Models\Teacher;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 use App\Models\TeacherAvailability;
+use App\Support\Pagination;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BatchController extends Controller
 {
+    use AuthorizesBatchAccess;
+
+    /**
+     * Display a listing of the resource.
+     *
+     * @return JsonResponse
+     */
     public function index(Request $request)
     {
-        $perPage  = $request->query('limit', $request->query('per_page', 10));
-        $search   = $request->query('search');
-        $teacher  = $request->query('teacher_id');
-        $classId  = $request->query('class_id');
-        $status   = $request->query('status');
+        $perPage = Pagination::perPage($request);
+        $search = $request->query('search');
+        $teacher = $request->query('teacher_id');
+        $classId = $request->query('class_id');
+        $status = $request->query('status');
 
         $query = Batch::select([
-                'id', 'class_id', 'teacher_id', 'name',
-                'total_seat', 'filled_seat',
-                'start_date', 'end_date', 'status', 'active_status'
-            ])
+            'id', 'class_id', 'teacher_id', 'name',
+            'total_seat', 'filled_seat',
+            'start_date', 'end_date', 'status', 'active_status',
+        ])
             ->with([
                 'class:id,title',
                 'teacher:id,name',
-                'schedules:id,batch_id,day_of_week,start_time,end_time'
+                'schedules:id,batch_id,day_of_week,start_time,end_time',
             ]);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                ->orWhereHas('class', fn($q2) => $q2->where('title', 'like', "%{$search}%"))
-                ->orWhereHas('teacher', fn($q3) => $q3->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('class', fn ($q2) => $q2->where('title', 'like', "%{$search}%"))
+                    ->orWhereHas('teacher', fn ($q3) => $q3->where('name', 'like', "%{$search}%"));
             });
         }
 
-        $query->when($teacher, fn($q) => $q->where('teacher_id', $teacher))
-            ->when($classId, fn($q) => $q->where('class_id', $classId))
-            ->when($status, fn($q) => $q->where('status', $status));
+        $query->when($teacher, fn ($q) => $q->where('teacher_id', $teacher))
+            ->when($classId, fn ($q) => $q->where('class_id', $classId))
+            ->when($status, fn ($q) => $q->where('status', $status));
 
         if ($request->start_date && $request->end_date) {
             $query->where(function ($q) use ($request) {
                 $q->where('start_date', '<=', $request->end_date)
-                ->where('end_date', '>=', $request->start_date);
+                    ->where('end_date', '>=', $request->start_date);
             });
         }
 
@@ -68,48 +78,53 @@ class BatchController extends Controller
             'data' => $batches->items(),
             'pagination' => [
                 'current_page' => $batches->currentPage(),
-                'per_page'     => $batches->perPage(),
-                'total'        => $batches->total(),
-                'last_page'    => $batches->lastPage(),
-            ]
+                'per_page' => $batches->perPage(),
+                'total' => $batches->total(),
+                'last_page' => $batches->lastPage(),
+            ],
         ]);
     }
 
+    /**
+     * Store a newly created resource.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'class_id'     => 'required|exists:classes,id',
-            'teacher_id'   => 'required|exists:teachers,id',
-            'name'         => 'required|string|max:255',
-            'total_seat'   => 'required|integer|min:1',
-            'start_date'   => 'required|date',
-            'end_date'     => 'required|date|after_or_equal:start_date',
-            'zoom_link'    => 'nullable|url',
-            'status'       => 'required|in:upcoming,ongoing,completed',
-            'schedules'    => 'required|array|min:1',
+            'class_id' => 'required|exists:classes,id',
+            'teacher_id' => 'required|exists:teachers,id',
+            'name' => 'required|string|max:255',
+            'total_seat' => 'required|integer|min:1',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'zoom_link' => 'nullable|url',
+            'status' => 'required|in:upcoming,ongoing,completed',
+            'schedules' => 'required|array|min:1',
             'schedules.*.day_of_week' => 'required|integer|between:0,6',
-            'schedules.*.start_time'  => 'required|date_format:H:i',
+            'schedules.*.start_time' => 'required|date_format:H:i',
         ]);
 
         $teacherId = $validated['teacher_id'];
 
         $class_time = Setting::first()?->class_time;
 
-        if (!$class_time) {
+        if (! $class_time) {
             return response()->json([
                 'success' => false,
-                'message' => 'Class time not set in settings'
+                'message' => 'Class time not set in settings',
             ], 422);
         }
 
         $duplicates = collect($validated['schedules'])
-            ->map(fn($s) => $s['day_of_week'].'-'.$s['start_time'])
+            ->map(fn ($s) => $s['day_of_week'].'-'.$s['start_time'])
             ->duplicates();
 
         if ($duplicates->isNotEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Duplicate schedule entries found'
+                'message' => 'Duplicate schedule entries found',
             ], 422);
         }
 
@@ -117,76 +132,31 @@ class BatchController extends Controller
 
         try {
             $batch = Batch::create([
-                'class_id'     => $validated['class_id'],
-                'teacher_id'   => $teacherId,
-                'name'         => $validated['name'],
-                'total_seat'   => $validated['total_seat'],
-                'start_date'   => $validated['start_date'],
-                'end_date'     => $validated['end_date'],
-                'zoom_link'    => $validated['zoom_link'] ?? null,
-                'status'       => $validated['status'],
+                'class_id' => $validated['class_id'],
+                'teacher_id' => $teacherId,
+                'name' => $validated['name'],
+                'total_seat' => $validated['total_seat'],
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'zoom_link' => $validated['zoom_link'] ?? null,
+                'status' => $validated['status'],
             ]);
 
-            $startDate = $validated['start_date'];
-            $endDate   = $validated['end_date'];
-
-            foreach ($validated['schedules'] as $schedule) {
-
-                $startTime = Carbon::parse($schedule['start_time']);
-                $endTime   = (clone $startTime)->addMinutes($class_time);
-
-                $startTimeStr = $startTime->format('H:i:s');
-                $endTimeStr   = $endTime->format('H:i:s');
-
-                $availability = TeacherAvailability::where('teacher_id', $teacherId)
-                    ->where('day_of_week', $schedule['day_of_week'])
-                    ->where('start_time', '<=', $startTimeStr)
-                    ->where('end_time', '>=', $endTimeStr)
-                    ->exists();
-
-                if (!$availability) {
-                    throw new \Exception(
-                        "Teacher not available on day {$schedule['day_of_week']} at {$schedule['start_time']}"
-                    );
-                }
-
-                $conflict = BatchSchedule::where('teacher_id', $teacherId)
-                    ->where('day_of_week', $schedule['day_of_week'])
-                    ->whereHas('batch', function ($q) use ($startDate, $endDate) {
-                        $q->where('start_date', '<=', $endDate)
-                        ->where('end_date', '>=', $startDate);
-                    })
-                    ->where(function ($q) use ($startTimeStr, $endTimeStr) {
-                        $q->whereBetween('start_time', [$startTimeStr, $endTimeStr])
-                        ->orWhereBetween('end_time', [$startTimeStr, $endTimeStr])
-                        ->orWhere(function ($q2) use ($startTimeStr, $endTimeStr) {
-                            $q2->where('start_time', '<=', $startTimeStr)
-                                ->where('end_time', '>=', $endTimeStr);
-                        });
-                    })
-                    ->exists();
-
-                if ($conflict) {
-                    throw new \Exception(
-                        "Schedule conflict on day {$schedule['day_of_week']} at {$schedule['start_time']}"
-                    );
-                }
-
-                BatchSchedule::create([
-                    'batch_id'    => $batch->id,
-                    'teacher_id'  => $teacherId,
-                    'day_of_week' => $schedule['day_of_week'],
-                    'start_time'  => $startTimeStr,
-                    'end_time'    => $endTimeStr,
-                ]);
-            }
+            $this->syncSchedules(
+                $batch,
+                $validated['schedules'],
+                $teacherId,
+                $validated['start_date'],
+                $validated['end_date'],
+                $class_time
+            );
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Batch created successfully',
-                'data'    => $batch->load('schedules'),
+                'data' => $batch->load('schedules'),
             ]);
 
         } catch (\Exception $e) {
@@ -199,67 +169,84 @@ class BatchController extends Controller
         }
     }
 
+    /**
+     * Get data for editing the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function edit($id)
     {
         $batch = Batch::with('schedules')->find($id);
 
-        if (!$batch) {
+        if (! $batch) {
             return response()->json([
                 'success' => false,
-                'message' => 'Batch not found'
+                'message' => 'Batch not found',
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $batch
+            'data' => $batch,
         ]);
     }
 
+    /**
+     * Update the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $batch = Batch::find($id);
-        if (!$batch) {
+        if (! $batch) {
             return response()->json([
                 'success' => false,
-                'message' => 'Batch not found'
+                'message' => 'Batch not found',
             ], 404);
         }
 
         $validated = $request->validate([
-            'class_id'     => 'required|exists:classes,id',
-            'teacher_id'   => 'required|exists:teachers,id',
-            'name'         => 'required|string|max:255',
-            'total_seat'   => 'required|integer|min:1',
-            'start_date'   => 'required|date',
-            'end_date'     => 'required|date|after_or_equal:start_date',
-            'zoom_link'    => 'nullable|url',
-            'status'       => 'required|in:upcoming,ongoing,completed',
-            'active_status'=> 'nullable|in:0,1',
-            'schedules'    => 'required|array|min:1',
+            'class_id' => 'required|exists:classes,id',
+            'teacher_id' => 'required|exists:teachers,id',
+            'name' => 'required|string|max:255',
+            'total_seat' => 'required|integer|min:1',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'zoom_link' => 'nullable|url',
+            'status' => 'required|in:upcoming,ongoing,completed',
+            'active_status' => 'nullable|in:0,1',
+            'schedules' => 'required|array|min:1',
             'schedules.*.day_of_week' => 'required|integer|between:0,6',
-            'schedules.*.start_time'  => 'required|date_format:H:i',
+            'schedules.*.start_time' => 'required|date_format:H:i',
         ]);
 
         $teacherId = $validated['teacher_id'];
 
-        $class_time = Setting::first()?->class_time;
-
-        if (!$class_time) {
+        if ($validated['total_seat'] < $batch->filled_seat) {
             return response()->json([
                 'success' => false,
-                'message' => 'Class time not set in settings'
+                'message' => 'Total seats cannot be less than filled seats',
+            ], 422);
+        }
+
+        $class_time = Setting::first()?->class_time;
+
+        if (! $class_time) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Class time not set in settings',
             ], 422);
         }
 
         $duplicates = collect($validated['schedules'])
-            ->map(fn($s) => $s['day_of_week'].'-'.$s['start_time'])
+            ->map(fn ($s) => $s['day_of_week'].'-'.$s['start_time'])
             ->duplicates();
 
         if ($duplicates->isNotEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Duplicate schedule entries found'
+                'message' => 'Duplicate schedule entries found',
             ], 422);
         }
 
@@ -267,80 +254,35 @@ class BatchController extends Controller
 
         try {
             $batch->update([
-                'class_id'     => $validated['class_id'],
-                'teacher_id'   => $teacherId,
-                'name'         => $validated['name'],
-                'total_seat'   => $validated['total_seat'],
-                'start_date'   => $validated['start_date'],
-                'end_date'     => $validated['end_date'],
-                'zoom_link'    => $validated['zoom_link'] ?? null,
-                'status'       => $validated['status'],
-                'active_status'=> $validated['active_status'] ?? $batch->active_status,
+                'class_id' => $validated['class_id'],
+                'teacher_id' => $teacherId,
+                'name' => $validated['name'],
+                'total_seat' => $validated['total_seat'],
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'zoom_link' => $validated['zoom_link'] ?? null,
+                'status' => $validated['status'],
+                'active_status' => $validated['active_status'] ?? $batch->active_status,
             ]);
-
-            $startDate = $validated['start_date'];
-            $endDate   = $validated['end_date'];
 
             BatchSchedule::where('batch_id', $batch->id)->delete();
 
-            foreach ($validated['schedules'] as $schedule) {
-
-                $startTime = Carbon::parse($schedule['start_time']);
-                $endTime   = (clone $startTime)->addMinutes($class_time);
-
-                $startTimeStr = $startTime->format('H:i:s');
-                $endTimeStr   = $endTime->format('H:i:s');
-
-                $availability = TeacherAvailability::where('teacher_id', $teacherId)
-                    ->where('day_of_week', $schedule['day_of_week'])
-                    ->where('start_time', '<=', $startTimeStr)
-                    ->where('end_time', '>=', $endTimeStr)
-                    ->exists();
-
-                if (!$availability) {
-                    throw new \Exception(
-                        "Teacher not available on day {$schedule['day_of_week']} at {$schedule['start_time']}"
-                    );
-                }
-
-                $conflict = BatchSchedule::where('teacher_id', $teacherId)
-                    ->where('day_of_week', $schedule['day_of_week'])
-                    ->where('batch_id', '!=', $batch->id)
-                    ->whereHas('batch', function ($q) use ($startDate, $endDate) {
-                        $q->where('start_date', '<=', $endDate)
-                        ->where('end_date', '>=', $startDate);
-                    })
-                    ->where(function ($q) use ($startTimeStr, $endTimeStr) {
-                        $q->whereBetween('start_time', [$startTimeStr, $endTimeStr])
-                        ->orWhereBetween('end_time', [$startTimeStr, $endTimeStr])
-                        ->orWhere(function ($q2) use ($startTimeStr, $endTimeStr) {
-                            $q2->where('start_time', '<=', $startTimeStr)
-                                ->where('end_time', '>=', $endTimeStr);
-                        });
-                    })
-                    ->exists();
-
-                if ($conflict) {
-                    throw new \Exception(
-                        "Schedule conflict on day {$schedule['day_of_week']} at {$schedule['start_time']}"
-                    );
-                }
-
-                BatchSchedule::create([
-                    'batch_id'    => $batch->id,
-                    'teacher_id'  => $teacherId,
-                    'day_of_week' => $schedule['day_of_week'],
-                    'start_time'  => $startTimeStr,
-                    'end_time'    => $endTimeStr,
-                ]);
-            }
+            $this->syncSchedules(
+                $batch,
+                $validated['schedules'],
+                $teacherId,
+                $validated['start_date'],
+                $validated['end_date'],
+                $class_time,
+                true
+            );
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Batch updated successfully',
-                'data'    => $batch->load('schedules'),
+                'data' => $batch->load('schedules'),
             ]);
 
         } catch (\Exception $e) {
@@ -353,20 +295,25 @@ class BatchController extends Controller
         }
     }
 
+    /**
+     * Remove the specified resource.
+     *
+     * @return JsonResponse
+     */
     public function destroy($id)
     {
         $batch = Batch::find($id);
 
-        if (!$batch) {
+        if (! $batch) {
             return response()->json([
                 'success' => false,
-                'message' => 'Batch not found'
+                'message' => 'Batch not found',
             ], 404);
         }
         if ($batch->filled_seat > 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete batch with enrolled students'
+                'message' => 'Cannot delete batch with enrolled students',
             ], 422);
         }
 
@@ -374,10 +321,15 @@ class BatchController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Batch deleted successfully'
+            'message' => 'Batch deleted successfully',
         ]);
     }
 
+    /**
+     * List active classes for batch forms.
+     *
+     * @return JsonResponse
+     */
     public function classList()
     {
         $classes = ClassModel::where('is_active', 1)->select('id', 'title')->get();
@@ -385,10 +337,15 @@ class BatchController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Class list retrieved successfully',
-            'data' => $classes
+            'data' => $classes,
         ]);
     }
 
+    /**
+     * List active teachers for batch forms.
+     *
+     * @return JsonResponse
+     */
     public function teacherList()
     {
         $teachers = Teacher::where('suspend_status', 0)->select('id', 'name')->get();
@@ -396,18 +353,23 @@ class BatchController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Teacher list retrieved successfully',
-            'data' => $teachers
+            'data' => $teachers,
         ]);
     }
 
+    /**
+     * Toggle the active status of the resource.
+     *
+     * @return JsonResponse
+     */
     public function status($id)
     {
         $batch = Batch::find($id);
 
-        if (!$batch) {
+        if (! $batch) {
             return response()->json([
                 'success' => false,
-                'message' => 'Batch not found'
+                'message' => 'Batch not found',
             ], 404);
         }
         $batch->active_status = $batch->active_status == 1 ? 0 : 1;
@@ -418,38 +380,43 @@ class BatchController extends Controller
             'message' => 'Batch status updated successfully',
             'data' => [
                 'id' => $batch->id,
-                'active_status' => $batch->active_status
-            ]
+                'active_status' => $batch->active_status,
+            ],
         ]);
     }
 
+    /**
+     * List batches assigned to the authenticated teacher.
+     *
+     * @return JsonResponse
+     */
     public function teacherBatch(Request $request)
     {
-        $perPage  = $request->query('limit', $request->query('per_page', 10));
-        $search   = $request->query('search');
-        $status   = $request->query('status');
-        
+        $perPage = Pagination::perPage($request);
+        $search = $request->query('search');
+        $status = $request->query('status');
+
         $user = auth('api')->user();
 
         $teacher = Teacher::where('user_id', $user->id)->first();
-        
-        if (!$teacher) {
+
+        if (! $teacher) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: You are not a teacher'
+                'message' => 'Unauthorized: You are not a teacher',
             ], 403);
         }
 
         $query = Batch::select([
-                'id', 'class_id', 'teacher_id', 'name',
-                'total_seat', 'filled_seat',
-                'start_date', 'end_date', 'status', 'active_status'
-            ])
+            'id', 'class_id', 'teacher_id', 'name',
+            'total_seat', 'filled_seat',
+            'start_date', 'end_date', 'status', 'active_status',
+        ])
             ->with([
                 'class:id,title',
                 'teacher:id,user_id',
                 'teacher.user:id,name,suspend_status',
-                'schedules:id,batch_id,day_of_week,start_time,end_time'
+                'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
 
             ->where('teacher_id', $teacher->id)
@@ -460,8 +427,8 @@ class BatchController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                ->orWhereHas('class', fn($q2) => $q2->where('title', 'like', "%{$search}%"))
-                ->orWhereHas('teacher.user', fn($q3) => $q3->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('class', fn ($q2) => $q2->where('title', 'like', "%{$search}%"))
+                    ->orWhereHas('teacher.user', fn ($q3) => $q3->where('name', 'like', "%{$search}%"));
             });
         }
 
@@ -472,7 +439,7 @@ class BatchController extends Controller
         if ($request->start_date && $request->end_date) {
             $query->where(function ($q) use ($request) {
                 $q->where('start_date', '<=', $request->end_date)
-                ->where('end_date', '>=', $request->start_date);
+                    ->where('end_date', '>=', $request->start_date);
             });
         }
 
@@ -490,13 +457,18 @@ class BatchController extends Controller
             'data' => $batches->items(),
             'pagination' => [
                 'current_page' => $batches->currentPage(),
-                'per_page'     => $batches->perPage(),
-                'total'        => $batches->total(),
-                'last_page'    => $batches->lastPage(),
-            ]
+                'per_page' => $batches->perPage(),
+                'total' => $batches->total(),
+                'last_page' => $batches->lastPage(),
+            ],
         ]);
     }
 
+    /**
+     * List active batches for a class.
+     *
+     * @return JsonResponse
+     */
     public function getBatchesByClass($classId)
     {
         $batches = Batch::where('class_id', $classId)
@@ -507,10 +479,15 @@ class BatchController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Batches fetched successfully',
-            'data' => $batches
+            'data' => $batches,
         ]);
     }
 
+    /**
+     * List batches for the authenticated student.
+     *
+     * @return JsonResponse
+     */
     public function studentBatch(Request $request)
     {
         $user = auth('api')->user();
@@ -520,31 +497,31 @@ class BatchController extends Controller
         if ($enrollments->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'You are not enrolled in any batches'
+                'message' => 'You are not enrolled in any batches',
             ], 404);
         }
 
         $query = Batch::select([
-                'id', 'class_id', 'teacher_id', 'name',
-                'total_seat', 'filled_seat', 'start_date', 'end_date', 'status', 'active_status'
-            ])
+            'id', 'class_id', 'teacher_id', 'name',
+            'total_seat', 'filled_seat', 'start_date', 'end_date', 'status', 'active_status',
+        ])
             ->with([
                 'class:id,title,image',
                 'teacher:id,user_id,name,image',
-                // 'teacher.user:id,name',
-                'schedules:id,batch_id,day_of_week,start_time,end_time'
+
+                'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
             ->whereIn('id', $enrollments);
 
-        $search   = $request->query('search');
-        $status   = $request->query('status');
-        $classId  = $request->query('class_id');
+        $search = $request->query('search');
+        $status = $request->query('status');
+        $classId = $request->query('class_id');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                ->orWhereHas('class', fn($q2) => $q2->where('title', 'like', "%{$search}%"))
-                ->orWhereHas('teacher.user', fn($q3) => $q3->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('class', fn ($q2) => $q2->where('title', 'like', "%{$search}%"))
+                    ->orWhereHas('teacher.user', fn ($q3) => $q3->where('name', 'like', "%{$search}%"));
             });
         }
 
@@ -556,7 +533,7 @@ class BatchController extends Controller
             $query->where('class_id', $classId);
         }
 
-        $perPage = $request->query('per_page', 10);
+        $perPage = Pagination::perPage($request);
         $batches = $query->latest()->paginate($perPage);
 
         return response()->json([
@@ -565,23 +542,28 @@ class BatchController extends Controller
             'data' => $batches->items(),
             'pagination' => [
                 'current_page' => $batches->currentPage(),
-                'per_page'     => $batches->perPage(),
-                'total'        => $batches->total(),
-                'last_page'    => $batches->lastPage(),
-            ]
+                'per_page' => $batches->perPage(),
+                'total' => $batches->total(),
+                'last_page' => $batches->lastPage(),
+            ],
         ]);
     }
 
+    /**
+     * Update the Zoom link for a batch.
+     *
+     * @return JsonResponse
+     */
     public function updateZoomLink(Request $request, $batchId)
     {
         $user = auth('api')->user();
 
         $batch = Batch::find($batchId);
 
-        if (!$batch) {
+        if (! $batch) {
             return response()->json([
                 'success' => false,
-                'message' => 'Batch not found'
+                'message' => 'Batch not found',
             ], 404);
         }
 
@@ -591,7 +573,7 @@ class BatchController extends Controller
 
         if ($user->hasRole('admin')) {
             $batch->update([
-                'zoom_link' => $validated['zoom_link']
+                'zoom_link' => $validated['zoom_link'],
             ]);
 
             return response()->json([
@@ -599,31 +581,28 @@ class BatchController extends Controller
                 'message' => 'Zoom link updated successfully',
                 'data' => [
                     'id' => $batch->id,
-                    'zoom_link' => $batch->zoom_link
-                ]
+                    'zoom_link' => $batch->zoom_link,
+                ],
             ]);
         }
 
         if ($user->hasRole('teacher')) {
-
-            $teacher = $user->teacher;
-
-            if (!$teacher) {
+            if (! $user->teacher) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Teacher profile not found'
+                    'message' => 'Teacher profile not found',
                 ], 403);
             }
 
-            if ($batch->teacher_id !== $teacher->id) {
+            if (! $this->canManageBatch($user, (int) $batch->id)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'You are not allowed to update this batch'
+                    'message' => 'You are not allowed to update this batch',
                 ], 403);
             }
 
             $batch->update([
-                'zoom_link' => $validated['zoom_link']
+                'zoom_link' => $validated['zoom_link'],
             ]);
 
             return response()->json([
@@ -631,37 +610,134 @@ class BatchController extends Controller
                 'message' => 'Zoom link updated successfully',
                 'data' => [
                     'id' => $batch->id,
-                    'zoom_link' => $batch->zoom_link
-                ]
+                    'zoom_link' => $batch->zoom_link,
+                ],
             ]);
         }
 
         return response()->json([
             'success' => false,
-            'message' => 'Unauthorized access'
+            'message' => 'Unauthorized access',
         ], 403);
     }
 
+    /**
+     * Get details for a single batch.
+     *
+     * @return JsonResponse
+     */
     public function singleBatch($batchId)
     {
+        $user = auth('api')->user();
+
         $batch = Batch::with([
             'class:id,title,description,image',
             'teacher:id,name',
-            'schedules:id,batch_id,day_of_week,start_time,end_time'
+            'schedules:id,batch_id,day_of_week,start_time,end_time',
         ])->find($batchId);
 
-        if (!$batch) {
+        if (! $batch) {
             return response()->json([
                 'success' => false,
-                'message' => 'Batch not found'
+                'message' => 'Batch not found',
             ], 404);
+        }
+
+        if ($user->hasRole('teacher')) {
+            if (($user->teacher->id ?? 0) !== $batch->teacher_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+        }
+
+        if ($user->hasRole('student')) {
+            $isEnrolled = Enrollment::where('user_id', $user->id)
+                ->where('batch_id', $batch->id)
+                ->exists();
+
+            if (! $isEnrolled) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Batch details fetched successfully',
-            'data' => $batch
+            'data' => $batch,
         ]);
     }
 
+    /**
+     * Validate and sync batch schedule slots.
+     *
+     * @param  array<int, array{day_of_week: int, start_time: string}>  $schedules
+     * @return void
+     */
+    private function syncSchedules(
+        Batch $batch,
+        array $schedules,
+        int $teacherId,
+        string $startDate,
+        string $endDate,
+        int $classTime,
+        bool $excludeSelf = false
+    ): void {
+        foreach ($schedules as $schedule) {
+            $startTime = Carbon::parse($schedule['start_time']);
+            $endTime = (clone $startTime)->addMinutes($classTime);
+
+            $startTimeStr = $startTime->format('H:i:s');
+            $endTimeStr = $endTime->format('H:i:s');
+
+            $availability = TeacherAvailability::where('teacher_id', $teacherId)
+                ->where('day_of_week', $schedule['day_of_week'])
+                ->where('start_time', '<=', $startTimeStr)
+                ->where('end_time', '>=', $endTimeStr)
+                ->exists();
+
+            if (! $availability) {
+                throw new \Exception(
+                    "Teacher not available on day {$schedule['day_of_week']} at {$schedule['start_time']}"
+                );
+            }
+
+            $conflictQuery = BatchSchedule::where('teacher_id', $teacherId)
+                ->where('day_of_week', $schedule['day_of_week'])
+                ->whereHas('batch', function ($q) use ($startDate, $endDate) {
+                    $q->where('start_date', '<=', $endDate)
+                        ->where('end_date', '>=', $startDate);
+                })
+                ->where(function ($q) use ($startTimeStr, $endTimeStr) {
+                    $q->whereBetween('start_time', [$startTimeStr, $endTimeStr])
+                        ->orWhereBetween('end_time', [$startTimeStr, $endTimeStr])
+                        ->orWhere(function ($q2) use ($startTimeStr, $endTimeStr) {
+                            $q2->where('start_time', '<=', $startTimeStr)
+                                ->where('end_time', '>=', $endTimeStr);
+                        });
+                });
+
+            if ($excludeSelf) {
+                $conflictQuery->where('batch_id', '!=', $batch->id);
+            }
+
+            if ($conflictQuery->exists()) {
+                throw new \Exception(
+                    "Schedule conflict on day {$schedule['day_of_week']} at {$schedule['start_time']}"
+                );
+            }
+
+            BatchSchedule::create([
+                'batch_id' => $batch->id,
+                'teacher_id' => $teacherId,
+                'day_of_week' => $schedule['day_of_week'],
+                'start_time' => $startTimeStr,
+                'end_time' => $endTimeStr,
+            ]);
+        }
+    }
 }
