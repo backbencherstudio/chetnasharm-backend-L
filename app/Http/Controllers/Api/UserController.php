@@ -93,7 +93,6 @@ class UserController extends Controller
                     'role' => $user->getRoleNames()->first(),
                 ],
             ], 200);
-
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -211,7 +210,6 @@ class UserController extends Controller
                     'role' => $user->getRoleNames()->first(),
                 ],
             ], 200);
-
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -347,7 +345,6 @@ class UserController extends Controller
                     'suspend_status' => $user->suspend_status,
                 ],
             ], 200);
-
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -419,7 +416,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,'.$user->id,
             'mobile' => 'nullable|string',
             'department' => 'nullable|string|max:100',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png',
         ]);
 
         if ($validator->fails()) {
@@ -444,13 +441,15 @@ class UserController extends Controller
         }
 
         if ($request->hasFile('image')) {
-
             if ($user->image && Storage::disk('public')->exists($user->image)) {
                 Storage::disk('public')->delete($user->image);
             }
 
-            $validated['image'] = $request->file('image')
-                ->store('users', 'public');
+            $validated['image'] = $request->image('image')
+                ->orient()
+                ->scale(width: 1200)
+                ->optimize()
+                ->store(path: 'users', disk: 'public');
         }
 
         $user->update($validated);
@@ -497,7 +496,6 @@ class UserController extends Controller
                 'message' => 'WhatsApp number updated successfully',
                 'mobile' => $mobile,
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -558,7 +556,6 @@ class UserController extends Controller
                 'status' => true,
                 'message' => 'User deleted successfully.',
             ], 200);
-
         } catch (\Throwable $e) {
             DB::rollBack();
 
