@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -15,6 +17,11 @@ use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class AuthController extends Controller
 {
+    /**
+     * Authenticate a user and return an access token.
+     *
+     * @return JsonResponse
+     */
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -56,11 +63,16 @@ class AuthController extends Controller
         return $this->respondWithToken($token, $user);
     }
 
+    /**
+     * Get the authenticated user profile.
+     *
+     * @return JsonResponse
+     */
     public function me()
     {
         $user = auth('api')->user();
 
-        $user->load('roles');
+        $user->load(['roles', 'teacher:id,user_id']);
 
         if ($user->suspend_status == 1) {
             auth('api')->logout();
@@ -89,6 +101,11 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Invalidate the current access token.
+     *
+     * @return JsonResponse
+     */
     public function logout()
     {
         auth('api')->logout();
@@ -99,12 +116,26 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Refresh the authentication token.
+     *
+     * @return JsonResponse
+     */
     public function refresh()
     {
         try {
             $token = auth('api')->refresh();
 
             $user = auth('api')->user();
+
+            if ($user && $user->suspend_status == 1) {
+                auth('api')->logout();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account has been suspended. Please contact admin.',
+                ], 403);
+            }
 
             return $this->respondWithToken($token, $user);
 
@@ -124,6 +155,11 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * Build the token response payload.
+     *
+     * @return JsonResponse
+     */
     protected function respondWithToken($token, $user)
     {
         return response()->json([
@@ -135,6 +171,11 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Register a new student user.
+     *
+     * @return JsonResponse
+     */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -190,6 +231,11 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * Redirect the user to Google OAuth.
+     *
+     * @return RedirectResponse
+     */
     public function googleRedirect()
     {
         return Socialite::driver('google')->stateless()
@@ -197,34 +243,11 @@ class AuthController extends Controller
             ->redirect();
     }
 
-    // public function googleCallback()
-    // {
-    //     $googleUser = Socialite::driver('google')->stateless()->user();
-
-    //     $user = User::where('email', $googleUser->email)->first();
-
-    //     if (!$user) {
-    //         $user = User::create([
-    //             'name' => $googleUser->name,
-    //             'email' => $googleUser->email,
-    //             'password' => null,
-    //             'department' => 'Student',
-    //             'image' => $googleUser->avatar,
-    //             'provider' => 'google',
-    //             'provider_id' => $googleUser->id,
-    //             'suspend_status' => 0,
-    //         ]);
-    //     }
-
-    //     $token = auth('api')->login($user);
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'user' => $user,
-    //         'token' => $token,
-    //     ]);
-    // }
-
+    /**
+     * Handle the Google OAuth callback.
+     *
+     * @return RedirectResponse
+     */
     public function googleCallback()
     {
         try {
@@ -257,9 +280,6 @@ class AuthController extends Controller
             return redirect(config('app.frontend_url')."/auth/callback?token={$token}");
 
         } catch (\Throwable $e) {
-            // Log::error('Google login error', [
-            //     'error' => $e->getMessage()
-            // ]);
 
             return redirect(config('app.frontend_url').'/login?error=google_login_failed');
         }

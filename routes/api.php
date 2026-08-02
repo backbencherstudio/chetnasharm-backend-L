@@ -29,11 +29,11 @@ Route::get('/login', function () {
     ], 401);
 })->name('login');
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
-Route::post('/send-otp', [ForgotPasswordController::class, 'sendOtp']);
-Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
-Route::post('/password-reset', [ForgotPasswordController::class, 'resetPassword']);
+Route::post('/send-otp', [ForgotPasswordController::class, 'sendOtp'])->middleware('throttle:5,1');
+Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->middleware('throttle:10,1');
+Route::post('/password-reset', [ForgotPasswordController::class, 'resetPassword'])->middleware('throttle:5,1');
 Route::post('/register', [AuthController::class, 'register']);
 
 // google register
