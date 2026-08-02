@@ -2,18 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\EnrollStudentFromPayment;
+use App\Models\Payment;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Stripe\Webhook;
-use App\Models\Payment;
-use App\Models\Enrollment;
-use App\Models\Batch;
-use App\Models\User;
-use App\Notifications\EnrollmentNotification;
 
 class WebhookController extends Controller
 {
+    /**
+     * Create a new class instance.
+     *
+     * @return void
+     */
+    public function __construct(private EnrollStudentFromPayment $enrollStudentFromPayment) {}
+
+    /**
+     * Handle Stripe webhook events.
+     *
+     * @return JsonResponse
+     */
     public function stripeWebhook(Request $request)
     {
         $payload = $request->getContent();
@@ -41,27 +51,38 @@ class WebhookController extends Controller
                 return response()->json(['error' => 'Invalid metadata'], 400);
             }
 
-            $payment = Payment::find($session->metadata->payment_id);
-
-            if (!$payment) {
-                return response()->json(['error' => 'Payment not found'], 404);
-            }
-
-            if ($payment->status === 'paid') {
-                return response()->json(['status' => 'already processed']);
-            }
-
-            if ($payment->transaction_id === ($session->payment_intent ?? $session->id)) {
-                return response()->json(['status' => 'already processed']);
-            }
-
             DB::beginTransaction();
 
             try {
+                $payment = Payment::lockForUpdate()->find($session->metadata->payment_id);
 
-                $stripeAmount = $session->amount_total / 100;
+                if (! $payment) {
+                    DB::rollBack();
 
-                if ((float)$payment->amount !== (float)$stripeAmount) {
+                    return response()->json(['error' => 'Payment not found'], 404);
+                }
+
+                if ((int) $session->metadata->batch_id !== (int) $payment->batch_id) {
+                    throw new \Exception('Batch mismatch');
+                }
+
+                if ($payment->status === 'paid') {
+                    $this->enrollStudentFromPayment->handle($payment, null, false);
+                    DB::commit();
+
+                    return response()->json(['status' => 'already processed']);
+                }
+
+                if ($payment->transaction_id === ($session->payment_intent ?? $session->id)) {
+                    DB::commit();
+
+                    return response()->json(['status' => 'already processed']);
+                }
+
+                $expectedCents = (int) round(((float) $payment->amount) * 100);
+                $actualCents = (int) ($session->amount_total ?? 0);
+
+                if ($expectedCents !== $actualCents) {
                     throw new \Exception('Amount mismatch');
                 }
 
@@ -71,7 +92,7 @@ class WebhookController extends Controller
                     'paid_at' => now(),
                 ]);
 
-                $this->createEnrollment($payment, $session->metadata->batch_id);
+                $this->enrollStudentFromPayment->handle($payment, null, false);
 
                 DB::commit();
 
@@ -80,7 +101,7 @@ class WebhookController extends Controller
 
                 Log::error('Stripe webhook error', [
                     'error' => $e->getMessage(),
-                    'payload' => $payload
+                    'payload' => $payload,
                 ]);
 
                 return response()->json(['error' => 'Processing failed'], 500);
@@ -93,7 +114,7 @@ class WebhookController extends Controller
 
             if ($payment) {
                 $payment->update([
-                    'status' => 'failed'
+                    'status' => 'failed',
                 ]);
             }
         }
@@ -108,57 +129,17 @@ class WebhookController extends Controller
 
             $payment = Payment::find($session->metadata->payment_id);
 
-            if (!$payment) {
+            if (! $payment) {
                 return;
             }
 
             if ($payment->status === 'pending') {
                 $payment->update([
-                    'status' => 'failed'
+                    'status' => 'failed',
                 ]);
             }
         }
 
         return response()->json(['status' => 'success']);
-    }
-
-    private function createEnrollment($payment, $batchId)
-    {
-        return DB::transaction(function () use ($payment, $batchId) {
-
-            $batch = Batch::lockForUpdate()->findOrFail($batchId);
-
-            $exists = Enrollment::where('user_id', $payment->user_id)
-                ->where('batch_id', $batchId)
-                ->exists();
-
-            if ($exists) {
-                return null;
-            }
-
-            if ($batch->filled_seat >= $batch->total_seat) {
-                throw new \Exception('Batch is full');
-            }
-
-            $enrollment = Enrollment::create([
-                'user_id' => $payment->user_id,
-                'batch_id' => $batch->id,
-                'class_id' => $batch->class_id,
-                'status' => 'active',
-                'enrolled_at' => now(),
-                'expiry_date' => $batch->end_date ? $batch->end_date : null,
-            ]);
-
-            $batch->increment('filled_seat');
-
-            $payment->update([
-                'enrollment_id' => $enrollment->id
-            ]);
-
-            $user = User::find($payment->user_id);
-            $user->notify(new EnrollmentNotification($enrollment));
-
-            return $enrollment;
-        });
     }
 }

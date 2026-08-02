@@ -2,22 +2,34 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\EnrollStudentFromPayment;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\Enrollment;
 use App\Models\Payment;
 use App\Models\Setting;
-use App\Models\User;
-use App\Notifications\EnrollmentNotification;
+use GuzzleHttp\Client;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Stripe\Stripe;
 use Stripe\Checkout\Session;
-use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Log;
+use Stripe\Stripe;
 
 class PaymentController extends Controller
 {
+    /**
+     * Create a new class instance.
+     *
+     * @return void
+     */
+    public function __construct(private EnrollStudentFromPayment $enrollStudentFromPayment) {}
+
+    /**
+     * Create a payment session for a batch enrollment.
+     *
+     * @return JsonResponse
+     */
     public function createPayment(Request $request)
     {
         $request->validate([
@@ -27,37 +39,42 @@ class PaymentController extends Controller
 
         $user = auth('api')->user();
 
-        $batch = Batch::with('class')->findOrFail($request->batch_id);
-
-        if ($batch->filled_seat >= $batch->total_seat) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Batch is full'
-            ], 400);
-        }
-
-        if ($batch->start_date && $batch->start_date->isPast()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Batch has already started'
-            ], 400);
-        }
-
-        $enrollment = Enrollment::where('user_id', $user->id)
-            ->where('batch_id', $batch->id)
-            ->first();
-
-        if ($enrollment) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Already enrolled and active',
-                'expiry_date' => $enrollment->expiry_date
-            ], 409);
-        }
-
         DB::beginTransaction();
 
         try {
+            $batch = Batch::with('class')->lockForUpdate()->findOrFail($request->batch_id);
+
+            if ($batch->filled_seat >= $batch->total_seat) {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Batch is full',
+                ], 400);
+            }
+
+            if ($batch->start_date && $batch->start_date->isPast()) {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Batch has already started',
+                ], 400);
+            }
+
+            $enrollment = Enrollment::where('user_id', $user->id)
+                ->where('batch_id', $batch->id)
+                ->first();
+
+            if ($enrollment) {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Already enrolled and active',
+                    'expiry_date' => $enrollment->expiry_date,
+                ], 409);
+            }
 
             $payment = Payment::where('user_id', $user->id)
                 ->where('batch_id', $batch->id)
@@ -76,18 +93,6 @@ class PaymentController extends Controller
                 DB::commit();
 
                 return $this->handlePayment($payment, $batch);
-            }
-
-            if ($payment && $payment->status === 'paid') {
-
-                if ($enrollment && $enrollment->expiry_date && $enrollment->expiry_date->isFuture()) {
-                    DB::rollBack();
-
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'Already enrolled'
-                    ], 409);
-                }
             }
 
             $payment = Payment::create([
@@ -110,11 +115,16 @@ class PaymentController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Payment creation failed',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
+    /**
+     * Route the payment to the selected gateway.
+     *
+     * @return JsonResponse
+     */
     private function handlePayment($payment, $batch)
     {
         if ($payment->payment_method === 'stripe') {
@@ -129,7 +139,7 @@ class PaymentController extends Controller
 
             $setting = Setting::first();
             $support_number = $setting->support_number;
-            $support_email  = $setting->support_email;
+            $support_email = $setting->support_email;
 
             return response()->json([
                 'status' => true,
@@ -142,11 +152,15 @@ class PaymentController extends Controller
 
         return response()->json([
             'status' => false,
-            'message' => 'Invalid payment method'
+            'message' => 'Invalid payment method',
         ], 400);
     }
 
-
+    /**
+     * Create a Stripe checkout session.
+     *
+     * @return JsonResponse
+     */
     public function stripeCheckout($payment, $batch)
     {
         Stripe::setApiKey(config('services.stripe.secret'));
@@ -159,13 +173,13 @@ class PaymentController extends Controller
                     'product_data' => [
                         'name' => $batch->class->title,
                     ],
-                    'unit_amount' => $payment->amount * 100,
+                    'unit_amount' => (int) round(((float) $payment->amount) * 100),
                 ],
                 'quantity' => 1,
             ]],
             'mode' => 'payment',
-            'success_url' => config('app.frontend_url') . "/payment-success?payment_id={$payment->id}",
-            'cancel_url' => config('app.frontend_url') . "/payment-failed",
+            'success_url' => config('app.frontend_url')."/payment-success?payment_id={$payment->id}",
+            'cancel_url' => config('app.frontend_url').'/payment-failed',
             'metadata' => [
                 'payment_id' => $payment->id,
                 'batch_id' => $batch->id,
@@ -173,131 +187,152 @@ class PaymentController extends Controller
         ]);
 
         return response()->json([
-            'url' => $session->url
+            'url' => $session->url,
         ]);
     }
 
+    /**
+     * Resolve the PayPal API base URL.
+     */
+    private function paypalBaseUrl(): string
+    {
+        $baseUrl = config('services.paypal.base_url');
+
+        if (filled($baseUrl)) {
+            return rtrim((string) $baseUrl, '/');
+        }
+
+        return config('services.paypal.mode') === 'live'
+            ? 'https://api-m.paypal.com'
+            : 'https://api-m.sandbox.paypal.com';
+    }
+
+    /**
+     * Fetch a PayPal OAuth access token.
+     *
+     * @return mixed
+     */
     private function getPayPalToken()
     {
-        $client = new Client();
+        $client = new Client;
 
-        $response = $client->post('https://api-m.sandbox.paypal.com/v1/oauth2/token', [
+        $response = $client->post($this->paypalBaseUrl().'/v1/oauth2/token', [
             'auth' => [
                 config('services.paypal.client_id'),
-                config('services.paypal.client_secret')
+                config('services.paypal.client_secret'),
             ],
             'form_params' => [
-                'grant_type' => 'client_credentials'
-            ]
+                'grant_type' => 'client_credentials',
+            ],
         ]);
 
         return json_decode($response->getBody(), true)['access_token'];
     }
 
+    /**
+     * Create a PayPal checkout order.
+     *
+     * @return JsonResponse
+     */
     public function paypalCheckout($payment, $batch)
     {
         try {
             $token = $this->getPayPalToken();
 
-            $client = new Client();
+            $client = new Client;
 
             $response = $client->post(
-                'https://api-m.sandbox.paypal.com/v2/checkout/orders',
+                $this->paypalBaseUrl().'/v2/checkout/orders',
                 [
                     'headers' => [
-                        'Content-Type'  => 'application/json',
+                        'Content-Type' => 'application/json',
                         'Authorization' => "Bearer {$token}",
                     ],
                     'json' => [
-                        "intent" => "CAPTURE",
+                        'intent' => 'CAPTURE',
 
-                        "purchase_units" => [[
-                            "reference_id" => (string) $payment->id,
+                        'purchase_units' => [[
+                            'reference_id' => (string) $payment->id,
 
-                            "amount" => [
-                                "currency_code" => "USD",
-                                "value" => number_format($payment->amount, 2, '.', '')
+                            'amount' => [
+                                'currency_code' => 'USD',
+                                'value' => number_format($payment->amount, 2, '.', ''),
                             ],
 
-                            "custom_id" => json_encode([
+                            'custom_id' => json_encode([
                                 'payment_id' => $payment->id,
-                                'batch_id'   => $batch->id
+                                'batch_id' => $batch->id,
                             ]),
                         ]],
 
-                        "application_context" => [
-                            "brand_name" => config('app.name'),
-                            "landing_page" => "LOGIN",
-                            "user_action" => "PAY_NOW",
+                        'application_context' => [
+                            'brand_name' => config('app.name'),
+                            'landing_page' => 'LOGIN',
+                            'user_action' => 'PAY_NOW',
 
-                            "return_url" => config('app.success_url'),
-                            "cancel_url" => config('app.cancel_url'),
-                        ]
-                    ]
+                            'return_url' => config('app.success_url'),
+                            'cancel_url' => config('app.cancel_url'),
+                        ],
+                    ],
                 ]
             );
 
             $data = json_decode($response->getBody(), true);
 
-            if (empty($data['links']) || !is_array($data['links'])) {
+            if (empty($data['links']) || ! is_array($data['links'])) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Invalid PayPal response'
+                    'message' => 'Invalid PayPal response',
                 ], 500);
             }
 
             foreach ($data['links'] as $link) {
-                if (($link['rel'] ?? null) === 'approve' && !empty($link['href'])) {
+                if (($link['rel'] ?? null) === 'approve' && ! empty($link['href'])) {
                     return response()->json([
                         'status' => true,
                         'url' => $link['href'],
-                        'order_id' => $data['id'] ?? null
+                        'order_id' => $data['id'] ?? null,
                     ]);
                 }
             }
 
             return response()->json([
                 'status' => false,
-                'message' => 'PayPal approval link not found'
+                'message' => 'PayPal approval link not found',
             ], 500);
 
         } catch (\Throwable $e) {
 
-            // Log::error('PayPal Checkout Error', [
-            //     'payment_id' => $payment->id ?? null,
-            //     'batch_id'   => $batch->id ?? null,
-            //     'error'      => $e->getMessage()
-            // ]);
-
             return response()->json([
                 'status' => false,
-                'message' => 'PayPal checkout failed'
+                'message' => 'PayPal checkout failed',
             ], 500);
         }
     }
 
+    /**
+     * Capture an approved PayPal payment.
+     *
+     * @return RedirectResponse
+     */
     public function paypalCapture(Request $request)
     {
-        // Log::info('PayPal Capture Callback', [
-        //     'request' => $request->all()
-        // ]);
-
         $request->validate([
-            'token' => 'required'
+            'token' => 'required',
         ]);
 
         try {
             $accessToken = $this->getPayPalToken();
 
-            $client = new Client();
+            $client = new Client;
 
             $response = $client->post(
-                "https://api-m.sandbox.paypal.com/v2/checkout/orders/{$request->token}/capture",
+                $this->paypalBaseUrl()."/v2/checkout/orders/{$request->token}/capture",
                 [
                     'headers' => [
                         'Authorization' => "Bearer {$accessToken}",
                         'Content-Type' => 'application/json',
-                    ]
+                    ],
                 ]
             );
 
@@ -305,32 +340,32 @@ class PaymentController extends Controller
 
             if (($result['status'] ?? null) !== 'COMPLETED') {
                 return redirect()->away(
-                    env('FRONTEND_FAILED_URL') . '?reason=not_completed'
+                    config('app.frontend_failed_url').'?reason=not_completed'
                 );
             }
 
             $purchaseUnit = $result['purchase_units'][0] ?? null;
             $capture = $purchaseUnit['payments']['captures'][0] ?? null;
 
-            if (!$purchaseUnit || !$capture) {
+            if (! $purchaseUnit || ! $capture) {
                 return redirect()->away(
-                    env('FRONTEND_FAILED_URL') . '?reason=invalid_structure'
+                    config('app.frontend_failed_url').'?reason=invalid_structure'
                 );
             }
 
             $customId = $capture['custom_id'] ?? null;
 
-            if (!$customId) {
+            if (! $customId) {
                 return redirect()->away(
-                    env('FRONTEND_FAILED_URL') . '?reason=missing_metadata'
+                    config('app.frontend_failed_url').'?reason=missing_metadata'
                 );
             }
 
             $data = json_decode($customId, true);
 
-            if (!$data || !isset($data['payment_id'], $data['batch_id'])) {
+            if (! $data || ! isset($data['payment_id'], $data['batch_id'])) {
                 return redirect()->away(
-                    env('FRONTEND_FAILED_URL') . '?reason=invalid_metadata'
+                    config('app.frontend_failed_url').'?reason=invalid_metadata'
                 );
             }
 
@@ -341,18 +376,23 @@ class PaymentController extends Controller
                 $payment = Payment::lockForUpdate()
                     ->findOrFail($data['payment_id']);
 
-                // prevent double payment
+                if ((int) $data['batch_id'] !== (int) $payment->batch_id) {
+                    throw new \Exception('Batch mismatch detected');
+                }
+
                 if ($payment->status === 'paid') {
+                    $this->enrollStudentFromPayment->handle($payment, null, false);
                     DB::commit();
 
                     return redirect()->away(
-                        env('FRONTEND_SUCCESS_URL') . '?payment_id=' . $payment->id . '&status=already_processed'
+                        config('app.frontend_success_url').'?payment_id='.$payment->id.'&status=already_processed'
                     );
                 }
 
-                $paypalAmount = $capture['amount']['value'] ?? 0;
+                $expectedAmount = number_format((float) $payment->amount, 2, '.', '');
+                $paypalAmount = number_format((float) ($capture['amount']['value'] ?? 0), 2, '.', '');
 
-                if ((float)$payment->amount !== (float)$paypalAmount) {
+                if ($expectedAmount !== $paypalAmount) {
                     throw new \Exception('Amount mismatch detected');
                 }
 
@@ -362,79 +402,36 @@ class PaymentController extends Controller
                     'paid_at' => now(),
                 ]);
 
-                $this->createEnrollment($payment, $data['batch_id']);
+                $this->enrollStudentFromPayment->handle($payment, null, false);
 
                 DB::commit();
 
                 return redirect()->away(
-                    env('FRONTEND_SUCCESS_URL') . '?payment_id=' . $payment->id . '&status=success'
+                    config('app.frontend_success_url').'?payment_id='.$payment->id.'&status=success'
                 );
 
             } catch (\Throwable $e) {
 
                 DB::rollBack();
 
-                // Log::error('Payment Processing Error', [
-                //     'error' => $e->getMessage()
-                // ]);
-
                 return redirect()->away(
-                    env('FRONTEND_FAILED_URL') . '?reason=processing_failed'
+                    config('app.frontend_failed_url').'?reason=processing_failed'
                 );
             }
 
         } catch (\Throwable $e) {
 
-            // Log::error('PayPal API Error', [
-            //     'error' => $e->getMessage()
-            // ]);
-
             return redirect()->away(
-                env('FRONTEND_FAILED_URL') . '?reason=api_error'
+                config('app.frontend_failed_url').'?reason=api_error'
             );
         }
     }
 
-    private function createEnrollment($payment, $batchId)
-    {
-        return DB::transaction(function () use ($payment, $batchId) {
-
-            $batch = Batch::lockForUpdate()->findOrFail($batchId);
-
-            $exists = Enrollment::where('user_id', $payment->user_id)
-                ->where('batch_id', $batchId)
-                ->exists();
-
-            if ($exists) {
-                return null;
-            }
-
-            if ($batch->filled_seat >= $batch->total_seat) {
-                throw new \Exception('Batch is full');
-            }
-
-            $enrollment = Enrollment::create([
-                'user_id' => $payment->user_id,
-                'batch_id' => $batch->id,
-                'class_id' => $batch->class_id,
-                'status' => 'active',
-                'enrolled_at' => now(),
-                'expiry_date' => $batch->end_date ? $batch->end_date : null,
-            ]);
-
-            $batch->increment('filled_seat');
-
-            $payment->update([
-                'enrollment_id' => $enrollment->id
-            ]);
-
-            $user = User::find($payment->user_id);
-            $user->notify(new EnrollmentNotification($enrollment));
-
-            return $enrollment;
-        });
-    }
-
+    /**
+     * Generate a unique payment reference ID.
+     *
+     * @return mixed
+     */
     private function generatePaymentId()
     {
         do {
@@ -444,15 +441,15 @@ class PaymentController extends Controller
         return $paymentId;
     }
 
+    /**
+     * Handle a cancelled PayPal checkout.
+     *
+     * @return RedirectResponse
+     */
     public function paypalCancel(Request $request)
     {
-        // Log::info('PayPal Payment Cancelled', [
-        //     'request' => $request->all()
-        // ]);
-
         return redirect()->away(
-            config('app.frontend_cancel_url') . '?status=cancelled'
+            config('app.frontend_cancel_url').'?status=cancelled'
         );
     }
-
 }

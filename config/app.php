@@ -57,6 +57,8 @@ return [
     'success_url' => env('SUCCESS_URL'),
     'cancel_url' => env('CANCEL_URL'),
     'frontend_cancel_url' => env('FRONTEND_CANCEL_URL'),
+    'frontend_success_url' => env('FRONTEND_SUCCESS_URL'),
+    'frontend_failed_url' => env('FRONTEND_FAILED_URL'),
 
     /*
     |--------------------------------------------------------------------------
