@@ -2,23 +2,27 @@
 
 namespace App\Notifications\Channels;
 
-use Twilio\Rest\Client;
-use Illuminate\Support\Facades\Log;
 use App\Models\NotificationLog;
-use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class WhatsAppChannel
 {
+    /**
+     * Send the WhatsApp notification.
+     *
+     * @return void
+     */
     public function send($notifiable, $notification)
     {
-        if (!method_exists($notification, 'toWhatsapp')) {
+        if (! method_exists($notification, 'toWhatsapp')) {
             return;
         }
 
         $data = $notification->toWhatsapp($notifiable);
 
-        if (!$data || empty($data['to'])) {
+        if (! $data || empty($data['to'])) {
             return;
         }
 
@@ -33,7 +37,7 @@ class WhatsAppChannel
                 ->timeout(10)
                 ->retry(2, 200)
                 ->post(
-                    config('services.whatsapp.url') . '/' . config('services.whatsapp.phone_number_id') . '/messages',
+                    config('services.whatsapp.url').'/'.config('services.whatsapp.phone_number_id').'/messages',
                     [
                         'messaging_product' => 'whatsapp',
                         'to' => $phone,
@@ -41,7 +45,7 @@ class WhatsAppChannel
                         'template' => [
                             'name' => 'class_reminder',
                             'language' => [
-                                'code' => 'en'
+                                'code' => 'en',
                             ],
                             'components' => [
                                 [
@@ -51,19 +55,19 @@ class WhatsAppChannel
                                         ['type' => 'text', 'text' => $notification->batch->name ?? 'Class'],
                                         ['type' => 'text', 'text' => isset($notification->schedule)
                                             ? Carbon::parse($notification->schedule->start_time)->format('h:i A')
-                                            : ''
+                                            : '',
                                         ],
-                                        ['type' => 'text', 'text' => $notification->batch->zoom_link ?? '']
-                                    ]
-                                ]
-                            ]
-                        ]
+                                        ['type' => 'text', 'text' => $notification->batch->zoom_link ?? ''],
+                                    ],
+                                ],
+                            ],
+                        ],
                     ]
                 );
 
             Log::info('Meta response', [
                 'status' => $response->status(),
-                'body' => $response->json()
+                'body' => $response->json(),
             ]);
 
             $body = $response->json();
@@ -80,7 +84,7 @@ class WhatsAppChannel
             $errorMessage = $e->getMessage();
 
             Log::error('Meta WhatsApp exception', [
-                'error' => $errorMessage
+                'error' => $errorMessage,
             ]);
         }
 
@@ -89,10 +93,9 @@ class WhatsAppChannel
             'batch_id' => $notification->batch->id ?? null,
             'type' => 'whatsapp',
             'message_type' => 'class_reminder',
-            'message' => "Reminder sent",
+            'message' => 'Reminder sent',
             'status' => $status,
             'sent_at' => now(),
         ]);
     }
 }
-

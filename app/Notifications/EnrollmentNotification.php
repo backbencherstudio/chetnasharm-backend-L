@@ -6,8 +6,8 @@ use App\Models\NotificationLog;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class EnrollmentNotification extends Notification implements ShouldQueue
 {
@@ -15,16 +15,31 @@ class EnrollmentNotification extends Notification implements ShouldQueue
 
     protected $enrollment;
 
+    /**
+     * Create a new class instance.
+     *
+     * @return void
+     */
     public function __construct($enrollment)
     {
         $this->enrollment = $enrollment->load('batch.class', 'batch.schedules');
     }
 
+    /**
+     * Get the notification delivery channels.
+     *
+     * @return array<int, string>
+     */
     public function via($notifiable)
     {
         return ['mail'];
     }
 
+    /**
+     * Build the enrollment confirmation mail message.
+     *
+     * @return MailMessage
+     */
     public function toMail($notifiable)
     {
         $batch = $this->enrollment->batch;
@@ -48,7 +63,6 @@ class EnrollmentNotification extends Notification implements ShouldQueue
             ];
         });
 
-        // Log notification
         $messageText = "Enrollment confirmation sent for {$class->title} (Batch {$batch->id})";
 
         NotificationLog::create([

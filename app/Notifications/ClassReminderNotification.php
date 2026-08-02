@@ -3,12 +3,12 @@
 namespace App\Notifications;
 
 use App\Models\NotificationLog;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Notification;
-use Illuminate\Notifications\Messages\MailMessage;
 use App\Notifications\Channels\WhatsAppChannel;
 use Carbon\Carbon;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 
 class ClassReminderNotification extends Notification implements ShouldQueue
@@ -16,19 +16,35 @@ class ClassReminderNotification extends Notification implements ShouldQueue
     use Queueable;
 
     public $batch;
+
     public $schedule;
 
+    /**
+     * Create a new class instance.
+     *
+     * @return void
+     */
     public function __construct($batch, $schedule)
     {
         $this->batch = $batch;
         $this->schedule = $schedule;
     }
 
+    /**
+     * Get the notification delivery channels.
+     *
+     * @return array<int, string>
+     */
     public function via($notifiable)
     {
         return ['mail', WhatsAppChannel::class];
     }
 
+    /**
+     * Build the class reminder mail message.
+     *
+     * @return MailMessage|null
+     */
     public function toMail($notifiable)
     {
         $time = Carbon::parse($this->schedule->start_time)->format('h:i A');
@@ -40,8 +56,8 @@ class ClassReminderNotification extends Notification implements ShouldQueue
             return (new MailMessage)
                 ->subject('Class Reminder')
                 ->line('Your class is starting soon.')
-                ->line('Batch: ' . $this->batch->name)
-                ->line('Time: ' . $time)
+                ->line('Batch: '.$this->batch->name)
+                ->line('Time: '.$time)
                 ->action('Join Class', $this->batch->zoom_link)
                 ->withSymfonyMessage(function () use ($notifiable, $messageText) {
 
@@ -60,7 +76,7 @@ class ClassReminderNotification extends Notification implements ShouldQueue
 
             Log::error('Email failed', [
                 'user_id' => $notifiable->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             NotificationLog::create([
@@ -77,6 +93,11 @@ class ClassReminderNotification extends Notification implements ShouldQueue
         }
     }
 
+    /**
+     * Build the WhatsApp reminder payload.
+     *
+     * @return array<string, mixed>|null
+     */
     public function toWhatsapp($notifiable)
     {
         if (empty($notifiable->mobile)) {
@@ -84,7 +105,7 @@ class ClassReminderNotification extends Notification implements ShouldQueue
         }
 
         return [
-            'to' => $notifiable->mobile
+            'to' => $notifiable->mobile,
         ];
     }
 }
