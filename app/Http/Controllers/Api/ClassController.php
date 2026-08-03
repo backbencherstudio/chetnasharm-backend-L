@@ -7,10 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
-use App\Models\Teacher;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class ClassController extends Controller
@@ -35,7 +35,7 @@ class ClassController extends Controller
             ->latest()
             ->paginate($perPage);
 
-        $this->withTeachers($classes);
+        $this->withAssignedTeachers($classes);
 
         return response()->json([
             'success' => true,
@@ -63,8 +63,6 @@ class ClassController extends Controller
             'short_description' => 'nullable|string',
             'who_is_for' => 'nullable|string',
             'curriculum' => 'nullable|string',
-            'teacher_ids' => 'nullable|array',
-            'teacher_ids.*' => 'exists:teachers,id',
             'is_class_recording' => 'nullable|in:0,1',
             'price' => 'required|numeric|min:0',
             'duration_in_days' => 'required|integer|min:1',
@@ -78,7 +76,7 @@ class ClassController extends Controller
 
         $class = ClassModel::create($validated);
 
-        $this->withTeachers(collect([$class]));
+        $this->withAssignedTeachers(collect([$class]));
 
         return response()->json([
             'success' => true,
@@ -102,6 +100,8 @@ class ClassController extends Controller
                 'message' => 'Class not found',
             ], 404);
         }
+
+        $this->withAssignedTeachers(collect([$class]));
 
         return response()->json([
             'success' => true,
@@ -132,8 +132,6 @@ class ClassController extends Controller
             'short_description' => 'nullable|string',
             'who_is_for' => 'nullable|string',
             'curriculum' => 'nullable|string',
-            'teacher_ids' => 'nullable|array',
-            'teacher_ids.*' => 'exists:teachers,id',
             'is_class_recording' => 'nullable|in:0,1',
             'price' => 'sometimes|numeric|min:0',
             'duration_in_days' => 'sometimes|integer|min:1',
@@ -153,7 +151,7 @@ class ClassController extends Controller
 
         $class->update($validated);
 
-        $this->withTeachers(collect([$class]));
+        $this->withAssignedTeachers(collect([$class]));
 
         return response()->json([
             'success' => true,
@@ -211,7 +209,6 @@ class ClassController extends Controller
                 'short_description',
                 'who_is_for',
                 'curriculum',
-                'teacher_ids',
                 'price',
                 'duration_in_days',
                 'total_classes',
@@ -221,7 +218,7 @@ class ClassController extends Controller
             ->latest()
             ->paginate($perPage);
 
-        $this->withTeachers($classes);
+        $this->withAssignedTeachers($classes);
 
         return response()->json([
             'success' => true,
@@ -354,7 +351,7 @@ class ClassController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Class teachers retrieved successfully',
-            'data' => $class->teachers(),
+            'data' => $this->assignedTeachersForClass((int) $classId),
         ]);
     }
 
@@ -374,7 +371,6 @@ class ClassController extends Controller
                 'short_description',
                 'who_is_for',
                 'curriculum',
-                'teacher_ids',
                 'price',
                 'duration_in_days',
                 'total_classes',
@@ -390,8 +386,7 @@ class ClassController extends Controller
             ], 404);
         }
 
-        $class->setAttribute('teachers', $this->loadTeachers([$class]));
-        unset($class->teacher_ids);
+        $this->withAssignedTeachers(collect([$class]));
 
         return response()->json([
             'success' => true,
@@ -401,41 +396,68 @@ class ClassController extends Controller
     }
 
     /**
-     * Eager-load teachers onto class collections.
+     * Attach teachers/batches summary derived from batch assignments.
      */
-    private function withTeachers($classes): void
+    private function withAssignedTeachers($classes): void
     {
-        $teachers = $this->loadTeachers($classes);
+        $items = $classes instanceof LengthAwarePaginator
+            ? collect($classes->items())
+            : collect($classes);
 
-        foreach ($classes as $class) {
-            $class->setAttribute('teachers', collect($class->teacher_ids ?? [])
-                ->map(fn ($id) => $teachers->get($id))
+        if ($items->isEmpty()) {
+            return;
+        }
+
+        $batchesByClass = Batch::query()
+            ->whereIn('class_id', $items->pluck('id'))
+            ->whereNotNull('teacher_id')
+            ->with('teacher:id,name,image')
+            ->get(['id', 'class_id', 'teacher_id', 'name', 'active_status', 'status'])
+            ->groupBy('class_id');
+
+        foreach ($items as $class) {
+            $classBatches = $batchesByClass->get($class->id, collect());
+
+            $teachers = $classBatches
+                ->groupBy('teacher_id')
+                ->map(function ($teacherBatches) {
+                    $teacher = $teacherBatches->first()?->teacher;
+
+                    if (! $teacher) {
+                        return null;
+                    }
+
+                    return [
+                        'id' => $teacher->id,
+                        'name' => $teacher->name,
+                        'image' => $teacher->image,
+                        'batches_count' => $teacherBatches->count(),
+                        'batches' => $teacherBatches->map(fn (Batch $batch) => [
+                            'id' => $batch->id,
+                            'name' => $batch->name,
+                            'status' => $batch->status,
+                            'active_status' => $batch->active_status,
+                        ])->values(),
+                    ];
+                })
                 ->filter()
-                ->values());
+                ->values();
 
-            unset($class->teacher_ids);
+            $class->setAttribute('teachers_count', $teachers->count());
+            $class->setAttribute('batches_count', $classBatches->count());
+            $class->setAttribute('teachers', $teachers);
         }
     }
 
     /**
-     * Load teachers.
-     *
-     * @return mixed
+     * @return Collection<int, array<string, mixed>>
      */
-    private function loadTeachers($classes)
+    private function assignedTeachersForClass(int $classId)
     {
-        if ($classes instanceof LengthAwarePaginator) {
-            $classes = $classes->items();
-        }
+        $class = new ClassModel;
+        $class->id = $classId;
+        $this->withAssignedTeachers(collect([$class]));
 
-        $teacherIds = collect($classes)
-            ->flatMap(fn ($class) => $class->teacher_ids ?? [])
-            ->unique()
-            ->values();
-
-        return Teacher::whereIn('id', $teacherIds)
-            ->get(['id', 'name', 'image'])
-            ->keyBy('id')
-            ->map(fn ($teacher) => $teacher->setHidden(['image_url', 'intro_video_url']));
+        return collect($class->getAttribute('teachers') ?? []);
     }
 }

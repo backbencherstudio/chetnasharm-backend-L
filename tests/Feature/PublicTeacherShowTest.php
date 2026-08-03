@@ -35,7 +35,6 @@ test('public teacher show returns batches with class and schedules', function ()
         'duration_in_days' => 30,
         'total_classes' => 12,
         'is_active' => 1,
-        'teacher_ids' => [$teacher->id],
     ]);
 
     $batch = Batch::create([

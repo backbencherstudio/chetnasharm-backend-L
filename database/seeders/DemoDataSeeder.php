@@ -87,7 +87,6 @@ class DemoDataSeeder extends Seeder
                 'price' => 3000,
                 'duration_in_days' => 90,
                 'total_classes' => 24,
-                'teacher_ids' => [1],
                 'is_class_recording' => 1,
             ],
             [
@@ -99,7 +98,6 @@ class DemoDataSeeder extends Seeder
                 'price' => 5000,
                 'duration_in_days' => 120,
                 'total_classes' => 30,
-                'teacher_ids' => [2],
                 'is_class_recording' => 1,
             ],
             [
@@ -111,7 +109,6 @@ class DemoDataSeeder extends Seeder
                 'price' => 4000,
                 'duration_in_days' => 60,
                 'total_classes' => 18,
-                'teacher_ids' => [3],
                 'is_class_recording' => 0,
             ],
         ];

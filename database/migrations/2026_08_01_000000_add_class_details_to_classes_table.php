@@ -12,15 +12,14 @@ return new class extends Migration
             $table->text('short_description')->nullable()->after('description');
             $table->text('who_is_for')->nullable()->after('short_description');
             $table->text('curriculum')->nullable()->after('who_is_for');
-            $table->json('teacher_ids')->nullable()->after('curriculum');
-            $table->tinyInteger('is_class_recording')->default(0)->after('teacher_ids');
+            $table->tinyInteger('is_class_recording')->default(0)->after('curriculum');
         });
     }
 
     public function down(): void
     {
         Schema::table('classes', function (Blueprint $table) {
-            $table->dropColumn(['short_description', 'who_is_for', 'curriculum', 'teacher_ids', 'is_class_recording']);
+            $table->dropColumn(['short_description', 'who_is_for', 'curriculum', 'is_class_recording']);
         });
     }
 };

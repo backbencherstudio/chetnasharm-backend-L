@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class ClassModel extends Model
 {
@@ -17,7 +19,6 @@ class ClassModel extends Model
         'short_description',
         'who_is_for',
         'curriculum',
-        'teacher_ids',
         'is_class_recording',
         'price',
         'duration_in_days',
@@ -28,7 +29,6 @@ class ClassModel extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
-        'teacher_ids' => 'array',
     ];
 
     protected $appends = ['image_url'];
@@ -44,8 +44,25 @@ class ClassModel extends Model
             ->where('active_status', 1);
     }
 
-    public function teachers()
+    public function allBatches(): HasMany
     {
-        return Teacher::whereIn('id', $this->teacher_ids ?? [])->get();
+        return $this->hasMany(Batch::class, 'class_id');
+    }
+
+    /**
+     * Teachers assigned via batches for this class.
+     *
+     * @return Collection<int, Teacher>
+     */
+    public function teachers(): Collection
+    {
+        $teacherIds = $this->allBatches()
+            ->whereNotNull('teacher_id')
+            ->distinct()
+            ->pluck('teacher_id');
+
+        return Teacher::query()
+            ->whereIn('id', $teacherIds)
+            ->get();
     }
 }
