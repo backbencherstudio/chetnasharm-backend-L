@@ -33,18 +33,24 @@ class EnrollmentController extends Controller
             ], 403);
         }
 
-        $query = Enrollment::with([
-            'user:id,name,email',
-            'batch:id,name,teacher_id',
-            'class:id,title',
-        ])->where('batch_id', $batchId);
+        $query = Enrollment::query()->where('batch_id', $batchId);
 
         if ($search) {
-            $query->whereHas('user', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+            $query->withWhereHas('user', function ($q) use ($search) {
+                $q->select('id', 'name', 'email')
+                    ->where(function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
             });
+        } else {
+            $query->with('user:id,name,email');
         }
+
+        $query->with([
+            'batch:id,name,teacher_id',
+            'class:id,title',
+        ]);
 
         $enrollments = $query->latest()->paginate($perPage);
 

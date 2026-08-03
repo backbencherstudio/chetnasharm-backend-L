@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Common\Pagination;
 use App\Common\PhoneNormalizer;
 use App\Http\Controllers\Controller;
+use App\Models\Batch;
 use App\Models\Teacher;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -121,8 +123,11 @@ class TeacherController extends Controller
         try {
 
             if ($request->hasFile('image')) {
-                $validated['image'] = $request->file('image')
-                    ->store('teachers', 'public');
+                $validated['image'] = $request->image('image')
+                    ->orient()
+                    ->cover(800, 800)
+                    ->optimize()
+                    ->store(path: 'teachers', disk: 'public');
             }
 
             if ($request->hasFile('intro_video')) {
@@ -253,13 +258,15 @@ class TeacherController extends Controller
         try {
 
             if ($request->hasFile('image')) {
-
                 if ($teacher->image && Storage::disk('public')->exists($teacher->image)) {
                     Storage::disk('public')->delete($teacher->image);
                 }
 
-                $validated['image'] = $request->file('image')
-                    ->store('teachers', 'public');
+                $validated['image'] = $request->image('image')
+                    ->orient()
+                    ->cover(800, 800)
+                    ->optimize()
+                    ->store(path: 'teachers', disk: 'public');
             }
 
             if ($request->hasFile('intro_video')) {
@@ -399,6 +406,115 @@ class TeacherController extends Controller
                 'per_page' => $teachers->perPage(),
                 'total' => $teachers->total(),
                 'last_page' => $teachers->lastPage(),
+            ],
+        ], 200);
+    }
+
+    /**
+     * Get a single teacher for the public landing page.
+     *
+     * @return JsonResponse
+     */
+    public function show(int $id)
+    {
+        $teacher = Teacher::query()
+            ->where('id', $id)
+            ->where('suspend_status', 0)
+            ->select(
+                'id',
+                'name',
+                'bio',
+                'expertise',
+                'qualification',
+                'years_of_exp',
+                'image',
+                'intro_video',
+                'is_top'
+            )
+            ->with([
+                'batches' => fn ($q) => $q->where('active_status', 1)
+                    ->select(
+                        'id',
+                        'class_id',
+                        'teacher_id',
+                        'name',
+                        'total_seat',
+                        'filled_seat',
+                        'start_date',
+                        'end_date',
+                        'status',
+                        'active_status'
+                    )
+                    ->with([
+                        'class:id,title,description,short_description,price,duration_in_days,total_classes,image,is_active',
+                        'schedules:id,batch_id,day_of_week,start_time,end_time',
+                    ])
+                    ->latest(),
+            ])
+            ->first();
+
+        if (! $teacher) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Teacher not found',
+            ], 404);
+        }
+
+        $dayNames = [
+            0 => 'Sunday',
+            1 => 'Monday',
+            2 => 'Tuesday',
+            3 => 'Wednesday',
+            4 => 'Thursday',
+            5 => 'Friday',
+            6 => 'Saturday',
+        ];
+
+        $batches = $teacher->batches->map(function (Batch $batch) use ($dayNames) {
+            return [
+                'id' => $batch->id,
+                'name' => $batch->name,
+                'total_seat' => $batch->total_seat,
+                'filled_seat' => $batch->filled_seat,
+                'start_date' => optional($batch->start_date)->format('Y-m-d'),
+                'end_date' => optional($batch->end_date)->format('Y-m-d'),
+                'status' => $batch->status,
+                'class' => $batch->class ? [
+                    'id' => $batch->class->id,
+                    'title' => $batch->class->title,
+                    'description' => $batch->class->description,
+                    'short_description' => $batch->class->short_description,
+                    'price' => $batch->class->price,
+                    'duration_in_days' => $batch->class->duration_in_days,
+                    'total_classes' => $batch->class->total_classes,
+                    'image' => $batch->class->image,
+                    'image_url' => $batch->class->image_url,
+                ] : null,
+                'schedules' => $batch->schedules->map(fn ($schedule) => [
+                    'id' => $schedule->id,
+                    'day_of_week' => $schedule->day_of_week,
+                    'day' => $dayNames[$schedule->day_of_week] ?? 'Unknown',
+                    'start_time' => Carbon::parse($schedule->start_time)->format('H:i'),
+                    'end_time' => Carbon::parse($schedule->end_time)->format('H:i'),
+                ])->values(),
+            ];
+        })->values();
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'id' => $teacher->id,
+                'name' => $teacher->name,
+                'bio' => $teacher->bio,
+                'expertise' => $teacher->expertise,
+                'qualification' => $teacher->qualification,
+                'years_of_exp' => $teacher->years_of_exp,
+                'image' => $teacher->image,
+                'image_url' => $teacher->image_url,
+                'intro_video' => $teacher->intro_video,
+                'intro_video_url' => $teacher->intro_video_url,
+                'is_top' => $teacher->is_top,
+                'batches' => $batches,
             ],
         ], 200);
     }

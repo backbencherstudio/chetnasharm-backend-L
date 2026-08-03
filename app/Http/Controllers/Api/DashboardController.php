@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AssignmentSubmission;
 use App\Models\Batch;
+use App\Models\BatchAssignment;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
+use App\Models\StudentActivityNote;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -85,17 +88,19 @@ class DashboardController extends Controller
      */
     public function revenueStats()
     {
-        $totalBatches = Batch::count();
-
         $revenueAggregates = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
             ->selectRaw('
+                COUNT(batches.id) as total_batches,
                 SUM(batches.filled_seat * classes.price) as total_revenue,
                 SUM(batches.total_seat * classes.price) as potential_revenue,
                 SUM((batches.total_seat - batches.filled_seat) * classes.price) as lost_revenue,
-                AVG(batches.filled_seat * classes.price) as average_revenue
+                AVG(batches.filled_seat * classes.price) as average_revenue,
+                SUM(batches.total_seat) as total_seats,
+                SUM(batches.filled_seat) as filled_seats
             ')
             ->first();
 
+        $totalBatches = (int) ($revenueAggregates->total_batches ?? 0);
         $totalRevenue = $revenueAggregates->total_revenue ?? 0;
         $potentialRevenue = $revenueAggregates->potential_revenue ?? 0;
         $lostRevenue = $revenueAggregates->lost_revenue ?? 0;
@@ -144,17 +149,14 @@ class DashboardController extends Controller
                 ];
             });
 
-        $seatStats = Batch::selectRaw('
-                SUM(total_seat) as total_seats,
-                SUM(filled_seat) as filled_seats
-            ')
-            ->first();
+        $totalSeats = (int) ($revenueAggregates->total_seats ?? 0);
+        $filledSeats = (int) ($revenueAggregates->filled_seats ?? 0);
 
         $occupancyRate = 0;
 
-        if ($seatStats->total_seats > 0) {
+        if ($totalSeats > 0) {
             $occupancyRate = round(
-                ($seatStats->filled_seats / $seatStats->total_seats) * 100,
+                ($filledSeats / $totalSeats) * 100,
                 2
             );
         }
@@ -171,8 +173,8 @@ class DashboardController extends Controller
                 'lost_revenue' => round($lostRevenue ?? 0, 2),
                 'average_revenue_per_batch' => round($averageRevenuePerBatch ?? 0, 2),
                 'seat_occupancy_rate' => $occupancyRate.'%',
-                'total_seats' => (int) ($seatStats->total_seats ?? 0),
-                'filled_seats' => (int) ($seatStats->filled_seats ?? 0),
+                'total_seats' => $totalSeats,
+                'filled_seats' => $filledSeats,
                 'top_earning_classes' => $topClasses,
                 'top_earning_batches' => $topBatches,
             ],
@@ -284,48 +286,42 @@ class DashboardController extends Controller
     public function studentDashboard()
     {
         $user = auth('api')->user();
+        $today = now()->startOfDay();
 
         $enrollments = Enrollment::with([
-            'class:id,title,image,price,duration_in_days,total_classes',
-            'batch:id,name,start_date,end_date,zoom_link,total_seat,filled_seat',
-        ])->where('user_id', $user->id);
-
-        $totalEnrollments = (clone $enrollments)->count();
-
-        $activeCourses = Enrollment::where('user_id', $user->id)
-            ->whereHas('batch', function ($q) {
-                $q->whereDate('end_date', '>=', now());
-            })
-            ->count();
-
-        $completedCourses = (clone $enrollments)
-            ->whereDate('expiry_date', '<', now())
-            ->count();
-
-        $totalSpent = Enrollment::join('classes', 'enrollments.class_id', '=', 'classes.id')
-            ->where('enrollments.user_id', $user->id)
-            ->sum('classes.price');
-
-        $activeCourseList = Enrollment::with([
-            'class:id,title,price',
+            'class:id,title,image,price',
             'batch:id,name,start_date,end_date,total_seat,filled_seat',
         ])
             ->where('user_id', $user->id)
-            ->whereHas('batch', function ($q) {
-                $q->whereDate('end_date', '>=', now());
-            })
             ->latest()
-            ->get()
+            ->get();
+
+        $totalEnrollments = $enrollments->count();
+
+        $activeEnrollments = $enrollments->filter(
+            fn ($enrollment) => $enrollment->batch
+                && $enrollment->batch->end_date
+                && $enrollment->batch->end_date->copy()->startOfDay()->gte($today)
+        );
+
+        $completedCourses = $enrollments
+            ->filter(
+                fn ($enrollment) => $enrollment->expiry_date
+                    && $enrollment->expiry_date->copy()->startOfDay()->lt($today)
+            )
+            ->count();
+
+        $totalSpent = $enrollments->sum(
+            fn ($enrollment) => (float) (optional($enrollment->class)->price ?? 0)
+        );
+
+        $activeCourseList = $activeEnrollments
             ->map(function ($enrollment) {
-
                 $batch = $enrollment->batch;
-
                 $progress = 0;
 
                 if ($batch && $batch->start_date && $batch->end_date) {
-
                     $totalDays = $batch->start_date->diffInDays($batch->end_date);
-
                     $passedDays = $batch->start_date->diffInDays(now(), false);
 
                     if ($totalDays > 0) {
@@ -338,64 +334,105 @@ class DashboardController extends Controller
 
                 return [
                     'enrollment_id' => $enrollment->id,
-
                     'class_title' => optional($enrollment->class)->title,
-
                     'batch_name' => optional($batch)->name,
-
                     'start_date' => optional($batch)->start_date,
                     'end_date' => optional($batch)->end_date,
-
                     'progress_percent' => $progress.'%',
-
                     'expiry_date' => $enrollment->expiry_date,
                 ];
-            });
+            })
+            ->values();
 
-        $recentEnrollments = Enrollment::with([
-            'class:id,title,image',
-            'batch:id,name',
-        ])
-            ->where('user_id', $user->id)
-            ->latest()
+        $recentEnrollments = $enrollments
             ->take(5)
-            ->get()
             ->map(function ($enrollment) {
                 return [
                     'id' => $enrollment->id,
-
                     'class_title' => optional($enrollment->class)->title,
-
                     'batch_name' => optional($enrollment->batch)->name,
-
                     'status' => $enrollment->status,
-
                     'enrolled_at' => $enrollment->enrolled_at,
                 ];
-            });
-
-        $completedCourseList = Enrollment::with([
-            'class:id,title,image',
-            'batch:id,name,end_date',
-        ])
-            ->where('user_id', $user->id)
-            ->whereHas('batch', function ($q) {
-                $q->whereDate('end_date', '<', now());
             })
-            ->latest()
+            ->values();
+
+        $completedCourseList = $enrollments
+            ->filter(
+                fn ($enrollment) => $enrollment->batch
+                    && $enrollment->batch->end_date
+                    && $enrollment->batch->end_date->copy()->startOfDay()->lt($today)
+            )
             ->take(5)
-            ->get()
             ->map(function ($enrollment) {
                 return [
                     'id' => $enrollment->id,
-
                     'class_title' => optional($enrollment->class)->title,
-
                     'batch_name' => optional($enrollment->batch)->name,
-
                     'completed_at' => optional($enrollment->batch)->end_date,
                 ];
-            });
+            })
+            ->values();
+
+        $activeBatchIds = $enrollments
+            ->where('status', 'active')
+            ->pluck('batch_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $pendingAssignments = 0;
+
+        if ($activeBatchIds->isNotEmpty()) {
+            $pendingAssignments = BatchAssignment::query()
+                ->active()
+                ->whereIn('batch_id', $activeBatchIds)
+                ->whereDoesntHave('submissions', function ($query) use ($user) {
+                    $query->where('student_user_id', $user->id);
+                })
+                ->count();
+        }
+
+        $recentGradedAssignments = AssignmentSubmission::query()
+            ->where('student_user_id', $user->id)
+            ->whereNotNull('graded_at')
+            ->with([
+                'assignment:id,title,batch_id,total_marks',
+                'assignment.batch:id,name',
+            ])
+            ->latest('graded_at')
+            ->limit(5)
+            ->get()
+            ->map(fn (AssignmentSubmission $submission) => [
+                'submission_id' => $submission->id,
+                'assignment_id' => $submission->assignment_id,
+                'title' => $submission->assignment?->title,
+                'batch_name' => $submission->assignment?->batch?->name,
+                'obtained_marks' => $submission->obtained_marks,
+                'total_marks' => $submission->assignment?->total_marks,
+                'feedback' => $submission->feedback,
+                'graded_at' => $submission->graded_at,
+            ])
+            ->values();
+
+        $recentActivityNotes = StudentActivityNote::query()
+            ->where('student_user_id', $user->id)
+            ->with([
+                'batch:id,name',
+                'teacher:id,name',
+            ])
+            ->latest()
+            ->limit(5)
+            ->get()
+            ->map(fn (StudentActivityNote $note) => [
+                'id' => $note->id,
+                'status' => $note->status,
+                'comment' => $note->comment,
+                'batch_name' => $note->batch?->name,
+                'teacher_name' => $note->teacher?->name,
+                'created_at' => $note->created_at,
+            ])
+            ->values();
 
         return response()->json([
             'success' => true,
@@ -405,13 +442,16 @@ class DashboardController extends Controller
 
                 'statistics' => [
                     'total_enrollments' => $totalEnrollments,
-                    'active_courses' => $activeCourses,
+                    'active_courses' => $activeEnrollments->count(),
                     'completed_courses' => $completedCourses,
-                    'total_spent' => round($totalSpent ?? 0, 2),
+                    'total_spent' => round($totalSpent, 2),
+                    'pending_assignments' => $pendingAssignments,
                 ],
                 'active_courses' => $activeCourseList,
                 'recent_enrollments' => $recentEnrollments,
                 'completed_courses' => $completedCourseList,
+                'recent_graded_assignments' => $recentGradedAssignments,
+                'recent_activity_notes' => $recentActivityNotes,
             ],
         ]);
     }

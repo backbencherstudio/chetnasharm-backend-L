@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Batch extends Model
 {
@@ -36,12 +37,19 @@ class Batch extends Model
     {
         return $this->hasMany(BatchSchedule::class);
     }
+
     public function teacher()
     {
         return $this->belongsTo(Teacher::class, 'teacher_id');
     }
+
     public function enrollments()
     {
         return $this->hasMany(Enrollment::class);
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(BatchAssignment::class);
     }
 }

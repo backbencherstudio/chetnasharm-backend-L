@@ -9,11 +9,11 @@ trait AuthorizesBatchAccess
 {
     /**
      * Determine whether the user can manage the batch.
-     *
-     * @return bool
      */
     protected function canManageBatch(User $user, int $batchId): bool
     {
+        $user->loadMissing(['roles', 'teacher:id,user_id']);
+
         if ($user->hasRole('admin')) {
             return true;
         }

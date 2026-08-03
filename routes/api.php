@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AvailabilityController;
 use App\Http\Controllers\Api\BasicQuestionController;
+use App\Http\Controllers\Api\BatchAssignmentController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\ClassRecordingController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SpeakingTopicController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\TeacherNoteController;
+use App\Http\Controllers\Api\TeacherStudentController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VocabularyController;
@@ -44,6 +46,7 @@ Route::post('/refresh', [AuthController::class, 'refresh']);
 
 Route::get('/classes', [ClassController::class, 'landClass']);
 Route::get('/teachers', [TeacherController::class, 'landTeacher']);
+Route::get('/teachers/{id}', [TeacherController::class, 'show']);
 
 Route::get('single-class/{classId}', [ClassController::class, 'singleClass']);
 Route::get('class-teachers/{classId}', [ClassController::class, 'classTeachers']);
@@ -62,7 +65,6 @@ Route::middleware('auth:api')->group(function () {
 
     Route::post('/update-password', [UserController::class, 'updatePass']);
     Route::post('/profile-update', [UserController::class, 'profileUpdate']);
-
 });
 
 Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function () {
@@ -143,7 +145,6 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
 
     Route::get('/env-settings', [SettingController::class, 'getEnvSettings']);
     Route::post('/env-settings', [SettingController::class, 'updateEnvSettings']);
-
 });
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
@@ -165,7 +166,6 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
     Route::post('attendance-single', [AttendanceController::class, 'updateSingle']);
 
     Route::patch('update-zoom-link/{batchId}', [BatchController::class, 'updateZoomLink']);
-
 });
 
 Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
@@ -185,8 +185,21 @@ Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(functi
     Route::post('/notes/{id}', [TeacherNoteController::class, 'update']);
     Route::delete('/notes/{id}', [TeacherNoteController::class, 'destroy']);
 
-    Route::get('dashboard', [DashboardController::class, 'teacherDashboard']);
+    Route::get('/students', [TeacherStudentController::class, 'index']);
+    Route::get('/students/{userId}/notes', [TeacherStudentController::class, 'notes']);
+    Route::post('/student-notes', [TeacherStudentController::class, 'storeNote']);
+    Route::put('/student-notes/{id}', [TeacherStudentController::class, 'updateNote']);
+    Route::delete('/student-notes/{id}', [TeacherStudentController::class, 'destroyNote']);
 
+    Route::get('/assignments/{batchId}', [BatchAssignmentController::class, 'index']);
+    Route::post('/assignments', [BatchAssignmentController::class, 'store']);
+    Route::get('/assignments-edit/{id}', [BatchAssignmentController::class, 'show']);
+    Route::post('/assignments/{id}', [BatchAssignmentController::class, 'update']);
+    Route::delete('/assignments/{id}', [BatchAssignmentController::class, 'destroy']);
+    Route::get('/assignments/{id}/submissions', [BatchAssignmentController::class, 'submissions']);
+    Route::post('/assignments/submissions/{submissionId}/grade', [BatchAssignmentController::class, 'grade']);
+
+    Route::get('dashboard', [DashboardController::class, 'teacherDashboard']);
 });
 
 Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(function () {
@@ -206,14 +219,17 @@ Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(functi
 
     Route::get('/notes/{batch_id}', [TeacherNoteController::class, 'forStudent']);
 
-    Route::get('dashboard', [DashboardController::class, 'studentDashboard']);
+    Route::get('/assignments', [BatchAssignmentController::class, 'activeForStudent']);
+    Route::get('/assignments/{batchId}', [BatchAssignmentController::class, 'forStudent']);
+    Route::post('/assignments/{assignmentId}/submit', [BatchAssignmentController::class, 'submit']);
+    Route::get('/activity-notes', [TeacherStudentController::class, 'forStudent']);
 
+    Route::get('dashboard', [DashboardController::class, 'studentDashboard']);
 });
 
 Route::middleware(['auth:api', 'role:admin|student'])->group(function () {
 
     Route::get('/payments', [TransactionController::class, 'index']);
-
 });
 
 Route::post('/stripe/webhook', [WebhookController::class, 'stripeWebhook']);

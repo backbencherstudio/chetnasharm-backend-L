@@ -107,17 +107,6 @@ class TransactionController extends Controller
             'transaction_id' => 'required|string|unique:payments,transaction_id',
         ]);
 
-        $exists = Enrollment::where('user_id', $payment->user_id)
-            ->where('batch_id', $payment->batch_id)
-            ->exists();
-
-        if ($exists) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User is already enrolled in this batch',
-            ], 400);
-        }
-
         DB::beginTransaction();
 
         try {
@@ -142,6 +131,20 @@ class TransactionController extends Controller
                     'success' => true,
                     'message' => 'Transaction & enrollment successful',
                 ], 200);
+            }
+
+            $exists = Enrollment::where('user_id', $payment->user_id)
+                ->where('batch_id', $payment->batch_id)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($exists) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User is already enrolled in this batch',
+                ], 400);
             }
 
             $payment->transaction_id = $request->transaction_id;

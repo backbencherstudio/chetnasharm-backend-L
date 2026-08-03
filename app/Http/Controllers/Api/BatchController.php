@@ -418,7 +418,7 @@ class BatchController extends Controller
                 'teacher.user:id,name,suspend_status',
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
-
+            ->withCount(['assignments as active_assignments_count' => fn ($q) => $q->active()])
             ->where('teacher_id', $teacher->id)
             ->whereHas('teacher.user', function ($q) {
                 $q->where('suspend_status', 0);
@@ -511,6 +511,7 @@ class BatchController extends Controller
 
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
+            ->withCount(['assignments as active_assignments_count' => fn ($q) => $q->active()])
             ->whereIn('id', $enrollments);
 
         $search = $request->query('search');
@@ -634,7 +635,9 @@ class BatchController extends Controller
             'class:id,title,description,image',
             'teacher:id,name',
             'schedules:id,batch_id,day_of_week,start_time,end_time',
-        ])->find($batchId);
+        ])
+            ->withCount(['assignments as active_assignments_count' => fn ($q) => $q->active()])
+            ->find($batchId);
 
         if (! $batch) {
             return response()->json([
@@ -686,57 +689,74 @@ class BatchController extends Controller
         int $classTime,
         bool $excludeSelf = false
     ): void {
+        if ($schedules === []) {
+            return;
+        }
+
+        $availabilities = TeacherAvailability::query()
+            ->where('teacher_id', $teacherId)
+            ->get(['day_of_week', 'start_time', 'end_time'])
+            ->groupBy('day_of_week');
+
+        $existingSchedules = BatchSchedule::query()
+            ->where('teacher_id', $teacherId)
+            ->when($excludeSelf, fn ($query) => $query->where('batch_id', '!=', $batch->id))
+            ->whereHas('batch', function ($query) use ($startDate, $endDate) {
+                $query->where('start_date', '<=', $endDate)
+                    ->where('end_date', '>=', $startDate);
+            })
+            ->get(['day_of_week', 'start_time', 'end_time'])
+            ->groupBy('day_of_week');
+
+        $rows = [];
+        $now = now();
+
         foreach ($schedules as $schedule) {
             $startTime = Carbon::parse($schedule['start_time']);
             $endTime = (clone $startTime)->addMinutes($classTime);
 
             $startTimeStr = $startTime->format('H:i:s');
             $endTimeStr = $endTime->format('H:i:s');
+            $dayOfWeek = (int) $schedule['day_of_week'];
 
-            $availability = TeacherAvailability::where('teacher_id', $teacherId)
-                ->where('day_of_week', $schedule['day_of_week'])
-                ->where('start_time', '<=', $startTimeStr)
-                ->where('end_time', '>=', $endTimeStr)
-                ->exists();
+            $isAvailable = ($availabilities[$dayOfWeek] ?? collect())->contains(
+                function ($availability) use ($startTimeStr, $endTimeStr) {
+                    return $availability->start_time <= $startTimeStr
+                        && $availability->end_time >= $endTimeStr;
+                }
+            );
 
-            if (! $availability) {
+            if (! $isAvailable) {
                 throw new \Exception(
                     "Teacher not available on day {$schedule['day_of_week']} at {$schedule['start_time']}"
                 );
             }
 
-            $conflictQuery = BatchSchedule::where('teacher_id', $teacherId)
-                ->where('day_of_week', $schedule['day_of_week'])
-                ->whereHas('batch', function ($q) use ($startDate, $endDate) {
-                    $q->where('start_date', '<=', $endDate)
-                        ->where('end_date', '>=', $startDate);
-                })
-                ->where(function ($q) use ($startTimeStr, $endTimeStr) {
-                    $q->whereBetween('start_time', [$startTimeStr, $endTimeStr])
-                        ->orWhereBetween('end_time', [$startTimeStr, $endTimeStr])
-                        ->orWhere(function ($q2) use ($startTimeStr, $endTimeStr) {
-                            $q2->where('start_time', '<=', $startTimeStr)
-                                ->where('end_time', '>=', $endTimeStr);
-                        });
-                });
+            $hasConflict = ($existingSchedules[$dayOfWeek] ?? collect())->contains(
+                function ($existing) use ($startTimeStr, $endTimeStr) {
+                    return ($existing->start_time >= $startTimeStr && $existing->start_time <= $endTimeStr)
+                        || ($existing->end_time >= $startTimeStr && $existing->end_time <= $endTimeStr)
+                        || ($existing->start_time <= $startTimeStr && $existing->end_time >= $endTimeStr);
+                }
+            );
 
-            if ($excludeSelf) {
-                $conflictQuery->where('batch_id', '!=', $batch->id);
-            }
-
-            if ($conflictQuery->exists()) {
+            if ($hasConflict) {
                 throw new \Exception(
                     "Schedule conflict on day {$schedule['day_of_week']} at {$schedule['start_time']}"
                 );
             }
 
-            BatchSchedule::create([
+            $rows[] = [
                 'batch_id' => $batch->id,
                 'teacher_id' => $teacherId,
-                'day_of_week' => $schedule['day_of_week'],
+                'day_of_week' => $dayOfWeek,
                 'start_time' => $startTimeStr,
                 'end_time' => $endTimeStr,
-            ]);
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
         }
+
+        BatchSchedule::insert($rows);
     }
 }

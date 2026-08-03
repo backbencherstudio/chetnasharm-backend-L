@@ -31,5 +31,6 @@ class DatabaseSeeder extends Seeder
         $adminApi->assignRole(Role::where('name', 'admin')->where('guard_name', 'api')->first());
 
         $this->call(DemoDataSeeder::class);
+        $this->call(StudentActivityNoteSeeder::class);
     }
 }

@@ -21,26 +21,33 @@ class ClassRecordingController extends Controller
     public function index(Request $request, $batch_id)
     {
         $user = auth('api')->user();
-
-        $query = ClassRecording::with('batch:id,name,teacher_id');
-
-        $query->where('batch_id', $batch_id);
-
-        $teacher = Teacher::where('user_id', $user->id)->first();
-
-        if ($teacher) {
-            $query->whereHas('batch', function ($q) use ($teacher) {
-                $q->where('teacher_id', $teacher->id);
-            });
-        } else {
-            $query->whereHas('batch.enrollments', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            });
-        }
-
         $perPage = Pagination::perPage($request);
 
-        $recordings = $query->latest()->paginate($perPage);
+        $user->loadMissing('teacher:id,user_id');
+        $teacher = $user->teacher;
+
+        $canAccess = $teacher
+            ? Batch::where('id', $batch_id)->where('teacher_id', $teacher->id)->exists()
+            : Enrollment::where('batch_id', $batch_id)->where('user_id', $user->id)->exists();
+
+        if (! $canAccess) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Recordings retrieved successfully',
+                'data' => [],
+                'pagination' => [
+                    'current_page' => 1,
+                    'per_page' => $perPage,
+                    'total' => 0,
+                    'last_page' => 1,
+                ],
+            ]);
+        }
+
+        $recordings = ClassRecording::with('batch:id,name,teacher_id')
+            ->where('batch_id', $batch_id)
+            ->latest()
+            ->paginate($perPage);
 
         return response()->json([
             'success' => true,

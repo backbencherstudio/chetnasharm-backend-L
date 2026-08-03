@@ -9,6 +9,7 @@ use App\Models\TeacherAvailability;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class AvailabilityController extends Controller
 {
@@ -379,9 +380,12 @@ class AvailabilityController extends Controller
 
         $availabilities = TeacherAvailability::where('teacher_id', $teacherId)->get()->groupBy('day_of_week');
 
-        $schedules = BatchSchedule::with('batch:id,start_date,end_date')
-            ->where('teacher_id', $teacherId)
-            ->get();
+        $schedules = $this->teacherSchedulesInRange(
+            $teacherId,
+            $startDate->copy(),
+            $endDate->copy(),
+            ['id', 'start_date', 'end_date']
+        )->groupBy('day_of_week');
 
         $result = [];
 
@@ -389,6 +393,7 @@ class AvailabilityController extends Controller
 
             $dayOfWeek = $startDate->dayOfWeek;
             $daySlots = [];
+            $daySchedules = $schedules->get($dayOfWeek, collect());
 
             foreach ($availabilities->get($dayOfWeek, collect()) as $availability) {
 
@@ -400,12 +405,11 @@ class AvailabilityController extends Controller
                     $startTime = $slotStart->format('H:i:s');
                     $endTime = $slotStart->copy()->addMinutes($classTime)->format('H:i:s');
 
-                    $conflict = $schedules->contains(function ($schedule) use ($dayOfWeek, $startDate, $startTime, $endTime) {
+                    $conflict = $daySchedules->contains(function ($schedule) use ($startDate, $startTime, $endTime) {
                         $batch = $schedule->batch;
 
                         if (
                             ! $batch ||
-                            (int) $schedule->day_of_week !== (int) $dayOfWeek ||
                             ! $startDate->between(
                                 Carbon::parse($batch->start_date)->startOfDay(),
                                 Carbon::parse($batch->end_date)->endOfDay()
@@ -463,9 +467,12 @@ class AvailabilityController extends Controller
         $startDate = Carbon::parse($validated['start_date']);
         $endDate = Carbon::parse($validated['end_date']);
 
-        $schedules = BatchSchedule::with('batch:id,name,start_date,end_date')
-            ->where('teacher_id', $teacherId)
-            ->get();
+        $schedules = $this->teacherSchedulesInRange(
+            $teacherId,
+            $startDate->copy(),
+            $endDate->copy(),
+            ['id', 'name', 'start_date', 'end_date']
+        )->groupBy('day_of_week');
 
         $result = [];
 
@@ -475,13 +482,12 @@ class AvailabilityController extends Controller
 
             $dayBusy = [];
 
-            foreach ($schedules as $schedule) {
+            foreach ($schedules->get($dayOfWeek, collect()) as $schedule) {
 
                 $batch = $schedule->batch;
 
                 if (
                     $batch &&
-                    $schedule->day_of_week == $dayOfWeek &&
                     $startDate->between(
                         Carbon::parse($batch->start_date),
                         Carbon::parse($batch->end_date)
@@ -551,9 +557,12 @@ class AvailabilityController extends Controller
             ], 422);
         }
 
-        $schedules = BatchSchedule::with('batch:id,name,start_date,end_date')
-            ->where('teacher_id', $teacherId)
-            ->get();
+        $schedules = $this->teacherSchedulesInRange(
+            $teacherId,
+            $startDate->copy(),
+            $endDate->copy(),
+            ['id', 'name', 'start_date', 'end_date']
+        )->groupBy('day_of_week');
 
         $availabilities = TeacherAvailability::where('teacher_id', $teacherId)
             ->get()
@@ -569,13 +578,12 @@ class AvailabilityController extends Controller
             $busySlots = [];
             $availableSlots = [];
 
-            foreach ($schedules as $schedule) {
+            foreach ($schedules->get($dayOfWeek, collect()) as $schedule) {
 
                 $batch = $schedule->batch;
 
                 if (
                     $batch &&
-                    $schedule->day_of_week == $dayOfWeek &&
                     $currentDate->between(
                         Carbon::parse($batch->start_date),
                         Carbon::parse($batch->end_date)
@@ -634,5 +642,26 @@ class AvailabilityController extends Controller
             'message' => 'Teacher schedule fetched successfully',
             'data' => $result,
         ]);
+    }
+
+    /**
+     * Load teacher schedules whose batches overlap the given date range.
+     *
+     * @param  array<int, string>  $batchColumns
+     * @return Collection<int, BatchSchedule>
+     */
+    private function teacherSchedulesInRange(
+        int $teacherId,
+        Carbon $startDate,
+        Carbon $endDate,
+        array $batchColumns = ['id', 'start_date', 'end_date']
+    ) {
+        return BatchSchedule::with(['batch' => fn ($query) => $query->select($batchColumns)])
+            ->where('teacher_id', $teacherId)
+            ->whereHas('batch', function ($query) use ($startDate, $endDate) {
+                $query->whereDate('start_date', '<=', $endDate->toDateString())
+                    ->whereDate('end_date', '>=', $startDate->toDateString());
+            })
+            ->get();
     }
 }

@@ -40,15 +40,20 @@ class AttendanceController extends Controller
             ], 403);
         }
 
-        $query = Enrollment::with('user:id,name,email')
+        $query = Enrollment::query()
             ->where('batch_id', $batchId)
             ->where('status', 'active');
 
         if ($search) {
-            $query->whereHas('user', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+            $query->withWhereHas('user', function ($q) use ($search) {
+                $q->select('id', 'name', 'email')
+                    ->where(function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
             });
+        } else {
+            $query->with('user:id,name,email');
         }
 
         $enrollments = $query->get();
