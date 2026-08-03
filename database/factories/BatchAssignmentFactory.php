@@ -21,6 +21,7 @@ class BatchAssignmentFactory extends Factory
             'title' => fake()->sentence(4),
             'description' => fake()->paragraph(),
             'attachment' => null,
+            'starts_at' => null,
             'due_at' => null,
             'total_marks' => 100,
         ];

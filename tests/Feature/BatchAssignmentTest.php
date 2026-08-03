@@ -79,6 +79,7 @@ test('teacher can create and list assignments on own batch', function () {
             'batch_id' => $batch->id,
             'title' => 'Speaking Practice 1',
             'description' => 'Record a 2-minute intro',
+            'starts_at' => now()->subHour()->toISOString(),
             'due_at' => now()->addDays(3)->toISOString(),
             'total_marks' => 50,
             'attachment' => UploadedFile::fake()->create('brief.pdf', 100, 'application/pdf'),
@@ -87,6 +88,8 @@ test('teacher can create and list assignments on own batch', function () {
         ->assertJsonPath('success', true)
         ->assertJsonPath('data.title', 'Speaking Practice 1')
         ->assertJsonPath('data.total_marks', '50.00');
+
+    expect($create->json('data.starts_at'))->not->toBeNull();
 
     $assignmentId = $create->json('data.id');
 

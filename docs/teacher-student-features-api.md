@@ -6,7 +6,12 @@ Auth header for all routes: `Authorization: Bearer {token}`
 Allowed files: `pdf, doc, docx, jpg, jpeg, png` (max 10MB).
 
 **Activity note statuses:** `good` | `average` | `needs_attention` | `bad`  
-**Active assignment:** `due_at` is null **or** `due_at >= now`
+**Active assignment:** now is inside the submission window  
+- `starts_at` is null **or** `starts_at <= now`  
+- **and** `due_at` is null **or** `due_at >= now`  
+(`starts_at` = when submissions open, `due_at` = when they close)
+
+**Student visibility:** assignments with a future `starts_at` are **hidden** from all student assignment lists (Assignment tab + batch list). Teachers still see them.
 
 ---
 
@@ -174,6 +179,7 @@ Middleware: `auth:api` + `role:teacher`
       "title": "Essay 1",
       "description": "Write a short essay",
       "attachment_url": "http://localhost/storage/assignments/abc.pdf",
+      "starts_at": "2026-08-08T10:00:00.000000Z",
       "due_at": "2026-08-10T18:00:00.000000Z",
       "total_marks": "50.00",
       "submissions_count": 2,
@@ -198,6 +204,7 @@ Middleware: `auth:api` + `role:teacher`
   "batch_id": 3,
   "title": "Essay 1",
   "description": "Write a short essay",
+  "starts_at": "2026-08-08 10:00:00",
   "due_at": "2026-08-10 18:00:00",
   "total_marks": 50,
   "attachment": "(file optional)"
@@ -216,6 +223,7 @@ Middleware: `auth:api` + `role:teacher`
     "title": "Essay 1",
     "description": "Write a short essay",
     "attachment_url": "http://localhost/storage/assignments/abc.pdf",
+    "starts_at": "2026-08-08T10:00:00.000000Z",
     "due_at": "2026-08-10T18:00:00.000000Z",
     "total_marks": "50.00",
     "submissions_count": null,
@@ -240,6 +248,7 @@ Middleware: `auth:api` + `role:teacher`
 {
   "title": "Essay 1 Updated",
   "description": "Updated instructions",
+  "starts_at": "2026-08-09 10:00:00",
   "due_at": "2026-08-12 18:00:00",
   "total_marks": 60,
   "attachment": "(file optional)"
@@ -397,6 +406,7 @@ Middleware: `auth:api` + `role:student`
       "title": "Essay 1",
       "description": "Write a short essay",
       "attachment_url": "http://localhost/storage/assignments/abc.pdf",
+      "starts_at": "2026-08-08T10:00:00.000000Z",
       "due_at": "2026-08-10T18:00:00.000000Z",
       "total_marks": "50.00",
       "submissions_count": null,
@@ -430,6 +440,8 @@ Middleware: `auth:api` + `role:student`
 **Params:** `batchId` (path), `page`, `per_page`
 
 Same mark fields: `total_marks` + `my_submission` (`obtained_marks`, `feedback`, `graded_at`).
+
+Only assignments that have started are returned. Future `starts_at` items are omitted (not shown as closed).
 
 ### 16. `POST /api/student/assignments/{assignmentId}/submit`
 

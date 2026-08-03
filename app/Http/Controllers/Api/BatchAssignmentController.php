@@ -78,7 +78,8 @@ class BatchAssignmentController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'attachment' => 'nullable|'.self::FILE_RULES,
-            'due_at' => 'nullable|date',
+            'starts_at' => 'nullable|date',
+            'due_at' => 'nullable|date|after_or_equal:starts_at',
             'total_marks' => 'required|numeric|min:1',
         ]);
 
@@ -103,6 +104,7 @@ class BatchAssignmentController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'attachment' => $attachmentPath,
+            'starts_at' => $validated['starts_at'] ?? null,
             'due_at' => $validated['due_at'] ?? null,
             'total_marks' => $validated['total_marks'],
         ]);
@@ -178,7 +180,8 @@ class BatchAssignmentController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'attachment' => 'nullable|'.self::FILE_RULES,
-            'due_at' => 'nullable|date',
+            'starts_at' => 'nullable|date',
+            'due_at' => 'nullable|date|after_or_equal:starts_at',
             'total_marks' => 'required|numeric|min:1',
         ]);
 
@@ -196,6 +199,7 @@ class BatchAssignmentController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'attachment' => $attachmentPath,
+            'starts_at' => array_key_exists('starts_at', $validated) ? $validated['starts_at'] : $assignment->starts_at,
             'due_at' => array_key_exists('due_at', $validated) ? $validated['due_at'] : $assignment->due_at,
             'total_marks' => $validated['total_marks'],
         ]);
@@ -410,6 +414,7 @@ class BatchAssignmentController extends Controller
         }
 
         $assignments = BatchAssignment::query()
+            ->started()
             ->where('batch_id', $batchId)
             ->with(['submissions' => function ($query) use ($user) {
                 $query->where('student_user_id', $user->id);
@@ -581,6 +586,7 @@ class BatchAssignmentController extends Controller
             'attachment_url' => $assignment->attachment
                 ? asset('storage/'.$assignment->attachment)
                 : null,
+            'starts_at' => $assignment->starts_at,
             'due_at' => $assignment->due_at,
             'total_marks' => $assignment->total_marks,
             'submissions_count' => $assignment->submissions_count ?? null,

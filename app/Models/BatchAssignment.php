@@ -20,6 +20,7 @@ class BatchAssignment extends Model
         'title',
         'description',
         'attachment',
+        'starts_at',
         'due_at',
         'total_marks',
     ];
@@ -27,6 +28,7 @@ class BatchAssignment extends Model
     protected function casts(): array
     {
         return [
+            'starts_at' => 'datetime',
             'due_at' => 'datetime',
             'total_marks' => 'decimal:2',
         ];
@@ -49,21 +51,38 @@ class BatchAssignment extends Model
 
     public function isOpenForSubmission(): bool
     {
-        if ($this->due_at === null) {
-            return true;
+        if ($this->starts_at !== null && now()->lt($this->starts_at)) {
+            return false;
         }
 
-        return now()->lte($this->due_at);
+        if ($this->due_at !== null && now()->gt($this->due_at)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
-     * Assignments still open for student submission.
+     * Assignments that have reached starts_at (or have no start).
+     */
+    public function scopeStarted(Builder $query): Builder
+    {
+        return $query->where(function (Builder $builder) {
+            $builder->whereNull('starts_at')
+                ->orWhere('starts_at', '<=', now());
+        });
+    }
+
+    /**
+     * Assignments currently inside the submission window.
      */
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where(function (Builder $builder) {
-            $builder->whereNull('due_at')
-                ->orWhere('due_at', '>=', now());
-        });
+        return $query
+            ->started()
+            ->where(function (Builder $builder) {
+                $builder->whereNull('due_at')
+                    ->orWhere('due_at', '>=', now());
+            });
     }
 }
