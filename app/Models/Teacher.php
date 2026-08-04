@@ -10,6 +10,8 @@ class Teacher extends Model
         'name',
         'email',
         'mobile',
+        'country',
+        'timezone',
         'bio',
         'expertise',
         'qualification',

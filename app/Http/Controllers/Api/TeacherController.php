@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class TeacherController extends Controller
@@ -58,6 +57,8 @@ class TeacherController extends Controller
                     'name' => $t->name,
                     'email' => $t->email,
                     'mobile' => $t->mobile,
+                    'country' => $t->country,
+                    'timezone' => $t->timezone,
                     'bio' => $t->bio,
                     'expertise' => $t->expertise,
                     'qualification' => $t->qualification,
@@ -90,6 +91,8 @@ class TeacherController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:teachers,email|unique:users,email',
             'mobile' => 'nullable|string',
+            'country' => 'nullable|string|max:100',
+            'timezone' => 'nullable|timezone',
             'bio' => 'nullable|string',
             'qualification' => 'nullable|string|max:500',
             'expertise' => 'nullable|string|max:255',
@@ -135,7 +138,7 @@ class TeacherController extends Controller
                     ->store('teacher_videos', 'public');
             }
 
-            $randomPassword = "12345678";
+            $randomPassword = '12345678';
 
             $user = User::create([
                 'name' => $validated['name'],
@@ -162,6 +165,8 @@ class TeacherController extends Controller
                     'id' => $teacher->id,
                     'name' => $teacher->name,
                     'email' => $teacher->email,
+                    'country' => $teacher->country,
+                    'timezone' => $teacher->timezone,
                     'user' => [
                         'id' => $user->id,
                         'email' => $user->email,
@@ -196,6 +201,8 @@ class TeacherController extends Controller
                 'name' => $teacher->name,
                 'email' => $teacher->email,
                 'mobile' => $teacher->mobile,
+                'country' => $teacher->country,
+                'timezone' => $teacher->timezone,
                 'bio' => $teacher->bio,
                 'expertise' => $teacher->expertise,
                 'years_of_exp' => $teacher->years_of_exp,
@@ -224,6 +231,8 @@ class TeacherController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$teacher->user_id,
             'mobile' => 'nullable|string',
+            'country' => 'nullable|string|max:100',
+            'timezone' => 'nullable|timezone',
             'bio' => 'nullable|string',
             'expertise' => 'nullable|string|max:255',
             'qualification' => 'nullable|string|max:500',
@@ -299,6 +308,8 @@ class TeacherController extends Controller
                     'id' => $teacher->id,
                     'name' => $teacher->name,
                     'email' => $teacher->email,
+                    'country' => $teacher->country,
+                    'timezone' => $teacher->timezone,
                     'user_id' => $teacher->user_id,
                 ],
             ], 200);
