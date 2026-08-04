@@ -170,6 +170,8 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 
 Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
 
+    Route::get('/timezone', [TeacherController::class, 'showTimezone']);
+
     Route::get('/batches', [BatchController::class, 'teacherBatch']);
     Route::get('/single-batch/{batchId}', [BatchController::class, 'singleBatch']);
 

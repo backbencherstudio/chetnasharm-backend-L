@@ -23,6 +23,8 @@ test('public teacher show returns batches with class and schedules', function ()
         'expertise' => 'Speaking',
         'qualification' => 'CELTA',
         'years_of_exp' => 5,
+        'country' => 'Bangladesh',
+        'timezone' => 'Asia/Dhaka',
         'suspend_status' => 0,
         'is_top' => 1,
     ]);
@@ -62,6 +64,8 @@ test('public teacher show returns batches with class and schedules', function ()
         ->assertJsonPath('status', true)
         ->assertJsonPath('data.id', $teacher->id)
         ->assertJsonPath('data.name', 'Aisha Khan')
+        ->assertJsonPath('data.country', 'Bangladesh')
+        ->assertJsonPath('data.timezone', 'Asia/Dhaka')
         ->assertJsonPath('data.batches.0.name', 'Morning Batch')
         ->assertJsonPath('data.batches.0.class.title', 'Spoken English')
         ->assertJsonPath('data.batches.0.schedules.0.day', 'Monday')

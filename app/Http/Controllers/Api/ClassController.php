@@ -259,7 +259,7 @@ class ClassController extends Controller
                 'end_date'
             )
             ->with([
-                'teacher:id,name,image,intro_video',
+                'teacher:id,name,image,intro_video,country,timezone',
                 'class:id,title,image',
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
@@ -303,7 +303,7 @@ class ClassController extends Controller
                 'end_date'
             )
             ->with([
-                'teacher:id,name,image,intro_video',
+                'teacher:id,name,image,intro_video,country,timezone',
                 'class:id,title,image,description,price',
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])

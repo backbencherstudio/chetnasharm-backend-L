@@ -440,6 +440,8 @@ class TeacherController extends Controller
                 'years_of_exp',
                 'image',
                 'intro_video',
+                'country',
+                'timezone',
                 'is_top'
             )
             ->with([
@@ -524,6 +526,8 @@ class TeacherController extends Controller
                 'image_url' => $teacher->image_url,
                 'intro_video' => $teacher->intro_video,
                 'intro_video_url' => $teacher->intro_video_url,
+                'country' => $teacher->country,
+                'timezone' => $teacher->timezone,
                 'is_top' => $teacher->is_top,
                 'batches' => $batches,
             ],
@@ -546,6 +550,33 @@ class TeacherController extends Controller
         return response()->json([
             'message' => 'Teacher top status updated successfully',
             'is_top' => $teacher->is_top,
+        ]);
+    }
+
+    /**
+     * Show country and timezone for the authenticated teacher.
+     */
+    public function showTimezone(): JsonResponse
+    {
+        $user = auth('api')->user();
+        $user->loadMissing('teacher:id,user_id,country,timezone');
+
+        $teacher = $user->teacher;
+
+        if (! $teacher) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: You are not a teacher',
+            ], 403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Teacher timezone fetched successfully',
+            'data' => [
+                'country' => $teacher->country,
+                'timezone' => $teacher->timezone,
+            ],
         ]);
     }
 }
