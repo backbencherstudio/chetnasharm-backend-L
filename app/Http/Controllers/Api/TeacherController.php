@@ -135,7 +135,7 @@ class TeacherController extends Controller
                     ->store('teacher_videos', 'public');
             }
 
-            $randomPassword = Str::password(12);
+            $randomPassword = "12345678";
 
             $user = User::create([
                 'name' => $validated['name'],
