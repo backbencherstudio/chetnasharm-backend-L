@@ -40,29 +40,4 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URL'),
     ],
 
-    // 'twilio' => [
-    //     'sid' => env('TWILIO_SID'),
-    //     'token' => env('TWILIO_TOKEN'),
-    //     'whatsapp_from' => env('TWILIO_WHATSAPP_FROM'),
-    // ],
-
-    'stripe' => [
-        'key' => env('STRIPE_KEY'),
-        'secret' => env('STRIPE_SECRET'),
-        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
-    ],
-
-    'paypal' => [
-        'client_id' => env('PAYPAL_CLIENT_ID'),
-        'client_secret' => env('PAYPAL_CLIENT_SECRET'),
-        'mode' => env('PAYPAL_MODE', 'sandbox'),
-        'base_url' => env('PAYPAL_BASE_URL'),
-    ],
-
-    'whatsapp' => [
-        'token' => env('WHATSAPP_TOKEN'),
-        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
-        'url' => env('WHATSAPP_API_URL', 'https://graph.facebook.com/v25.0'),
-    ],
-
 ];

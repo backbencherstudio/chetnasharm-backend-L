@@ -2,23 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Common\IntegrationConfig;
 use App\Common\Pagination;
-use App\Common\UpdateEnvValue;
 use App\Http\Controllers\Controller;
 use App\Models\NotificationLog;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 
 class SettingController extends Controller
 {
     /**
      * Create a new class instance.
-     *
-     * @return void
      */
-    public function __construct(private UpdateEnvValue $updateEnvValue) {}
+    public function __construct(private IntegrationConfig $integrationConfig) {}
 
     /**
      * Display the specified resource.
@@ -238,32 +235,34 @@ class SettingController extends Controller
     }
 
     /**
-     * Get masked environment settings for admin.
-     *
-     * @return JsonResponse
+     * Get masked integration settings for admin.
      */
-    public function getEnvSettings()
+    public function getEnvSettings(): JsonResponse
     {
+        $stripe = $this->integrationConfig->stripe();
+        $paypal = $this->integrationConfig->paypal();
+        $whatsapp = $this->integrationConfig->whatsapp();
+
         return response()->json([
             'success' => true,
 
             'stripe' => [
-                'key' => config('services.stripe.key'),
-                'secret' => $this->maskSecret(config('services.stripe.secret')),
-                'webhook_secret' => $this->maskSecret(config('services.stripe.webhook_secret')),
+                'key' => $stripe['key'],
+                'secret' => $this->maskSecret($stripe['secret']),
+                'webhook_secret' => $this->maskSecret($stripe['webhook_secret']),
             ],
 
             'paypal' => [
-                'client_id' => config('services.paypal.client_id'),
-                'client_secret' => $this->maskSecret(config('services.paypal.client_secret')),
-                'mode' => config('services.paypal.mode'),
-                'base_url' => config('services.paypal.base_url'),
+                'client_id' => $paypal['client_id'],
+                'client_secret' => $this->maskSecret($paypal['client_secret']),
+                'mode' => $paypal['mode'],
+                'base_url' => $paypal['base_url'],
             ],
 
             'whatsapp' => [
-                'token' => $this->maskSecret(config('services.whatsapp.token')),
-                'phone_number_id' => config('services.whatsapp.phone_number_id'),
-                'url' => config('services.whatsapp.url'),
+                'token' => $this->maskSecret($whatsapp['token']),
+                'phone_number_id' => $whatsapp['phone_number_id'],
+                'url' => $whatsapp['url'],
             ],
         ]);
     }
@@ -281,11 +280,9 @@ class SettingController extends Controller
     }
 
     /**
-     * Update environment settings from admin input.
-     *
-     * @return JsonResponse
+     * Update integration settings in the database.
      */
-    public function updateEnvSettings(Request $request)
+    public function updateEnvSettings(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'stripe.key' => ['nullable', 'string'],
@@ -302,66 +299,43 @@ class SettingController extends Controller
             'whatsapp.url' => ['nullable', 'url'],
         ]);
 
-        try {
+        $setting = Setting::query()->first();
 
-            if (filled(data_get($validated, 'stripe.key'))) {
-                $this->updateEnvValue->handle('STRIPE_KEY', data_get($validated, 'stripe.key'));
-            }
-
-            if (filled(data_get($validated, 'stripe.secret'))) {
-                $this->updateEnvValue->handle('STRIPE_SECRET', data_get($validated, 'stripe.secret'));
-            }
-
-            if (filled(data_get($validated, 'stripe.webhook_secret'))) {
-                $this->updateEnvValue->handle('STRIPE_WEBHOOK_SECRET', data_get($validated, 'stripe.webhook_secret'));
-            }
-
-            if (filled(data_get($validated, 'paypal.client_id'))) {
-                $this->updateEnvValue->handle('PAYPAL_CLIENT_ID', data_get($validated, 'paypal.client_id'));
-            }
-
-            if (filled(data_get($validated, 'paypal.client_secret'))) {
-                $this->updateEnvValue->handle('PAYPAL_CLIENT_SECRET', data_get($validated, 'paypal.client_secret'));
-            }
-
-            if (filled(data_get($validated, 'paypal.mode'))) {
-                $this->updateEnvValue->handle('PAYPAL_MODE', data_get($validated, 'paypal.mode'));
-            }
-
-            if (filled(data_get($validated, 'paypal.base_url'))) {
-                $this->updateEnvValue->handle('PAYPAL_BASE_URL', data_get($validated, 'paypal.base_url'));
-            }
-
-            if (filled(data_get($validated, 'whatsapp.token'))) {
-                $this->updateEnvValue->handle('WHATSAPP_TOKEN', data_get($validated, 'whatsapp.token'));
-            }
-
-            if (filled(data_get($validated, 'whatsapp.phone_number_id'))) {
-                $this->updateEnvValue->handle('WHATSAPP_PHONE_NUMBER_ID', data_get($validated, 'whatsapp.phone_number_id'));
-            }
-
-            if (filled(data_get($validated, 'whatsapp.url'))) {
-                $this->updateEnvValue->handle('WHATSAPP_API_URL', data_get($validated, 'whatsapp.url'));
-            }
-
-            Artisan::call('config:clear');
-            Artisan::call('cache:clear');
-            Artisan::call('config:cache');
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Environment settings updated successfully.',
+        if (! $setting) {
+            $setting = Setting::create([
+                'class_time' => 30,
+                'class_notify_time' => 30,
+                'integrations' => Setting::defaultIntegrations(),
             ]);
-
-        } catch (\Throwable $e) {
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update settings.',
-                'error' => app()->environment('local')
-                    ? $e->getMessage()
-                    : null,
-            ], 500);
         }
+
+        $integrations = array_replace_recursive(
+            $setting->resolvedIntegrations(),
+            array_filter([
+                'stripe' => array_filter([
+                    'key' => data_get($validated, 'stripe.key'),
+                    'secret' => data_get($validated, 'stripe.secret'),
+                    'webhook_secret' => data_get($validated, 'stripe.webhook_secret'),
+                ], fn ($value) => filled($value)),
+                'paypal' => array_filter([
+                    'client_id' => data_get($validated, 'paypal.client_id'),
+                    'client_secret' => data_get($validated, 'paypal.client_secret'),
+                    'mode' => data_get($validated, 'paypal.mode'),
+                    'base_url' => data_get($validated, 'paypal.base_url'),
+                ], fn ($value) => filled($value)),
+                'whatsapp' => array_filter([
+                    'token' => data_get($validated, 'whatsapp.token'),
+                    'phone_number_id' => data_get($validated, 'whatsapp.phone_number_id'),
+                    'url' => data_get($validated, 'whatsapp.url'),
+                ], fn ($value) => filled($value)),
+            ], fn ($group) => $group !== [])
+        );
+
+        $setting->update(['integrations' => $integrations]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Environment settings updated successfully.',
+        ]);
     }
 }

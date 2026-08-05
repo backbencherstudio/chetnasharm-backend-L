@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Common\EnrollStudentFromPayment;
+use App\Common\IntegrationConfig;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\Enrollment;
@@ -20,10 +21,11 @@ class PaymentController extends Controller
 {
     /**
      * Create a new class instance.
-     *
-     * @return void
      */
-    public function __construct(private EnrollStudentFromPayment $enrollStudentFromPayment) {}
+    public function __construct(
+        private EnrollStudentFromPayment $enrollStudentFromPayment,
+        private IntegrationConfig $integrationConfig,
+    ) {}
 
     /**
      * Create a payment session for a batch enrollment.
@@ -163,7 +165,7 @@ class PaymentController extends Controller
      */
     public function stripeCheckout($payment, $batch)
     {
-        Stripe::setApiKey(config('services.stripe.secret'));
+        Stripe::setApiKey($this->integrationConfig->stripe()['secret']);
 
         $session = Session::create([
             'payment_method_types' => ['card'],
@@ -196,13 +198,14 @@ class PaymentController extends Controller
      */
     private function paypalBaseUrl(): string
     {
-        $baseUrl = config('services.paypal.base_url');
+        $paypal = $this->integrationConfig->paypal();
+        $baseUrl = $paypal['base_url'];
 
         if (filled($baseUrl)) {
             return rtrim((string) $baseUrl, '/');
         }
 
-        return config('services.paypal.mode') === 'live'
+        return $paypal['mode'] === 'live'
             ? 'https://api-m.paypal.com'
             : 'https://api-m.sandbox.paypal.com';
     }
@@ -215,11 +218,12 @@ class PaymentController extends Controller
     private function getPayPalToken()
     {
         $client = new Client;
+        $paypal = $this->integrationConfig->paypal();
 
         $response = $client->post($this->paypalBaseUrl().'/v1/oauth2/token', [
             'auth' => [
-                config('services.paypal.client_id'),
-                config('services.paypal.client_secret'),
+                $paypal['client_id'],
+                $paypal['client_secret'],
             ],
             'form_params' => [
                 'grant_type' => 'client_credentials',

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Common\EnrollStudentFromPayment;
+use App\Common\IntegrationConfig;
 use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,10 +15,11 @@ class WebhookController extends Controller
 {
     /**
      * Create a new class instance.
-     *
-     * @return void
      */
-    public function __construct(private EnrollStudentFromPayment $enrollStudentFromPayment) {}
+    public function __construct(
+        private EnrollStudentFromPayment $enrollStudentFromPayment,
+        private IntegrationConfig $integrationConfig,
+    ) {}
 
     /**
      * Handle Stripe webhook events.
@@ -33,7 +35,7 @@ class WebhookController extends Controller
             $event = Webhook::constructEvent(
                 $payload,
                 $sigHeader,
-                config('services.stripe.webhook_secret')
+                $this->integrationConfig->stripe()['webhook_secret']
             );
         } catch (\Throwable $e) {
             return response()->json(['error' => 'Invalid webhook'], 400);

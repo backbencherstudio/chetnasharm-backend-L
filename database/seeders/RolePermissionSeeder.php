@@ -27,6 +27,7 @@ class RolePermissionSeeder extends Seeder
                 'class_time' => 30,
                 'class_notify_time' => 30,
                 'social_links' => Setting::defaultSocialLinks(),
+                'integrations' => Setting::defaultIntegrations(),
             ]
         );
     }

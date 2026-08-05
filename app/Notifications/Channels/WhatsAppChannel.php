@@ -2,6 +2,7 @@
 
 namespace App\Notifications\Channels;
 
+use App\Common\IntegrationConfig;
 use App\Models\NotificationLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsAppChannel
 {
+    public function __construct(private IntegrationConfig $integrationConfig) {}
+
     /**
      * Send the WhatsApp notification.
      *
@@ -32,12 +35,13 @@ class WhatsAppChannel
         $errorMessage = null;
 
         try {
+            $whatsapp = $this->integrationConfig->whatsapp();
 
-            $response = Http::withToken(config('services.whatsapp.token'))
+            $response = Http::withToken($whatsapp['token'])
                 ->timeout(10)
                 ->retry(2, 200)
                 ->post(
-                    config('services.whatsapp.url').'/'.config('services.whatsapp.phone_number_id').'/messages',
+                    $whatsapp['url'].'/'.$whatsapp['phone_number_id'].'/messages',
                     [
                         'messaging_product' => 'whatsapp',
                         'to' => $phone,
