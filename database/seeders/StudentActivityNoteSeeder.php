@@ -44,13 +44,13 @@ class StudentActivityNoteSeeder extends Seeder
                 continue;
             }
 
-            // Keep at least one batch running so Teacher Student Tab can list them.
+            // Keep at least one active demo batch with a future window.
             if ($teacherIndex === 0) {
                 $batch->update([
-                    'status' => 'ongoing',
+                    'status' => 'upcoming',
                     'active_status' => 1,
-                    'start_date' => now()->subDays(7)->toDateString(),
-                    'end_date' => now()->addDays(60)->toDateString(),
+                    'start_date' => now()->addDays(7)->toDateString(),
+                    'end_date' => now()->addDays(67)->toDateString(),
                 ]);
             }
 
