@@ -10,7 +10,7 @@ class Attendance extends Model
         'batch_id',
         'user_id',
         'class_date',
-        'status'
+        'status',
     ];
 
     public function batch()

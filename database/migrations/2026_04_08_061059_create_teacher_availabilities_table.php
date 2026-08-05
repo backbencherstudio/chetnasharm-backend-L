@@ -12,8 +12,8 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('teacher_id')
-                  ->constrained()
-                  ->cascadeOnDelete();
+                ->constrained()
+                ->cascadeOnDelete();
             $table->tinyInteger('day_of_week'); // 0 (Sunday) - 6 (Saturday)
             $table->time('start_time');
             $table->time('end_time');

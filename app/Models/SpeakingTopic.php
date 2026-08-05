@@ -9,6 +9,6 @@ class SpeakingTopic extends Model
     protected $fillable = [
         'topic',
         'level',
-        'status'
+        'status',
     ];
 }

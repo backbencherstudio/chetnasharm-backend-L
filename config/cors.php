@@ -1,6 +1,7 @@
 <?php
+
 //
-//return [
+// return [
 //    'paths' => ['api/*','*'],
 //
 //    'allowed_methods' => ['*'],
@@ -17,7 +18,7 @@
 //
 //    'supports_credentials' => false,
 //
-//];
+// ];
 
 return [
 

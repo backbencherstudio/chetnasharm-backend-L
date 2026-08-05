@@ -9,6 +9,6 @@ class BasicQuestion extends Model
     protected $fillable = [
         'question',
         'level',
-        'status'
+        'status',
     ];
 }

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Enrollment extends Model
 {
@@ -23,7 +23,6 @@ class Enrollment extends Model
         'expiry_date' => 'datetime',
     ];
 
-
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -38,5 +37,4 @@ class Enrollment extends Model
     {
         return $this->belongsTo(ClassModel::class);
     }
-    
 }
