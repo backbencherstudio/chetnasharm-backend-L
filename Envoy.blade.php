@@ -1,36 +1,36 @@
 @setup
     if (file_exists(__DIR__.'/.env')) {
-        Dotenv\Dotenv::createImmutable(__DIR__)->safeLoad();
+    Dotenv\Dotenv::createImmutable(__DIR__)->safeLoad();
     }
 
     $server = $server
-        ?? $_ENV['DEPLOY_SERVER']
-        ?? getenv('DEPLOY_SERVER')
-        ?: null;
+    ?? $_ENV['DEPLOY_SERVER']
+    ?? getenv('DEPLOY_SERVER')
+    ?: null;
 
     if (is_string($server)) {
-        $server = trim($server);
-        // Envoy already runs `ssh`; strip accidental "ssh " prefixes.
-        $server = preg_replace('/^ssh\s+/i', '', $server);
+    $server = trim($server);
+    // Envoy already runs `ssh`; strip accidental "ssh " prefixes.
+    $server = preg_replace('/^ssh\s+/i', '', $server);
     }
 
     $missingServer = empty($server);
     $server = $server ?: '127.0.0.1';
 
     $path = $path
-        ?? $_ENV['DEPLOY_PATH']
-        ?? getenv('DEPLOY_PATH')
-        ?: '/var/www/chetnasharm-backend-L';
+    ?? $_ENV['DEPLOY_PATH']
+    ?? getenv('DEPLOY_PATH')
+    ?: '/var/www/chetnasharm-backend-L';
 
     $branch = $branch
-        ?? $_ENV['DEPLOY_BRANCH']
-        ?? getenv('DEPLOY_BRANCH')
-        ?: 'mahmudul';
+    ?? $_ENV['DEPLOY_BRANCH']
+    ?? getenv('DEPLOY_BRANCH')
+    ?: 'mahmudul';
 
     $php = $php
-        ?? $_ENV['DEPLOY_PHP']
-        ?? getenv('DEPLOY_PHP')
-        ?: 'php';
+    ?? $_ENV['DEPLOY_PHP']
+    ?? getenv('DEPLOY_PHP')
+    ?: 'php';
 @endsetup
 
 @servers(['web' => $server])
