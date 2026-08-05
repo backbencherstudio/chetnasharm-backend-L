@@ -12,7 +12,6 @@ Laravel API backend for the Chetnasharm / Listenact learning platform. It powers
 - Meta WhatsApp Cloud API (class reminders)
 - Google OAuth (Socialite)
 - Pest / PHPUnit
-- Laravel Envoy (deploy)
 
 ## Features
 
@@ -29,9 +28,9 @@ Laravel API backend for the Chetnasharm / Listenact learning platform. It powers
 - PHP 8.3+
 - Composer
 - MySQL (or SQLite for local/tests)
-- Node.js (optional, for Vite assets)
-- Queue worker (for notifications / reminders)
-- Cron / scheduler (`php artisan schedule:run`)
+- Node.js (for Vite when using `php artisan dev`)
+- Queue worker (included via `php artisan dev`)
+- Scheduler in production (`php artisan schedule:run` via cron)
 
 ## Setup
 
@@ -55,43 +54,28 @@ Default seeded admin (from `DatabaseSeeder`):
 - Email: `admin@gmail.com`
 - Password: `12345678`
 
-Run the app:
+### Run locally
+
+Laravel 13 provides `php artisan dev`, which starts the local server, queue worker, log tailing (Pail), and Vite together:
 
 ```bash
-composer run dev
-# or
-php artisan serve
-php artisan queue:listen
-php artisan schedule:work
+php artisan dev
+```
+
+List registered processes:
+
+```bash
+php artisan dev:list
 ```
 
 API base URL: `http://localhost:8000/api`
 
-## Useful Composer scripts
-
-| Script | Purpose |
-|--------|---------|
-| `composer run dev` | Serve app + queue + logs + Vite |
-| `composer test` | Run the test suite |
-| `composer deploy` | Envoy: pull `mahmudul` branch + migrate |
-| `composer deploy:fresh` | Envoy: pull + `migrate:fresh --seed` |
-
-### Envoy deploy
-
-Set in `.env`:
-
-```env
-DEPLOY_SERVER=user@your-server
-DEPLOY_PATH=/var/www/chetnasharm
-DEPLOY_BRANCH=mahmudul
-DEPLOY_PHP=php
-```
-
-SSH access to the server must already work. Then:
+## Testing
 
 ```bash
-composer deploy
-composer deploy:fresh   # destructive: wipes DB and reseeds
+php artisan test --compact
+# or a single file
+php artisan test --compact tests/Feature/EnvSettingsTest.php
 ```
 
 ## Important API groups
@@ -115,14 +99,6 @@ Social links:
 - `GET /api/admin/social-links`
 - `PUT /api/admin/social-links`
 
-## Testing
-
-```bash
-php artisan test --compact
-# or a single file
-php artisan test --compact tests/Feature/EnvSettingsTest.php
-```
-
 ## Project structure (high level)
 
 ```
@@ -136,7 +112,6 @@ database/
   migrations/
   seeders/                # RolePermission, DemoData, etc.
 routes/api.php
-Envoy.blade.php           # Remote deploy tasks
 ```
 
 ## License
