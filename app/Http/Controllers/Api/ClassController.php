@@ -459,6 +459,7 @@ class ClassController extends Controller
                         'id' => $teacher->id,
                         'name' => $teacher->name,
                         'image' => $teacher->image,
+                        'image_url' => $teacher->image_url,
                         'about' => $teacher->about,
                         'specializations' => $teacher->specializations ?? [],
                         'languages_spoken' => $teacher->languages_spoken ?? [],
