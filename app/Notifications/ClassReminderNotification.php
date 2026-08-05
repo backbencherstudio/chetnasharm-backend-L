@@ -2,6 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Common\PhoneNormalizer;
+use App\Models\Batch;
+use App\Models\BatchSchedule;
 use App\Models\NotificationLog;
 use App\Notifications\Channels\WhatsAppChannel;
 use Carbon\Carbon;
@@ -10,57 +13,44 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ClassReminderNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public $batch;
-
-    public $schedule;
-
-    /**
-     * Create a new class instance.
-     *
-     * @return void
-     */
-    public function __construct($batch, $schedule)
-    {
-        $this->batch = $batch;
-        $this->schedule = $schedule;
-    }
+    public function __construct(
+        public Batch $batch,
+        public BatchSchedule $schedule,
+    ) {}
 
     /**
-     * Get the notification delivery channels.
-     *
      * @return array<int, string>
      */
-    public function via($notifiable)
+    public function via(object $notifiable): array
     {
-        return ['mail', WhatsAppChannel::class];
+        $channels = ['mail'];
+
+        if (filled($notifiable->mobile ?? null)) {
+            $channels[] = WhatsAppChannel::class;
+        }
+
+        return $channels;
     }
 
-    /**
-     * Build the class reminder mail message.
-     *
-     * @return MailMessage|null
-     */
-    public function toMail($notifiable)
+    public function toMail(object $notifiable): ?MailMessage
     {
-        $time = Carbon::parse($this->schedule->start_time)->format('h:i A');
-
-        $messageText = "Your class {$this->batch->name} starts at {$time}";
+        $time = $this->startTime();
+        $messageText = $this->reminderText();
 
         try {
-
             return (new MailMessage)
                 ->subject('Class Reminder')
                 ->line('Your class is starting soon.')
                 ->line('Batch: '.$this->batch->name)
                 ->line('Time: '.$time)
-                ->action('Join Class', $this->batch->zoom_link)
+                ->action('Join Class', $this->batch->zoom_link ?? config('app.frontend_url'))
                 ->withSymfonyMessage(function () use ($notifiable, $messageText) {
-
                     NotificationLog::create([
                         'user_id' => $notifiable->id,
                         'batch_id' => $this->batch->id,
@@ -71,11 +61,10 @@ class ClassReminderNotification extends Notification implements ShouldQueue
                         'sent_at' => now(),
                     ]);
                 });
-
-        } catch (\Exception $e) {
-
-            Log::error('Email failed', [
+        } catch (Throwable $e) {
+            Log::error('Class reminder email failed', [
                 'user_id' => $notifiable->id,
+                'batch_id' => $this->batch->id,
                 'error' => $e->getMessage(),
             ]);
 
@@ -94,18 +83,56 @@ class ClassReminderNotification extends Notification implements ShouldQueue
     }
 
     /**
-     * Build the WhatsApp reminder payload.
-     *
      * @return array<string, mixed>|null
      */
-    public function toWhatsapp($notifiable)
+    public function toWhatsapp(object $notifiable): ?array
     {
-        if (empty($notifiable->mobile)) {
+        $to = $this->normalizedMobile($notifiable->mobile ?? null);
+
+        if ($to === null) {
             return null;
         }
 
+        $time = $this->startTime();
+
         return [
-            'to' => $notifiable->mobile,
+            'to' => $to,
+            'batch_id' => $this->batch->id,
+            'message_type' => 'class_reminder',
+            'message' => $this->reminderText(),
+            'template' => [
+                'name' => 'class_reminder',
+                'language' => 'en',
+                'body_parameters' => [
+                    $notifiable->name ?? 'Student',
+                    $this->batch->name ?? 'Class',
+                    $time,
+                    $this->batch->zoom_link ?? '',
+                ],
+            ],
         ];
+    }
+
+    private function startTime(): string
+    {
+        return Carbon::parse($this->schedule->start_time)->format('h:i A');
+    }
+
+    private function reminderText(): string
+    {
+        return "Your class {$this->batch->name} starts at {$this->startTime()}";
+    }
+
+    private function normalizedMobile(?string $mobile): ?string
+    {
+        if (blank($mobile)) {
+            return null;
+        }
+
+        try {
+            return ltrim(PhoneNormalizer::toE164($mobile), '+');
+        } catch (Throwable) {
+            return null;
+        }
     }
 }

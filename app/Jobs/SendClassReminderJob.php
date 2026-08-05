@@ -3,132 +3,98 @@
 namespace App\Jobs;
 
 use App\Models\BatchSchedule;
-use App\Models\NotificationLog;
 use App\Models\Setting;
 use App\Notifications\ClassReminderNotification;
-use Carbon\Carbon;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
-class SendClassReminderJob implements ShouldQueue
+class SendClassReminderJob implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
     /**
-     * Execute the primary class operation.
-     *
-     * @return void
+     * Prevent overlapping reminder scans.
      */
-    public function handle()
-    {
+    public int $uniqueFor = 55;
 
-        $minutes = Setting::value('class_notify_time');
+    public function handle(): void
+    {
+        $minutes = (int) (Setting::value('class_notify_time') ?: 20);
 
         if ($minutes <= 0) {
             $minutes = 20;
         }
 
         $now = now();
-
         $currentDate = $now->toDateString();
         $currentTime = $now->format('H:i:s');
-
+        $windowEndTime = $now->copy()->addMinutes($minutes)->format('H:i:s');
         $todayWeekDay = $now->dayOfWeek;
 
-        BatchSchedule::with([
-            'batch.teacher.user:id,name,email,mobile',
-            'batch.enrollments.user:id,name,email,mobile',
-        ])
-
+        BatchSchedule::query()
+            ->with([
+                'batch.teacher.user:id,name,email,mobile',
+                'batch.enrollments.user:id,name,email,mobile',
+            ])
             ->where('day_of_week', $todayWeekDay)
-
             ->where(function ($query) use ($currentDate) {
                 $query->whereNull('reminder_sent_date')
                     ->orWhereDate('reminder_sent_date', '!=', $currentDate);
             })
-
             ->whereHas('batch', function ($query) use ($currentDate) {
                 $query->whereDate('start_date', '<=', $currentDate)
                     ->whereDate('end_date', '>=', $currentDate);
             })
-
-            ->whereRaw(
-                'SUBTIME(start_time, SEC_TO_TIME(?)) <= ?',
-                [
-                    $minutes * 60,
-                    $currentTime,
-                ]
-            )
             ->where('start_time', '>', $currentTime)
-
+            ->where('start_time', '<=', $windowEndTime)
             ->chunkById(200, function ($schedules) use ($currentDate) {
-
                 foreach ($schedules as $schedule) {
-
-                    $batch = $schedule->batch;
-
-                    if (! $batch) {
-                        continue;
-                    }
-
-                    try {
-
-                        $teacherUser = $batch?->teacher?->user;
-
-                        if ($teacherUser) {
-
-                            $teacherUser->notify(
-                                new ClassReminderNotification($batch, $schedule)
-                            );
-                        }
-
-                    } catch (\Exception $e) {
-
-                        NotificationLog::create([
-                            'user_id' => $teacherUser?->id,
-                            'batch_id' => $batch->id,
-                            'type' => 'email',
-                            'message_type' => 'class_reminder',
-                            'message' => "Your class {$batch->name} starts at ".Carbon::parse($schedule->start_time)->format('h:i A'),
-                            'status' => 'failed',
-                            'sent_at' => now(),
-                        ]);
-
-                    }
-
-                    foreach ($batch->enrollments as $enrollment) {
-
-                        $student = $enrollment->user;
-
-                        if (! $student) {
-                            continue;
-                        }
-
-                        try {
-
-                            $student->notify(
-                                new ClassReminderNotification($batch, $schedule)
-                            );
-
-                        } catch (\Exception $e) {
-
-                            NotificationLog::create([
-                                'user_id' => $student->id,
-                                'batch_id' => $batch->id,
-                                'type' => 'email',
-                                'message_type' => 'class_reminder',
-                                'message' => "Your class {$batch->name} starts at ".Carbon::parse($schedule->start_time)->format('h:i A'),
-                                'status' => 'failed',
-                                'sent_at' => now(),
-                            ]);
-
-                        }
-                    }
-
-                    $schedule->update([
-                        'reminder_sent_date' => $currentDate,
-                    ]);
+                    $this->sendRemindersForSchedule($schedule, $currentDate);
                 }
             });
+    }
+
+    private function sendRemindersForSchedule(BatchSchedule $schedule, string $currentDate): void
+    {
+        $batch = $schedule->batch;
+
+        if (! $batch) {
+            return;
+        }
+
+        $recipients = collect();
+
+        if ($batch->teacher?->user) {
+            $recipients->push($batch->teacher->user);
+        }
+
+        foreach ($batch->enrollments as $enrollment) {
+            if ($enrollment->user) {
+                $recipients->push($enrollment->user);
+            }
+        }
+
+        $recipients = $recipients->unique('id');
+
+        foreach ($recipients as $user) {
+            try {
+                $user->notify(new ClassReminderNotification($batch, $schedule));
+            } catch (Throwable $e) {
+                Log::error('Failed to queue class reminder', [
+                    'user_id' => $user->id,
+                    'batch_id' => $batch->id,
+                    'schedule_id' => $schedule->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Mark after queueing so the minute scheduler does not re-dispatch the same class.
+        $schedule->update([
+            'reminder_sent_date' => $currentDate,
+        ]);
     }
 }
