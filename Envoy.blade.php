@@ -8,6 +8,12 @@
         ?? getenv('DEPLOY_SERVER')
         ?: null;
 
+    if (is_string($server)) {
+        $server = trim($server);
+        // Envoy already runs `ssh`; strip accidental "ssh " prefixes.
+        $server = preg_replace('/^ssh\s+/i', '', $server);
+    }
+
     $missingServer = empty($server);
     $server = $server ?: '127.0.0.1';
 
