@@ -41,7 +41,8 @@ class BatchController extends Controller
         ])
             ->with([
                 'class:id,title',
-                'teacher:id,name',
+                'teacher:id,user_id',
+                'teacher.user:id,name',
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ]);
 
@@ -49,7 +50,7 @@ class BatchController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhereHas('class', fn ($q2) => $q2->where('title', 'like', "%{$search}%"))
-                    ->orWhereHas('teacher', fn ($q3) => $q3->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('teacher.user', fn ($q3) => $q3->where('name', 'like', "%{$search}%"));
             });
         }
 
@@ -348,7 +349,15 @@ class BatchController extends Controller
      */
     public function teacherList()
     {
-        $teachers = Teacher::where('suspend_status', 0)->select('id', 'name')->get();
+        $teachers = Teacher::query()
+            ->active()
+            ->with('user:id,name')
+            ->get(['id', 'user_id'])
+            ->map(fn (Teacher $teacher) => [
+                'id' => $teacher->id,
+                'name' => $teacher->name,
+            ])
+            ->values();
 
         return response()->json([
             'success' => true,
@@ -507,7 +516,8 @@ class BatchController extends Controller
         ])
             ->with([
                 'class:id,title,image',
-                'teacher:id,user_id,name,image',
+                'teacher:id,user_id',
+                'teacher.user:id,name,image',
 
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
@@ -633,7 +643,8 @@ class BatchController extends Controller
 
         $batch = Batch::with([
             'class:id,title,description,image',
-            'teacher:id,name',
+            'teacher:id,user_id',
+            'teacher.user:id,name',
             'schedules:id,batch_id,day_of_week,start_time,end_time',
         ])
             ->withCount(['assignments as active_assignments_count' => fn ($q) => $q->active()])

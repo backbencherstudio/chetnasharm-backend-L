@@ -56,7 +56,8 @@ class WaitlistController extends Controller
         $query = Waitlist::with([
             'user:id,name,email',
             'batch:id,name,teacher_id',
-            'batch.teacher:id,name',
+            'batch.teacher:id,user_id',
+            'batch.teacher.user:id,name',
         ])->latest();
 
         if ($request->filled('batch_id')) {
@@ -89,7 +90,8 @@ class WaitlistController extends Controller
 
         $query = Waitlist::with([
             'batch:id,name,teacher_id',
-            'batch.teacher:id,name',
+            'batch.teacher:id,user_id',
+            'batch.teacher.user:id,name',
         ])
             ->where('user_id', $user->id)
             ->latest();

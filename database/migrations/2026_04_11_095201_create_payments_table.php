@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->string('payment_id',10)->unique();
+            $table->string('payment_id', 10)->unique();
             $table->foreignId('user_id')
                 ->constrained()
                 ->cascadeOnDelete();
@@ -40,6 +40,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['user_id', 'status']);
+            $table->index(['user_id', 'batch_id']);
         });
     }
 

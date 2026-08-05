@@ -124,8 +124,6 @@ test('teacher cannot view another teachers batch', function () {
     $otherTeacherUser = User::factory()->create();
     $otherTeacherUser->assignRole('teacher');
     Teacher::create([
-        'name' => 'Other Teacher',
-        'email' => $otherTeacherUser->email,
         'user_id' => $otherTeacherUser->id,
     ]);
 
@@ -306,8 +304,6 @@ test('teacher cannot fetch other teacher enrollments', function () {
     $otherTeacherUser = User::factory()->create();
     $otherTeacherUser->assignRole('teacher');
     Teacher::create([
-        'name' => 'Other Teacher',
-        'email' => $otherTeacherUser->email,
         'user_id' => $otherTeacherUser->id,
     ]);
 

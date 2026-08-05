@@ -27,8 +27,11 @@ test('admin can create teacher with country and timezone', function () {
         ->assertJsonPath('data.country', 'Bangladesh')
         ->assertJsonPath('data.timezone', 'Asia/Dhaka');
 
-    $this->assertDatabaseHas('teachers', [
+    $this->assertDatabaseHas('users', [
         'email' => 'sarah.country@example.com',
+    ]);
+
+    $this->assertDatabaseHas('teachers', [
         'country' => 'Bangladesh',
         'timezone' => 'Asia/Dhaka',
     ]);
@@ -46,8 +49,6 @@ test('admin can update teacher country and timezone', function () {
 
     $teacher = Teacher::create([
         'user_id' => $teacherUser->id,
-        'name' => 'Teacher TZ',
-        'email' => 'teacher.tz@example.com',
         'country' => 'India',
         'timezone' => 'Asia/Kolkata',
     ]);
@@ -85,8 +86,6 @@ test('admin teacher edit returns country and timezone', function () {
 
     $teacher = Teacher::create([
         'user_id' => $teacherUser->id,
-        'name' => 'Teacher Edit',
-        'email' => 'teacher.edit@example.com',
         'country' => 'Canada',
         'timezone' => 'America/Toronto',
     ]);

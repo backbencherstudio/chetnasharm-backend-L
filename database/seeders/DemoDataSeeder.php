@@ -26,7 +26,6 @@ class DemoDataSeeder extends Seeder
             [
                 'user' => ['name' => 'Sarah Rahman', 'email' => 'sarah@gmail.com', 'mobile' => '01710000001'],
                 'teacher' => [
-                    'mobile' => '01710000001',
                     'qualification' => 'M.A. in English Literature',
                     'expertise' => 'Spoken English',
                     'years_of_exp' => 8,
@@ -41,7 +40,6 @@ class DemoDataSeeder extends Seeder
             [
                 'user' => ['name' => 'David Hossain', 'email' => 'david@gmail.com', 'mobile' => '01710000002'],
                 'teacher' => [
-                    'mobile' => '01710000002',
                     'qualification' => 'IELTS Certified Trainer',
                     'expertise' => 'IELTS Preparation',
                     'years_of_exp' => 6,
@@ -56,7 +54,6 @@ class DemoDataSeeder extends Seeder
             [
                 'user' => ['name' => 'Nusrat Jahan', 'email' => 'nusrat@gmail.com', 'mobile' => '01710000003'],
                 'teacher' => [
-                    'mobile' => '01710000003',
                     'qualification' => 'MBA, Business Communication Specialist',
                     'expertise' => 'Business English',
                     'years_of_exp' => 5,
@@ -78,17 +75,14 @@ class DemoDataSeeder extends Seeder
                     'department' => 'Teaching',
                     'mobile' => $data['user']['mobile'],
                     'password' => '12345678',
+                    'suspend_status' => 0,
                 ]
             );
             $teacherUser->assignRole($teacherRole);
 
             Teacher::updateOrCreate(
-                ['email' => $data['user']['email']],
-                [
-                    'name' => $data['user']['name'],
-                    'user_id' => $teacherUser->id,
-                    ...$data['teacher'],
-                ]
+                ['user_id' => $teacherUser->id],
+                $data['teacher']
             );
         }
 

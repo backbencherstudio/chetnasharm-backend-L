@@ -16,8 +16,6 @@ test('authenticated teacher can view own country and timezone', function () {
 
     Teacher::create([
         'user_id' => $user->id,
-        'name' => 'Sarah Rahman',
-        'email' => $user->email,
         'country' => 'Bangladesh',
         'timezone' => 'Asia/Dhaka',
     ]);

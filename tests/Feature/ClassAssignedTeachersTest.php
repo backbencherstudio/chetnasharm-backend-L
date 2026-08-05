@@ -18,16 +18,12 @@ function createClassWithBatchTeachers(): array
     $teacherUserOne = User::factory()->create();
     $teacherUserOne->assignRole('teacher');
     $teacherOne = Teacher::create([
-        'name' => 'Sarah Rahman',
-        'email' => $teacherUserOne->email,
         'user_id' => $teacherUserOne->id,
     ]);
 
     $teacherUserTwo = User::factory()->create();
     $teacherUserTwo->assignRole('teacher');
     $teacherTwo = Teacher::create([
-        'name' => 'Aisha Khan',
-        'email' => $teacherUserTwo->email,
         'user_id' => $teacherUserTwo->id,
     ]);
 

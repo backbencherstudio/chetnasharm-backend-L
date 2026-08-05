@@ -11,6 +11,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -28,18 +29,21 @@ class TeacherController extends Controller
     {
         $perPage = Pagination::perPage($request);
 
-        $query = Teacher::query();
+        $query = Teacher::query()->with('user');
 
         if ($request->filled('search')) {
             $search = $request->search;
 
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('mobile', 'like', "%{$search}%")
-                    ->orWhere('bio', 'like', "%{$search}%")
+                $q->where('bio', 'like', "%{$search}%")
                     ->orWhere('expertise', 'like', "%{$search}%")
-                    ->orWhere('qualification', 'like', "%{$search}%");
+                    ->orWhere('qualification', 'like', "%{$search}%")
+                    ->orWhere('about', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('mobile', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -69,9 +73,9 @@ class TeacherController extends Controller
                     'qualification' => $t->qualification,
                     'years_of_exp' => $t->years_of_exp,
                     'image' => $t->image,
-                    'image_url' => $t->image ? asset('storage/'.$t->image) : null,
+                    'image_url' => $t->image_url,
                     'intro_video' => $t->intro_video,
-                    'intro_video_url' => $t->intro_video ? asset('storage/'.$t->intro_video) : null,
+                    'intro_video_url' => $t->intro_video_url,
                     'suspend_status' => $t->suspend_status,
                     'is_top' => $t->is_top,
                 ];
@@ -96,7 +100,7 @@ class TeacherController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:teachers,email|unique:users,email',
+            'email' => 'required|email|unique:users,email',
             'mobile' => 'nullable|string',
             'country' => 'nullable|string|max:100',
             'timezone' => 'nullable|timezone',
@@ -163,14 +167,18 @@ class TeacherController extends Controller
                 'department' => 'Teacher',
                 'password' => Hash::make($randomPassword),
                 'image' => $validated['image'] ?? null,
+                'suspend_status' => 0,
             ]);
 
             $role = Role::where('name', 'teacher')->firstOrFail();
             $user->assignRole($role);
 
-            $validated['user_id'] = $user->id;
+            $teacher = Teacher::create([
+                ...Arr::except($validated, ['name', 'email', 'mobile', 'image']),
+                'user_id' => $user->id,
+            ]);
 
-            $teacher = Teacher::create($validated);
+            $teacher->setRelation('user', $user);
 
             DB::commit();
 
@@ -213,7 +221,7 @@ class TeacherController extends Controller
      */
     public function edit($id)
     {
-        $teacher = Teacher::with('user')->findOrFail($id);
+        $teacher = Teacher::query()->with('user')->findOrFail($id);
 
         return response()->json([
             'status' => true,
@@ -304,8 +312,8 @@ class TeacherController extends Controller
         try {
 
             if ($request->hasFile('image')) {
-                if ($teacher->image && Storage::disk('public')->exists($teacher->image)) {
-                    Storage::disk('public')->delete($teacher->image);
+                if ($linkedUser?->image && Storage::disk('public')->exists($linkedUser->image)) {
+                    Storage::disk('public')->delete($linkedUser->image);
                 }
 
                 $validated['image'] = $request->image('image')
@@ -325,15 +333,18 @@ class TeacherController extends Controller
                     ->store('teacher_videos', 'public');
             }
 
-            $teacher->update($validated);
+            $userPayload = Arr::only($validated, ['name', 'email', 'mobile', 'image', 'suspend_status']);
+            $teacherPayload = Arr::except($validated, ['name', 'email', 'mobile', 'image', 'suspend_status']);
+
+            $teacher->update($teacherPayload);
 
             if ($linkedUser) {
-                $linkedUser->name = $teacher->name;
-                $linkedUser->email = $teacher->email;
-                $linkedUser->mobile = $teacher->mobile;
-                $linkedUser->image = $teacher->image;
-                $linkedUser->department = 'Teacher';
+                $linkedUser->fill([
+                    ...$userPayload,
+                    'department' => 'Teacher',
+                ]);
                 $linkedUser->save();
+                $teacher->setRelation('user', $linkedUser->fresh());
             }
 
             DB::commit();
@@ -380,14 +391,16 @@ class TeacherController extends Controller
         DB::beginTransaction();
 
         try {
-
-            $teacher->suspend_status = $teacher->suspend_status == 1 ? 0 : 1;
-            $teacher->save();
-
-            if ($user) {
-                $user->suspend_status = $teacher->suspend_status;
-                $user->save();
+            if (! $user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Linked user not found.',
+                ], 404);
             }
+
+            $user->suspend_status = $user->suspend_status == 1 ? 0 : 1;
+            $user->save();
+            $teacher->setRelation('user', $user);
 
             DB::commit();
 
@@ -424,21 +437,23 @@ class TeacherController extends Controller
         $isTop = $request->is_top;
 
         $teachers = Teacher::query()
-            ->where('suspend_status', 0)
+            ->active()
+            ->with('user:id,name,email,mobile,image,suspend_status')
             ->when($isTop !== null, function ($query) use ($isTop) {
                 $query->where('is_top', (int) $isTop);
             })
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('name', 'LIKE', "%{$search}%")
-                        ->orWhere('bio', 'LIKE', "%{$search}%")
+                    $q->where('bio', 'LIKE', "%{$search}%")
                         ->orWhere('expertise', 'LIKE', "%{$search}%")
-                        ->orWhere('qualification', 'LIKE', "%{$search}%");
+                        ->orWhere('qualification', 'LIKE', "%{$search}%")
+                        ->orWhere('about', 'LIKE', "%{$search}%")
+                        ->orWhereHas('user', fn ($userQuery) => $userQuery->where('name', 'LIKE', "%{$search}%"));
                 });
             })
             ->select(
                 'id',
-                'name',
+                'user_id',
                 'bio',
                 'about',
                 'specializations',
@@ -448,7 +463,6 @@ class TeacherController extends Controller
                 'expertise',
                 'qualification',
                 'years_of_exp',
-                'image',
                 'intro_video',
                 'country',
                 'timezone',
@@ -479,10 +493,10 @@ class TeacherController extends Controller
     {
         $teacher = Teacher::query()
             ->where('id', $id)
-            ->where('suspend_status', 0)
+            ->active()
             ->select(
                 'id',
-                'name',
+                'user_id',
                 'bio',
                 'about',
                 'specializations',
@@ -492,13 +506,13 @@ class TeacherController extends Controller
                 'expertise',
                 'qualification',
                 'years_of_exp',
-                'image',
                 'intro_video',
                 'country',
                 'timezone',
                 'is_top'
             )
             ->with([
+                'user:id,name,email,mobile,image,suspend_status',
                 'batches' => fn ($q) => $q->where('active_status', 1)
                     ->select(
                         'id',

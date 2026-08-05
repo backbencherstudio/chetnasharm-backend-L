@@ -12,6 +12,10 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->text('description')->nullable();
+            $table->text('short_description')->nullable();
+            $table->text('who_is_for')->nullable();
+            $table->json('curriculum')->nullable();
+            $table->tinyInteger('is_class_recording')->default(0);
             $table->decimal('price', 10, 2)->default(0);
             $table->integer('duration_in_days');
             $table->integer('total_classes');

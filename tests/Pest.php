@@ -16,12 +16,10 @@ pest()->extend(TestCase::class)
  */
 function createBatchWithStudent(int $filledSeat = 0): array
 {
-    $teacherUser = User::factory()->create();
+    $teacherUser = User::factory()->create(['name' => 'Teacher One']);
     $teacherUser->assignRole('teacher');
 
     $teacher = Teacher::create([
-        'name' => 'Teacher One',
-        'email' => $teacherUser->email,
         'user_id' => $teacherUser->id,
     ]);
 

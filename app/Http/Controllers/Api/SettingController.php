@@ -176,6 +176,68 @@ class SettingController extends Controller
     }
 
     /**
+     * Get public social links.
+     */
+    public function socialLinks(): JsonResponse
+    {
+        $setting = Setting::query()->first();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Social links retrieved successfully',
+            'data' => $setting?->resolvedSocialLinks() ?? Setting::defaultSocialLinks(),
+        ]);
+    }
+
+    /**
+     * Get social links for admin.
+     */
+    public function getSocialLinks(): JsonResponse
+    {
+        $setting = Setting::query()->first();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Social links retrieved successfully',
+            'data' => $setting?->resolvedSocialLinks() ?? Setting::defaultSocialLinks(),
+        ]);
+    }
+
+    /**
+     * Update social links (platform keys are fixed; URLs/phone are editable).
+     */
+    public function updateSocialLinks(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'youtube' => ['nullable', 'url', 'max:255'],
+            'tiktok' => ['nullable', 'url', 'max:255'],
+            'instagram' => ['nullable', 'url', 'max:255'],
+            'linkedin' => ['nullable', 'url', 'max:255'],
+            'facebook' => ['nullable', 'url', 'max:255'],
+        ]);
+
+        $socialLinks = array_merge(Setting::defaultSocialLinks(), $validated);
+
+        $setting = Setting::query()->first();
+
+        if ($setting) {
+            $setting->update(['social_links' => $socialLinks]);
+        } else {
+            $setting = Setting::create([
+                'class_time' => 30,
+                'class_notify_time' => 30,
+                'social_links' => $socialLinks,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Social links updated successfully',
+            'data' => $setting->resolvedSocialLinks(),
+        ]);
+    }
+
+    /**
      * Get masked environment settings for admin.
      *
      * @return JsonResponse

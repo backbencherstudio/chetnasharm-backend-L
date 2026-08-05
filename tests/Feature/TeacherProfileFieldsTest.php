@@ -33,8 +33,12 @@ test('admin can create teacher with profile fields', function () {
         ->assertJsonPath('data.courses_can_teach.0', 'Spoken English')
         ->assertJsonPath('data.interests.0', 'Public speaking');
 
-    $this->assertDatabaseHas('teachers', [
+    $this->assertDatabaseHas('users', [
         'email' => 'profile.teacher@example.com',
+        'name' => 'Profile Teacher',
+    ]);
+
+    $this->assertDatabaseHas('teachers', [
         'about' => 'Experienced IELTS coach',
     ]);
 });
@@ -51,8 +55,6 @@ test('admin can update teacher profile fields', function () {
 
     $teacher = Teacher::create([
         'user_id' => $teacherUser->id,
-        'name' => 'Update Profile',
-        'email' => 'update.profile@example.com',
         'about' => 'Old about',
         'specializations' => ['Old'],
         'languages_spoken' => ['English'],
@@ -92,8 +94,6 @@ test('admin teacher edit returns profile fields', function () {
 
     $teacher = Teacher::create([
         'user_id' => $teacherUser->id,
-        'name' => 'Edit Profile',
-        'email' => 'edit.profile@example.com',
         'about' => 'About text',
         'specializations' => ['Grammar'],
         'languages_spoken' => ['English'],
@@ -122,14 +122,11 @@ test('public teacher profile includes new profile fields', function () {
 
     $teacher = Teacher::create([
         'user_id' => $teacherUser->id,
-        'name' => 'Public Profile',
-        'email' => 'public.profile@example.com',
         'about' => 'Public about',
         'specializations' => ['IELTS'],
         'languages_spoken' => ['English'],
         'courses_can_teach' => ['IELTS Prep'],
         'interests' => ['Travel'],
-        'suspend_status' => 0,
     ]);
 
     $this->getJson("/api/teachers/{$teacher->id}")

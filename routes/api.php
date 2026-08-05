@@ -54,6 +54,7 @@ Route::get('/batches/{classId}', [ClassController::class, 'landBatch']);
 Route::get('single-batch/{batchId}', [ClassController::class, 'singleBatch']);
 
 Route::get('/support', [SettingController::class, 'support']);
+Route::get('/social-links', [SettingController::class, 'socialLinks']);
 Route::get('vocabularies', [VocabularyController::class, 'vocabularies']);
 Route::get('speaking-topics', [SpeakingTopicController::class, 'frontendList']);
 Route::get('basic-questions', [BasicQuestionController::class, 'frontendList']);
@@ -113,6 +114,9 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
 
     Route::get('/settings', [SettingController::class, 'show']);
     Route::post('/settings', [SettingController::class, 'update']);
+
+    Route::get('/social-links', [SettingController::class, 'getSocialLinks']);
+    Route::put('/social-links', [SettingController::class, 'updateSocialLinks']);
 
     Route::get('/notification-logs', [SettingController::class, 'logs']);
 

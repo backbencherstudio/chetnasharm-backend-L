@@ -331,7 +331,8 @@ class TeacherStudentController extends Controller
             ->where('student_user_id', $user->id)
             ->with([
                 'batch:id,name',
-                'teacher:id,name',
+                'teacher:id,user_id',
+                'teacher.user:id,name',
             ])
             ->latest()
             ->paginate(Pagination::perPage($request));

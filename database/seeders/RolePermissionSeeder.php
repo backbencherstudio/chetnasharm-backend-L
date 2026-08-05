@@ -214,7 +214,7 @@ class RolePermissionSeeder extends Seeder
         //     );
         // }
 
-        $roles = ['admin','teacher', 'student'];
+        $roles = ['admin', 'teacher', 'student'];
 
         foreach ($roles as $role) {
             Role::firstOrCreate([
@@ -222,10 +222,14 @@ class RolePermissionSeeder extends Seeder
                 'guard_name' => 'api',
             ]);
         }
-        $setting = Setting::firstOrCreate([
-            'class_time'=> '30',
-            'class_notify_time' => '30',
-        ]);
+        Setting::firstOrCreate(
+            ['id' => 1],
+            [
+                'class_time' => 30,
+                'class_notify_time' => 30,
+                'social_links' => Setting::defaultSocialLinks(),
+            ]
+        );
         // $apiAdmin->syncPermissions(
         //     Permission::where('guard_name', 'api')->get()
         // );

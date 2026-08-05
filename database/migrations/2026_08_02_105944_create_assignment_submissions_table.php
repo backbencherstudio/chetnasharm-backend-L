@@ -13,6 +13,9 @@ return new class extends Migration
             $table->foreignId('assignment_id')->constrained('batch_assignments')->cascadeOnDelete();
             $table->foreignId('student_user_id')->constrained('users')->cascadeOnDelete();
             $table->string('file_path');
+            $table->decimal('obtained_marks', 8, 2)->nullable();
+            $table->text('feedback')->nullable();
+            $table->timestamp('graded_at')->nullable();
             $table->timestamps();
 
             $table->unique(['assignment_id', 'student_user_id']);

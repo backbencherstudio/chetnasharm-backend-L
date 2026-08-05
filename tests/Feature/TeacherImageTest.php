@@ -29,7 +29,10 @@ test('teacher store saves a square optimized image', function () {
     $response->assertCreated()
         ->assertJsonPath('status', true);
 
-    $teacher = Teacher::where('email', 'teacher1@example.com')->first();
+    $teacher = Teacher::query()
+        ->with('user')
+        ->whereHas('user', fn ($q) => $q->where('email', 'teacher1@example.com'))
+        ->first();
 
     expect($teacher)->not->toBeNull()
         ->and($teacher->image)->not->toBeNull()
@@ -43,19 +46,18 @@ test('teacher update replaces image with a square optimized image', function () 
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 
+    $oldPath = UploadedFile::fake()->image('old.jpg', 200, 200)->store('teachers', 'public');
+
     $teacherUser = User::factory()->create([
+        'name' => 'Teacher Two',
         'email' => 'teacher2@example.com',
         'department' => 'Teacher',
+        'image' => $oldPath,
     ]);
     $teacherUser->assignRole('teacher');
 
-    $oldPath = UploadedFile::fake()->image('old.jpg', 200, 200)->store('teachers', 'public');
-
     $teacher = Teacher::create([
         'user_id' => $teacherUser->id,
-        'name' => 'Teacher Two',
-        'email' => 'teacher2@example.com',
-        'image' => $oldPath,
     ]);
 
     $token = auth('api')->login($admin);
@@ -69,7 +71,8 @@ test('teacher update replaces image with a square optimized image', function () 
         ->assertOk()
         ->assertJsonPath('status', true);
 
-    $teacher->refresh();
+    $teacher->load('user');
+    $teacherUser->refresh();
 
     expect($teacher->image)->not->toBe($oldPath)
         ->and($teacher->image)->toEndWith('.webp')

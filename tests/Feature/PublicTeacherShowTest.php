@@ -12,20 +12,20 @@ beforeEach(function () {
 });
 
 test('public teacher show returns batches with class and schedules', function () {
-    $user = User::factory()->create(['email' => 'teacher-show@example.com']);
+    $user = User::factory()->create([
+        'name' => 'Aisha Khan',
+        'email' => 'teacher-show@example.com',
+    ]);
     $user->assignRole('teacher');
 
     $teacher = Teacher::create([
         'user_id' => $user->id,
-        'name' => 'Aisha Khan',
-        'email' => 'teacher-show@example.com',
         'bio' => 'IELTS coach',
         'expertise' => 'Speaking',
         'qualification' => 'CELTA',
         'years_of_exp' => 5,
         'country' => 'Bangladesh',
         'timezone' => 'Asia/Dhaka',
-        'suspend_status' => 0,
         'is_top' => 1,
     ]);
 
@@ -75,14 +75,14 @@ test('public teacher show returns batches with class and schedules', function ()
 });
 
 test('public teacher show hides suspended teachers', function () {
-    $user = User::factory()->create(['email' => 'suspended-teacher@example.com']);
+    $user = User::factory()->create([
+        'email' => 'suspended-teacher@example.com',
+        'suspend_status' => 1,
+    ]);
     $user->assignRole('teacher');
 
     $teacher = Teacher::create([
         'user_id' => $user->id,
-        'name' => 'Suspended Teacher',
-        'email' => 'suspended-teacher@example.com',
-        'suspend_status' => 1,
     ]);
 
     $this->getJson("/api/teachers/{$teacher->id}")

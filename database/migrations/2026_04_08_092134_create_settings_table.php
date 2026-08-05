@@ -14,8 +14,8 @@ return new class extends Migration
             $table->string('support_number', 20)->nullable();
             $table->string('support_email', 255)->nullable();
             $table->integer('class_notify_time')->default(30);
+            $table->json('social_links')->nullable();
             $table->timestamps();
-
         });
     }
 

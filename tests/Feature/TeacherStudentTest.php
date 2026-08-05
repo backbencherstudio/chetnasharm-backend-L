@@ -23,8 +23,6 @@ function createTeacherStudentContext(array $batchOverrides = []): array
     $teacherUser->assignRole('teacher');
 
     $teacher = Teacher::create([
-        'name' => 'Teacher One',
-        'email' => $teacherUser->email,
         'user_id' => $teacherUser->id,
     ]);
 
@@ -213,7 +211,7 @@ test('teacher can manage student activity notes', function () {
         ->assertJsonPath('data.0.comment', 'Needs more speaking practice');
 
     $this->withHeader('Authorization', "Bearer {$token}")
-        ->postJson("/api/teacher/student-notes/{$noteId}", [
+        ->putJson("/api/teacher/student-notes/{$noteId}", [
             'comment' => 'Improving steadily',
             'status' => 'average',
         ])
@@ -255,8 +253,6 @@ test('teacher cannot create note for another teachers batch or non enrolled stud
     $otherTeacherUser = User::factory()->create();
     $otherTeacherUser->assignRole('teacher');
     Teacher::create([
-        'name' => 'Other Teacher',
-        'email' => $otherTeacherUser->email,
         'user_id' => $otherTeacherUser->id,
     ]);
 

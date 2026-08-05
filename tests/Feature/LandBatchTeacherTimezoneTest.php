@@ -16,8 +16,6 @@ test('landing batches include teacher country and timezone', function () {
 
     $teacher = Teacher::create([
         'user_id' => $user->id,
-        'name' => 'Sarah Rahman',
-        'email' => $user->email,
         'country' => 'Bangladesh',
         'timezone' => 'Asia/Dhaka',
     ]);
@@ -56,8 +54,6 @@ test('single batch includes teacher country and timezone', function () {
 
     $teacher = Teacher::create([
         'user_id' => $user->id,
-        'name' => 'Sarah Rahman',
-        'email' => $user->email,
         'country' => 'Bangladesh',
         'timezone' => 'Asia/Dhaka',
     ]);

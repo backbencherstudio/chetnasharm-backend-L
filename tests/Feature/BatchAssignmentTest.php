@@ -28,8 +28,6 @@ function createAssignmentContext(): array
     $teacherUser->assignRole('teacher');
 
     $teacher = Teacher::create([
-        'name' => 'Teacher One',
-        'email' => $teacherUser->email,
         'user_id' => $teacherUser->id,
     ]);
 
@@ -113,8 +111,6 @@ test('other teacher cannot create assignment on foreign batch', function () {
     $otherTeacherUser = User::factory()->create();
     $otherTeacherUser->assignRole('teacher');
     Teacher::create([
-        'name' => 'Other Teacher',
-        'email' => $otherTeacherUser->email,
         'user_id' => $otherTeacherUser->id,
     ]);
 

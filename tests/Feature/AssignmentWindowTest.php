@@ -27,8 +27,6 @@ function createAssignmentWindowContext(): array
     $teacherUser->assignRole('teacher');
 
     $teacher = Teacher::create([
-        'name' => 'Teacher One',
-        'email' => $teacherUser->email,
         'user_id' => $teacherUser->id,
     ]);
 

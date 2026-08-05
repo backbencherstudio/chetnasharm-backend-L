@@ -15,11 +15,14 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->string('attachment')->nullable();
+            $table->timestamp('starts_at')->nullable();
             $table->timestamp('due_at')->nullable();
+            $table->decimal('total_marks', 8, 2)->default(100);
             $table->timestamps();
 
             $table->index(['batch_id', 'created_at']);
             $table->index(['teacher_id', 'batch_id']);
+            $table->index(['batch_id', 'starts_at', 'due_at']);
         });
     }
 

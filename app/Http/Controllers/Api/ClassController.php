@@ -269,7 +269,8 @@ class ClassController extends Controller
                 'end_date'
             )
             ->with([
-                'teacher:id,name,image,intro_video,country,timezone,about,specializations,languages_spoken,courses_can_teach,interests',
+                'teacher:id,user_id,intro_video,country,timezone,about,specializations,languages_spoken,courses_can_teach,interests',
+                'teacher.user:id,name,email,mobile,image,suspend_status',
                 'class:id,title,image',
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
@@ -313,7 +314,8 @@ class ClassController extends Controller
                 'end_date'
             )
             ->with([
-                'teacher:id,name,image,intro_video,country,timezone,about,specializations,languages_spoken,courses_can_teach,interests',
+                'teacher:id,user_id,intro_video,country,timezone,about,specializations,languages_spoken,courses_can_teach,interests',
+                'teacher.user:id,name,email,mobile,image,suspend_status',
                 'class:id,title,image,description,price',
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
@@ -439,7 +441,10 @@ class ClassController extends Controller
         $batchesByClass = Batch::query()
             ->whereIn('class_id', $items->pluck('id'))
             ->whereNotNull('teacher_id')
-            ->with('teacher:id,name,image,about,specializations,languages_spoken,courses_can_teach,interests,country,timezone')
+            ->with([
+                'teacher:id,user_id,about,specializations,languages_spoken,courses_can_teach,interests,country,timezone',
+                'teacher.user:id,name,email,mobile,image,suspend_status',
+            ])
             ->get(['id', 'class_id', 'teacher_id', 'name', 'active_status', 'status'])
             ->groupBy('class_id');
 
