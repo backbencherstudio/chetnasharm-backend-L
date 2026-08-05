@@ -57,12 +57,17 @@ class ClassController extends Controller
      */
     public function store(Request $request)
     {
+        $this->normalizeCurriculumInput($request);
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'short_description' => 'nullable|string',
             'who_is_for' => 'nullable|string',
-            'curriculum' => 'nullable|string',
+            'curriculum' => 'nullable|array',
+            'curriculum.*.title' => 'required|string|max:255',
+            'curriculum.*.keypoints' => 'required|array|min:1',
+            'curriculum.*.keypoints.*' => 'required|string|max:500',
             'is_class_recording' => 'nullable|in:0,1',
             'price' => 'required|numeric|min:0',
             'duration_in_days' => 'required|integer|min:1',
@@ -126,12 +131,17 @@ class ClassController extends Controller
             ], 404);
         }
 
+        $this->normalizeCurriculumInput($request);
+
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'short_description' => 'nullable|string',
             'who_is_for' => 'nullable|string',
-            'curriculum' => 'nullable|string',
+            'curriculum' => 'nullable|array',
+            'curriculum.*.title' => 'required|string|max:255',
+            'curriculum.*.keypoints' => 'required|array|min:1',
+            'curriculum.*.keypoints.*' => 'required|string|max:500',
             'is_class_recording' => 'nullable|in:0,1',
             'price' => 'sometimes|numeric|min:0',
             'duration_in_days' => 'sometimes|integer|min:1',
@@ -393,6 +403,24 @@ class ClassController extends Controller
             'message' => 'Class fetched successfully',
             'data' => $class,
         ]);
+    }
+
+    /**
+     * Accept curriculum as an array or JSON string (multipart-friendly).
+     */
+    private function normalizeCurriculumInput(Request $request): void
+    {
+        $curriculum = $request->input('curriculum');
+
+        if (! is_string($curriculum)) {
+            return;
+        }
+
+        $decoded = json_decode($curriculum, true);
+
+        if (json_last_error() === JSON_ERROR_NONE) {
+            $request->merge(['curriculum' => $decoded]);
+        }
     }
 
     /**

@@ -83,7 +83,17 @@ class DemoDataSeeder extends Seeder
                 'description' => 'A complete course to build your confidence in speaking English fluently in daily life.',
                 'short_description' => 'Speak English fluently and confidently.',
                 'who_is_for' => 'Beginners to intermediate learners who want to improve their speaking skills.',
-                'curriculum' => 'Grammar basics, daily conversation practice, pronunciation drills, public speaking.',
+                'curriculum' => [
+                    [
+                        'title' => 'Speaking Foundations',
+                        'keypoints' => [
+                            'Grammar basics',
+                            'Daily conversation practice',
+                            'Pronunciation drills',
+                            'Public speaking',
+                        ],
+                    ],
+                ],
                 'price' => 3000,
                 'duration_in_days' => 90,
                 'total_classes' => 24,
@@ -94,7 +104,24 @@ class DemoDataSeeder extends Seeder
                 'description' => 'Comprehensive IELTS training covering all four modules with mock tests and feedback.',
                 'short_description' => 'Get your desired IELTS band score.',
                 'who_is_for' => 'Students planning to study abroad or migrate.',
-                'curriculum' => 'Listening, Reading, Writing, Speaking modules, mock tests, one-on-one feedback.',
+                'curriculum' => [
+                    [
+                        'title' => 'IELTS Modules',
+                        'keypoints' => [
+                            'Listening',
+                            'Reading',
+                            'Writing',
+                            'Speaking',
+                        ],
+                    ],
+                    [
+                        'title' => 'Practice & Feedback',
+                        'keypoints' => [
+                            'Mock tests',
+                            'One-on-one feedback',
+                        ],
+                    ],
+                ],
                 'price' => 5000,
                 'duration_in_days' => 120,
                 'total_classes' => 30,
@@ -105,7 +132,18 @@ class DemoDataSeeder extends Seeder
                 'description' => 'English communication skills for professionals: emails, meetings, presentations and negotiations.',
                 'short_description' => 'Excel in the corporate world with professional English.',
                 'who_is_for' => 'Professionals and job seekers who need English at work.',
-                'curriculum' => 'Business writing, meetings, presentations, negotiation skills, email etiquette.',
+                'curriculum' => [
+                    [
+                        'title' => 'Workplace Communication',
+                        'keypoints' => [
+                            'Business writing',
+                            'Meetings',
+                            'Presentations',
+                            'Negotiation skills',
+                            'Email etiquette',
+                        ],
+                    ],
+                ],
                 'price' => 4000,
                 'duration_in_days' => 60,
                 'total_classes' => 18,

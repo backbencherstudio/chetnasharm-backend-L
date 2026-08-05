@@ -29,6 +29,7 @@ class ClassModel extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'curriculum' => 'array',
     ];
 
     protected $appends = ['image_url'];

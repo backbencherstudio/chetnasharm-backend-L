@@ -36,7 +36,12 @@ function createClassWithBatchTeachers(): array
         'description' => 'Full course',
         'short_description' => 'Speak better',
         'who_is_for' => 'Beginners',
-        'curriculum' => 'Grammar and conversation',
+        'curriculum' => [
+            [
+                'title' => 'Foundations',
+                'keypoints' => ['Grammar', 'Conversation'],
+            ],
+        ],
         'price' => 3000,
         'duration_in_days' => 90,
         'total_classes' => 24,

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('classes', function (Blueprint $table) {
             $table->text('short_description')->nullable()->after('description');
             $table->text('who_is_for')->nullable()->after('short_description');
-            $table->text('curriculum')->nullable()->after('who_is_for');
+            $table->json('curriculum')->nullable()->after('who_is_for');
             $table->tinyInteger('is_class_recording')->default(0)->after('curriculum');
         });
     }
