@@ -269,7 +269,7 @@ class ClassController extends Controller
                 'end_date'
             )
             ->with([
-                'teacher:id,name,image,intro_video,country,timezone',
+                'teacher:id,name,image,intro_video,country,timezone,about,specializations,languages_spoken,courses_can_teach,interests',
                 'class:id,title,image',
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
@@ -313,7 +313,7 @@ class ClassController extends Controller
                 'end_date'
             )
             ->with([
-                'teacher:id,name,image,intro_video,country,timezone',
+                'teacher:id,name,image,intro_video,country,timezone,about,specializations,languages_spoken,courses_can_teach,interests',
                 'class:id,title,image,description,price',
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
@@ -439,7 +439,7 @@ class ClassController extends Controller
         $batchesByClass = Batch::query()
             ->whereIn('class_id', $items->pluck('id'))
             ->whereNotNull('teacher_id')
-            ->with('teacher:id,name,image')
+            ->with('teacher:id,name,image,about,specializations,languages_spoken,courses_can_teach,interests,country,timezone')
             ->get(['id', 'class_id', 'teacher_id', 'name', 'active_status', 'status'])
             ->groupBy('class_id');
 
@@ -459,6 +459,13 @@ class ClassController extends Controller
                         'id' => $teacher->id,
                         'name' => $teacher->name,
                         'image' => $teacher->image,
+                        'about' => $teacher->about,
+                        'specializations' => $teacher->specializations ?? [],
+                        'languages_spoken' => $teacher->languages_spoken ?? [],
+                        'courses_can_teach' => $teacher->courses_can_teach ?? [],
+                        'interests' => $teacher->interests ?? [],
+                        'country' => $teacher->country,
+                        'timezone' => $teacher->timezone,
                         'batches_count' => $teacherBatches->count(),
                         'batches' => $teacherBatches->map(fn (Batch $batch) => [
                             'id' => $batch->id,

@@ -60,6 +60,11 @@ class TeacherController extends Controller
                     'country' => $t->country,
                     'timezone' => $t->timezone,
                     'bio' => $t->bio,
+                    'about' => $t->about,
+                    'specializations' => $t->specializations ?? [],
+                    'languages_spoken' => $t->languages_spoken ?? [],
+                    'courses_can_teach' => $t->courses_can_teach ?? [],
+                    'interests' => $t->interests ?? [],
                     'expertise' => $t->expertise,
                     'qualification' => $t->qualification,
                     'years_of_exp' => $t->years_of_exp,
@@ -87,6 +92,8 @@ class TeacherController extends Controller
      */
     public function store(Request $request)
     {
+        $this->normalizeProfileArrayInputs($request);
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:teachers,email|unique:users,email',
@@ -94,6 +101,15 @@ class TeacherController extends Controller
             'country' => 'nullable|string|max:100',
             'timezone' => 'nullable|timezone',
             'bio' => 'nullable|string',
+            'about' => 'nullable|string',
+            'specializations' => 'nullable|array',
+            'specializations.*' => 'required|string|max:255',
+            'languages_spoken' => 'nullable|array',
+            'languages_spoken.*' => 'required|string|max:100',
+            'courses_can_teach' => 'nullable|array',
+            'courses_can_teach.*' => 'required|string|max:255',
+            'interests' => 'nullable|array',
+            'interests.*' => 'required|string|max:255',
             'qualification' => 'nullable|string|max:500',
             'expertise' => 'nullable|string|max:255',
             'years_of_exp' => 'nullable|integer|min:0',
@@ -167,6 +183,11 @@ class TeacherController extends Controller
                     'email' => $teacher->email,
                     'country' => $teacher->country,
                     'timezone' => $teacher->timezone,
+                    'about' => $teacher->about,
+                    'specializations' => $teacher->specializations ?? [],
+                    'languages_spoken' => $teacher->languages_spoken ?? [],
+                    'courses_can_teach' => $teacher->courses_can_teach ?? [],
+                    'interests' => $teacher->interests ?? [],
                     'user' => [
                         'id' => $user->id,
                         'email' => $user->email,
@@ -204,6 +225,11 @@ class TeacherController extends Controller
                 'country' => $teacher->country,
                 'timezone' => $teacher->timezone,
                 'bio' => $teacher->bio,
+                'about' => $teacher->about,
+                'specializations' => $teacher->specializations ?? [],
+                'languages_spoken' => $teacher->languages_spoken ?? [],
+                'courses_can_teach' => $teacher->courses_can_teach ?? [],
+                'interests' => $teacher->interests ?? [],
                 'expertise' => $teacher->expertise,
                 'years_of_exp' => $teacher->years_of_exp,
                 'qualification' => $teacher->qualification,
@@ -227,6 +253,8 @@ class TeacherController extends Controller
         $teacher = Teacher::with('user')->findOrFail($id);
         $linkedUser = $teacher->user;
 
+        $this->normalizeProfileArrayInputs($request);
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$teacher->user_id,
@@ -234,6 +262,15 @@ class TeacherController extends Controller
             'country' => 'nullable|string|max:100',
             'timezone' => 'nullable|timezone',
             'bio' => 'nullable|string',
+            'about' => 'nullable|string',
+            'specializations' => 'nullable|array',
+            'specializations.*' => 'required|string|max:255',
+            'languages_spoken' => 'nullable|array',
+            'languages_spoken.*' => 'required|string|max:100',
+            'courses_can_teach' => 'nullable|array',
+            'courses_can_teach.*' => 'required|string|max:255',
+            'interests' => 'nullable|array',
+            'interests.*' => 'required|string|max:255',
             'expertise' => 'nullable|string|max:255',
             'qualification' => 'nullable|string|max:500',
             'years_of_exp' => 'nullable|integer|min:0',
@@ -310,6 +347,11 @@ class TeacherController extends Controller
                     'email' => $teacher->email,
                     'country' => $teacher->country,
                     'timezone' => $teacher->timezone,
+                    'about' => $teacher->about,
+                    'specializations' => $teacher->specializations ?? [],
+                    'languages_spoken' => $teacher->languages_spoken ?? [],
+                    'courses_can_teach' => $teacher->courses_can_teach ?? [],
+                    'interests' => $teacher->interests ?? [],
                     'user_id' => $teacher->user_id,
                 ],
             ], 200);
@@ -398,11 +440,18 @@ class TeacherController extends Controller
                 'id',
                 'name',
                 'bio',
+                'about',
+                'specializations',
+                'languages_spoken',
+                'courses_can_teach',
+                'interests',
                 'expertise',
                 'qualification',
                 'years_of_exp',
                 'image',
                 'intro_video',
+                'country',
+                'timezone',
                 'is_top'
             )
             ->latest()
@@ -435,6 +484,11 @@ class TeacherController extends Controller
                 'id',
                 'name',
                 'bio',
+                'about',
+                'specializations',
+                'languages_spoken',
+                'courses_can_teach',
+                'interests',
                 'expertise',
                 'qualification',
                 'years_of_exp',
@@ -519,6 +573,11 @@ class TeacherController extends Controller
                 'id' => $teacher->id,
                 'name' => $teacher->name,
                 'bio' => $teacher->bio,
+                'about' => $teacher->about,
+                'specializations' => $teacher->specializations ?? [],
+                'languages_spoken' => $teacher->languages_spoken ?? [],
+                'courses_can_teach' => $teacher->courses_can_teach ?? [],
+                'interests' => $teacher->interests ?? [],
                 'expertise' => $teacher->expertise,
                 'qualification' => $teacher->qualification,
                 'years_of_exp' => $teacher->years_of_exp,
@@ -578,5 +637,25 @@ class TeacherController extends Controller
                 'timezone' => $teacher->timezone,
             ],
         ]);
+    }
+
+    /**
+     * Accept profile array fields as arrays or JSON strings (multipart-friendly).
+     */
+    private function normalizeProfileArrayInputs(Request $request): void
+    {
+        foreach (['specializations', 'languages_spoken', 'courses_can_teach', 'interests'] as $field) {
+            $value = $request->input($field);
+
+            if (! is_string($value)) {
+                continue;
+            }
+
+            $decoded = json_decode($value, true);
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge([$field => $decoded]);
+            }
+        }
     }
 }

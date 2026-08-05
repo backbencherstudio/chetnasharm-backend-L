@@ -13,6 +13,11 @@ class Teacher extends Model
         'country',
         'timezone',
         'bio',
+        'about',
+        'specializations',
+        'languages_spoken',
+        'courses_can_teach',
+        'interests',
         'expertise',
         'qualification',
         'years_of_exp',
@@ -21,6 +26,13 @@ class Teacher extends Model
         'suspend_status',
         'is_top',
         'user_id',
+    ];
+
+    protected $casts = [
+        'specializations' => 'array',
+        'languages_spoken' => 'array',
+        'courses_can_teach' => 'array',
+        'interests' => 'array',
     ];
 
     protected $appends = ['image_url', 'intro_video_url'];
