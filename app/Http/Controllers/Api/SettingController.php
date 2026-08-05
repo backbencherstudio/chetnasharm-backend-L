@@ -17,12 +17,7 @@ class SettingController extends Controller
      */
     public function __construct(private IntegrationConfig $integrationConfig) {}
 
-    /**
-     * Display the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function show()
+    public function show(): JsonResponse
     {
         $setting = Setting::query()->first();
 
@@ -33,12 +28,7 @@ class SettingController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function update(Request $request)
+    public function update(Request $request): JsonResponse
     {
         $request->validate([
             'class_time' => 'required|integer|min:1',
@@ -72,12 +62,7 @@ class SettingController extends Controller
         ]);
     }
 
-    /**
-     * Get the configured class duration.
-     *
-     * @return JsonResponse
-     */
-    public function getClassTime()
+    public function getClassTime(): JsonResponse
     {
         $time = Setting::select('class_time')->first();
 
@@ -95,12 +80,7 @@ class SettingController extends Controller
         ]);
     }
 
-    /**
-     * Fetch notification logs.
-     *
-     * @return JsonResponse
-     */
-    public function logs(Request $request)
+    public function logs(Request $request): JsonResponse
     {
         $perPage = Pagination::perPage($request);
 
@@ -110,11 +90,11 @@ class SettingController extends Controller
         ]);
 
         if ($request->filled('search')) {
-            $search = trim($request->search);
+            $search = trim((string) $request->search);
 
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search): void {
                 $q->where('message', 'like', "%{$search}%")
-                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                    ->orWhereHas('user', function ($userQuery) use ($search): void {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
                     });
@@ -146,12 +126,7 @@ class SettingController extends Controller
         ]);
     }
 
-    /**
-     * Get public support contact settings.
-     *
-     * @return JsonResponse
-     */
-    public function support()
+    public function support(): JsonResponse
     {
         $setting = Setting::select('support_number', 'support_email')->first();
 

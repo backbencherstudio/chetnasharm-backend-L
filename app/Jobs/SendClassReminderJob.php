@@ -7,6 +7,8 @@ use App\Models\Setting;
 use App\Notifications\ClassReminderNotification;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -40,17 +42,17 @@ class SendClassReminderJob implements ShouldBeUnique, ShouldQueue
                 'batch.enrollments.user:id,name,email,mobile',
             ])
             ->where('day_of_week', $todayWeekDay)
-            ->where(function ($query) use ($currentDate) {
+            ->where(function (Builder $query) use ($currentDate): void {
                 $query->whereNull('reminder_sent_date')
                     ->orWhereDate('reminder_sent_date', '!=', $currentDate);
             })
-            ->whereHas('batch', function ($query) use ($currentDate) {
+            ->whereHas('batch', function (Builder $query) use ($currentDate): void {
                 $query->whereDate('start_date', '<=', $currentDate)
                     ->whereDate('end_date', '>=', $currentDate);
             })
             ->where('start_time', '>', $currentTime)
             ->where('start_time', '<=', $windowEndTime)
-            ->chunkById(200, function ($schedules) use ($currentDate) {
+            ->chunkById(200, function (Collection $schedules) use ($currentDate): void {
                 foreach ($schedules as $schedule) {
                     $this->sendRemindersForSchedule($schedule, $currentDate);
                 }

@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\Enrollment;
 use App\Models\NotificationLog;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
@@ -13,34 +14,23 @@ class EnrollmentNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    protected $enrollment;
-
     /**
      * Create a new class instance.
-     *
-     * @return void
      */
-    public function __construct($enrollment)
+    public function __construct(protected Enrollment $enrollment)
     {
-        $this->enrollment = $enrollment->load('batch.class', 'batch.schedules');
+        $this->enrollment->load('batch.class', 'batch.schedules');
     }
 
     /**
-     * Get the notification delivery channels.
-     *
      * @return array<int, string>
      */
-    public function via($notifiable)
+    public function via(object $notifiable): array
     {
         return ['mail'];
     }
 
-    /**
-     * Build the enrollment confirmation mail message.
-     *
-     * @return MailMessage
-     */
-    public function toMail($notifiable)
+    public function toMail(object $notifiable): MailMessage
     {
         $batch = $this->enrollment->batch;
         $class = $batch->class;
@@ -55,7 +45,7 @@ class EnrollmentNotification extends Notification implements ShouldQueue
             6 => 'Saturday',
         ];
 
-        $schedules = $batch->schedules->map(function ($schedule) use ($days) {
+        $schedules = $batch->schedules->map(function (object $schedule) use ($days): array {
             return [
                 'day' => $days[$schedule->day_of_week] ?? 'Unknown',
                 'start' => Carbon::parse($schedule->start_time)->format('H:i'),

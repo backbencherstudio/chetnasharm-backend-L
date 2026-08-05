@@ -65,7 +65,7 @@ class WhatsAppChannel
                                 [
                                     'type' => 'body',
                                     'parameters' => collect($template['body_parameters'] ?? [])
-                                        ->map(fn ($text) => ['type' => 'text', 'text' => (string) $text])
+                                        ->map(fn (mixed $text): array => ['type' => 'text', 'text' => (string) $text])
                                         ->values()
                                         ->all(),
                                 ],
