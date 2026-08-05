@@ -1,59 +1,144 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Chetnasharm Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel API backend for the Chetnasharm / Listenact learning platform. It powers admin, teacher, and student flows for classes, batches, enrollments, payments, assignments, attendance, and class reminders.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.3
+- Laravel 13
+- JWT auth (`tymon/jwt-auth`)
+- Spatie roles & permissions (`admin`, `teacher`, `student`)
+- Stripe & PayPal payments
+- Meta WhatsApp Cloud API (class reminders)
+- Google OAuth (Socialite)
+- Pest / PHPUnit
+- Laravel Envoy (deploy)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Public class/batch browsing and teacher profiles
+- Admin CRUD for users, teachers, classes, batches, settings
+- Teacher availability, schedules, attendance, notes, assignments
+- Student enrollment, payments, waitlists, activity notes
+- Integration credentials (Stripe / PayPal / WhatsApp) stored in `settings.integrations`
+- Social links API for the website footer
+- Scheduled class reminders (email + WhatsApp)
 
-## Learning Laravel
+## Requirements
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- PHP 8.3+
+- Composer
+- MySQL (or SQLite for local/tests)
+- Node.js (optional, for Vite assets)
+- Queue worker (for notifications / reminders)
+- Cron / scheduler (`php artisan schedule:run`)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Setup
 
-## Laravel Sponsors
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan jwt:secret
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Configure database and mail in `.env`, then:
 
-### Premium Partners
+```bash
+php artisan migrate --seed
+# or
+php artisan migrate:fresh --seed
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Default seeded admin (from `DatabaseSeeder`):
 
-## Contributing
+- Email: `admin@gmail.com`
+- Password: `12345678`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Run the app:
 
-## Code of Conduct
+```bash
+composer run dev
+# or
+php artisan serve
+php artisan queue:listen
+php artisan schedule:work
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+API base URL: `http://localhost:8000/api`
 
-## Security Vulnerabilities
+## Useful Composer scripts
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+| Script | Purpose |
+|--------|---------|
+| `composer run dev` | Serve app + queue + logs + Vite |
+| `composer test` | Run the test suite |
+| `composer deploy` | Envoy: pull `mahmudul` branch + migrate |
+| `composer deploy:fresh` | Envoy: pull + `migrate:fresh --seed` |
+
+### Envoy deploy
+
+Set in `.env`:
+
+```env
+DEPLOY_SERVER=user@your-server
+DEPLOY_PATH=/var/www/chetnasharm
+DEPLOY_BRANCH=mahmudul
+DEPLOY_PHP=php
+```
+
+SSH access to the server must already work. Then:
+
+```bash
+composer deploy
+composer deploy:fresh   # destructive: wipes DB and reseeds
+```
+
+## Important API groups
+
+| Area | Examples |
+|------|----------|
+| Auth | `/api/login`, `/api/register`, `/api/auth/google` |
+| Public | `/api/single-class/{id}`, `/api/batches/{classId}`, `/api/social-links`, `/api/support` |
+| Admin | `/api/admin/*` (users, teachers, classes, batches, settings, env-settings) |
+| Teacher | `/api/teacher/*` (availability, students, assignments, attendance) |
+| Student | enrollment, payments, waitlist, recordings |
+
+Integration credentials admin routes (DB-backed, not `.env`):
+
+- `GET /api/admin/env-settings`
+- `POST /api/admin/env-settings`
+
+Social links:
+
+- `GET /api/social-links`
+- `GET /api/admin/social-links`
+- `PUT /api/admin/social-links`
+
+## Testing
+
+```bash
+php artisan test --compact
+# or a single file
+php artisan test --compact tests/Feature/EnvSettingsTest.php
+```
+
+## Project structure (high level)
+
+```
+app/
+  Http/Controllers/Api/   # API controllers
+  Models/                 # Eloquent models
+  Notifications/          # Mail + WhatsApp reminders
+  Jobs/                   # Scheduled reminder job
+  Common/                 # Shared helpers (pagination, integrations, phone)
+database/
+  migrations/
+  seeders/                # RolePermission, DemoData, etc.
+routes/api.php
+Envoy.blade.php           # Remote deploy tasks
+```
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Proprietary — Chetnasharm / Listenact project.
