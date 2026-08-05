@@ -68,7 +68,7 @@
 
 @task('migrate-fresh', ['on' => 'web'])
     cd {{ $path }}
-    {{ $php }} artisan migrate:fresh --force
+    {{ $php }} artisan migrate:fresh --seed --force
 @endtask
 
 @task('optimize', ['on' => 'web'])
