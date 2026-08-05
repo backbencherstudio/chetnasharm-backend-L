@@ -11,12 +11,8 @@ use Illuminate\Support\Facades\Storage;
 
 class VocabularyController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function index(Request $request)
+    /** List vocabularies with optional search filtering. */
+    public function index(Request $request): JsonResponse
     {
         $query = Vocabulary::query();
 
@@ -38,12 +34,8 @@ class VocabularyController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Create a vocabulary entry. */
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'word' => 'required|string|max:255|unique:vocabularies,word',
@@ -68,12 +60,8 @@ class VocabularyController extends Controller
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function show($id)
+    /** Show a single vocabulary entry. */
+    public function show(int $id): JsonResponse
     {
         $vocabulary = Vocabulary::find($id);
 
@@ -90,12 +78,8 @@ class VocabularyController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function update(Request $request, $id)
+    /** Update a vocabulary entry. */
+    public function update(Request $request, int $id): JsonResponse
     {
         $vocabulary = Vocabulary::findOrFail($id);
 
@@ -127,12 +111,8 @@ class VocabularyController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function destroy($id)
+    /** Delete a vocabulary entry. */
+    public function destroy(int $id): JsonResponse
     {
         $vocabulary = Vocabulary::findOrFail($id);
 
@@ -148,12 +128,8 @@ class VocabularyController extends Controller
         ]);
     }
 
-    /**
-     * List vocabularies for the frontend.
-     *
-     * @return JsonResponse
-     */
-    public function vocabularies(Request $request)
+    /** List active vocabularies for the frontend. */
+    public function vocabularies(Request $request): JsonResponse
     {
         $perPage = Pagination::perPage($request);
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BatchSchedule extends Model
 {
@@ -16,12 +17,14 @@ class BatchSchedule extends Model
         'reminder_sent_date',
     ];
 
-    public function batch()
+    /** Get the batch this schedule belongs to. */
+    public function batch(): BelongsTo
     {
         return $this->belongsTo(Batch::class);
     }
 
-    public function teacher()
+    /** Get the teacher assigned to this schedule. */
+    public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
     }

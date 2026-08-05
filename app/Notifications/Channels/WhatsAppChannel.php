@@ -10,17 +10,10 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsAppChannel
 {
+    /** Create a new WhatsApp notification channel. */
     public function __construct(private IntegrationConfig $integrationConfig) {}
 
-    /**
-     * Send a WhatsApp Cloud API template message.
-     *
-     * Expected payload from toWhatsapp():
-     * - to: E.164 digits (no +)
-     * - message: human-readable log text
-     * - batch_id: optional
-     * - template.name / template.language / template.body_parameters
-     */
+    /** Send a WhatsApp Cloud API template message. */
     public function send(object $notifiable, Notification $notification): void
     {
         if (! method_exists($notification, 'toWhatsapp')) {
@@ -98,9 +91,7 @@ class WhatsAppChannel
         $this->log($notifiable, $payload, $status, $errorMessage);
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
+    /** Persist a notification log entry for the WhatsApp attempt. */
     private function log(object $notifiable, array $payload, string $status, ?string $errorMessage = null): void
     {
         if (! isset($notifiable->id, $payload['batch_id'])) {

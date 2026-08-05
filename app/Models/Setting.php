@@ -22,9 +22,7 @@ class Setting extends Model
         'integrations' => 'array',
     ];
 
-    /**
-     * @return array{youtube: ?string, tiktok: ?string, instagram: ?string, linkedin: ?string, facebook: ?string}
-     */
+    /** Return default social link placeholders. */
     public static function defaultSocialLinks(): array
     {
         return [
@@ -36,21 +34,13 @@ class Setting extends Model
         ];
     }
 
-    /**
-     * @return array{youtube: ?string, tiktok: ?string, instagram: ?string, linkedin: ?string, facebook: ?string}
-     */
+    /** Merge stored social links with defaults. */
     public function resolvedSocialLinks(): array
     {
         return array_merge(self::defaultSocialLinks(), $this->social_links ?? []);
     }
 
-    /**
-     * @return array{
-     *     stripe: array{key: ?string, secret: ?string, webhook_secret: ?string},
-     *     paypal: array{client_id: ?string, client_secret: ?string, mode: ?string, base_url: ?string},
-     *     whatsapp: array{token: ?string, phone_number_id: ?string, url: ?string}
-     * }
-     */
+    /** Return default third-party integration placeholders. */
     public static function defaultIntegrations(): array
     {
         return [
@@ -73,13 +63,7 @@ class Setting extends Model
         ];
     }
 
-    /**
-     * @return array{
-     *     stripe: array{key: ?string, secret: ?string, webhook_secret: ?string},
-     *     paypal: array{client_id: ?string, client_secret: ?string, mode: ?string, base_url: ?string},
-     *     whatsapp: array{token: ?string, phone_number_id: ?string, url: ?string}
-     * }
-     */
+    /** Merge stored integrations with defaults. */
     public function resolvedIntegrations(): array
     {
         return array_replace_recursive(self::defaultIntegrations(), $this->integrations ?? []);

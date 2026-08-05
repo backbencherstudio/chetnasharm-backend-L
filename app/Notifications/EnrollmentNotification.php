@@ -14,22 +14,19 @@ class EnrollmentNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    /**
-     * Create a new class instance.
-     */
+    /** Create a new enrollment confirmation notification. */
     public function __construct(protected Enrollment $enrollment)
     {
         $this->enrollment->load('batch.class', 'batch.schedules');
     }
 
-    /**
-     * @return array<int, string>
-     */
+    /** Get the notification delivery channels. */
     public function via(object $notifiable): array
     {
         return ['mail'];
     }
 
+    /** Build the enrollment confirmation mail message. */
     public function toMail(object $notifiable): MailMessage
     {
         $batch = $this->enrollment->batch;

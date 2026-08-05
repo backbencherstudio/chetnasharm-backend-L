@@ -14,12 +14,8 @@ use Illuminate\Support\Facades\Storage;
 
 class TeacherNoteController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function index(Request $request, $batch_id)
+    /** List teacher notes for a batch. */
+    public function index(Request $request, int $batch_id): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -79,12 +75,8 @@ class TeacherNoteController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Create a teacher note for a batch. */
+    public function store(Request $request): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -158,12 +150,8 @@ class TeacherNoteController extends Controller
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function show($id)
+    /** Show a single teacher note. */
+    public function show(int $id): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -220,12 +208,8 @@ class TeacherNoteController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function update(Request $request, $id)
+    /** Update a teacher note. */
+    public function update(Request $request, int $id): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -301,12 +285,8 @@ class TeacherNoteController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function destroy($id)
+    /** Delete a teacher note. */
+    public function destroy(int $id): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -344,12 +324,8 @@ class TeacherNoteController extends Controller
         ]);
     }
 
-    /**
-     * List resources available to an enrolled student.
-     *
-     * @return JsonResponse
-     */
-    public function forStudent(Request $request, $batch_id)
+    /** List teacher notes for an enrolled student in a batch. */
+    public function forStudent(Request $request, int $batch_id): JsonResponse
     {
         $user = auth('api')->user();
 

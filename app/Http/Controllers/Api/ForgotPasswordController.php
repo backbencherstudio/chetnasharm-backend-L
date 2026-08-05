@@ -14,12 +14,8 @@ use Illuminate\Support\Facades\Validator;
 
 class ForgotPasswordController extends Controller
 {
-    /**
-     * Send a password reset OTP to the user email.
-     *
-     * @return JsonResponse
-     */
-    public function sendOtp(Request $request)
+    /** Send a password reset OTP to the user's email. */
+    public function sendOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
@@ -54,12 +50,8 @@ class ForgotPasswordController extends Controller
         ]);
     }
 
-    /**
-     * Verify a password reset OTP.
-     *
-     * @return JsonResponse
-     */
-    public function verifyOtp(Request $request)
+    /** Verify a password reset OTP. */
+    public function verifyOtp(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',
@@ -100,12 +92,8 @@ class ForgotPasswordController extends Controller
         ]);
     }
 
-    /**
-     * Reset the user password using a valid OTP.
-     *
-     * @return JsonResponse
-     */
-    public function resetPassword(Request $request)
+    /** Reset the user password using a valid OTP. */
+    public function resetPassword(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|exists:users,email',

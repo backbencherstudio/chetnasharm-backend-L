@@ -13,20 +13,14 @@ use Stripe\Webhook;
 
 class WebhookController extends Controller
 {
-    /**
-     * Create a new class instance.
-     */
+    /** Inject payment enrollment and integration dependencies. */
     public function __construct(
         private EnrollStudentFromPayment $enrollStudentFromPayment,
         private IntegrationConfig $integrationConfig,
     ) {}
 
-    /**
-     * Handle Stripe webhook events.
-     *
-     * @return JsonResponse
-     */
-    public function stripeWebhook(Request $request)
+    /** Handle Stripe webhook events. */
+    public function stripeWebhook(Request $request): JsonResponse
     {
         $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
@@ -132,7 +126,7 @@ class WebhookController extends Controller
             $payment = Payment::find($session->metadata->payment_id);
 
             if (! $payment) {
-                return;
+                return response()->json(['status' => 'success']);
             }
 
             if ($payment->status === 'pending') {

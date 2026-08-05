@@ -14,19 +14,11 @@ use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
-    /**
-     * Create a new class instance.
-     *
-     * @return void
-     */
+    /** Create a new class instance. */
     public function __construct(private EnrollStudentFromPayment $enrollStudentFromPayment) {}
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function index(Request $request)
+    /** List payments for the authenticated user or all payments for admins. */
+    public function index(Request $request): JsonResponse
     {
         $authUser = auth('api')->user();
 
@@ -71,12 +63,8 @@ class TransactionController extends Controller
         ]);
     }
 
-    /**
-     * Mark a payment as paid and enroll the student.
-     *
-     * @return JsonResponse
-     */
-    public function markAsPaid(Request $request, $id)
+    /** Mark a payment as paid and enroll the student. */
+    public function markAsPaid(Request $request, int $id): JsonResponse
     {
         $payment = Payment::find($id);
 

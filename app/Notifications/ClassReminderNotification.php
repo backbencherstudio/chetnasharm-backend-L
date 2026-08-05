@@ -19,14 +19,13 @@ class ClassReminderNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /** Create a new class reminder notification. */
     public function __construct(
         public Batch $batch,
         public BatchSchedule $schedule,
     ) {}
 
-    /**
-     * @return array<int, string>
-     */
+    /** Get the notification delivery channels. */
     public function via(object $notifiable): array
     {
         $channels = ['mail'];
@@ -38,6 +37,7 @@ class ClassReminderNotification extends Notification implements ShouldQueue
         return $channels;
     }
 
+    /** Build the class reminder mail message. */
     public function toMail(object $notifiable): ?MailMessage
     {
         $time = $this->startTime();
@@ -82,9 +82,7 @@ class ClassReminderNotification extends Notification implements ShouldQueue
         }
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
+    /** Build the WhatsApp template payload for this reminder. */
     public function toWhatsapp(object $notifiable): ?array
     {
         $to = $this->normalizedMobile($notifiable->mobile ?? null);
@@ -113,16 +111,19 @@ class ClassReminderNotification extends Notification implements ShouldQueue
         ];
     }
 
+    /** Format the scheduled class start time for display. */
     private function startTime(): string
     {
         return Carbon::parse($this->schedule->start_time)->format('h:i A');
     }
 
+    /** Build the human-readable reminder message text. */
     private function reminderText(): string
     {
         return "Your class {$this->batch->name} starts at {$this->startTime()}";
     }
 
+    /** Normalize a mobile number to E.164 digits without the plus sign. */
     private function normalizedMobile(?string $mobile): ?string
     {
         if (blank($mobile)) {

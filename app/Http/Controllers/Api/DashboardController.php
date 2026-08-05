@@ -17,12 +17,8 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    /**
-     * Get monthly student registration totals.
-     *
-     * @return JsonResponse
-     */
-    public function totalStudentMonthly(Request $request)
+    /** Get monthly student registration totals for a year. */
+    public function totalStudentMonthly(Request $request): JsonResponse
     {
         $year = $request->year ?? now()->year;
 
@@ -49,12 +45,8 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * Get monthly enrollment totals.
-     *
-     * @return JsonResponse
-     */
-    public function totalEnrollmentMonthly(Request $request)
+    /** Get monthly enrollment totals for a year. */
+    public function totalEnrollmentMonthly(Request $request): JsonResponse
     {
         $year = $request->year ?? now()->year;
 
@@ -81,12 +73,8 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * Get admin revenue statistics.
-     *
-     * @return JsonResponse
-     */
-    public function revenueStats()
+    /** Get admin revenue and occupancy statistics. */
+    public function revenueStats(): JsonResponse
     {
         $revenueAggregates = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
             ->selectRaw('
@@ -181,12 +169,8 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * Get dashboard data for a teacher.
-     *
-     * @return JsonResponse
-     */
-    public function teacherDashboard()
+    /** Get dashboard statistics and summaries for a teacher. */
+    public function teacherDashboard(): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -278,12 +262,8 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * Get dashboard data for a student.
-     *
-     * @return JsonResponse
-     */
-    public function studentDashboard()
+    /** Get dashboard statistics and summaries for a student. */
+    public function studentDashboard(): JsonResponse
     {
         $user = auth('api')->user();
         $today = now()->startOfDay();

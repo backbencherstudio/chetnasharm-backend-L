@@ -18,12 +18,8 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Create a new admin user. */
+    public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:100'],
@@ -104,12 +100,8 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * Get data for editing the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function edit($id)
+    /** Get a user for editing. */
+    public function edit(int $id): JsonResponse
     {
         $user = User::findOrFail($id);
 
@@ -130,12 +122,8 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function update(Request $request, $id)
+    /** Update the specified user. */
+    public function update(Request $request, int $id): JsonResponse
     {
         $user = User::findOrFail($id);
 
@@ -221,12 +209,8 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * Fetch the paginated list for admin management.
-     *
-     * @return JsonResponse
-     */
-    public function data(Request $request)
+    /** Fetch the paginated user list for admin management. */
+    public function data(Request $request): JsonResponse
     {
         $perPage = Pagination::perPage($request);
         $search = $request->query('search');
@@ -303,12 +287,8 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Toggle the suspend status of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function suspend($id)
+    /** Toggle the suspend status of a user. */
+    public function suspend(int $id): JsonResponse
     {
         $user = User::findOrFail($id);
         if (! $user) {
@@ -359,12 +339,8 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * Update the authenticated user password.
-     *
-     * @return JsonResponse
-     */
-    public function updatePass(Request $request)
+    /** Update the authenticated user password. */
+    public function updatePass(Request $request): JsonResponse
     {
         $user = Auth::guard('api')->user();
 
@@ -405,12 +381,8 @@ class UserController extends Controller
         ], 200);
     }
 
-    /**
-     * Update the authenticated user profile.
-     *
-     * @return JsonResponse
-     */
-    public function profileUpdate(Request $request)
+    /** Update the authenticated user profile. */
+    public function profileUpdate(Request $request): JsonResponse
     {
         $user = Auth::guard('api')->user();
 
@@ -476,12 +448,8 @@ class UserController extends Controller
         ], 200);
     }
 
-    /**
-     * Update a user WhatsApp mobile number.
-     *
-     * @return JsonResponse
-     */
-    public function updateWhatsapp(Request $request)
+    /** Update a user WhatsApp mobile number. */
+    public function updateWhatsapp(Request $request): JsonResponse
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
@@ -511,12 +479,8 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function destroy($id)
+    /** Delete the specified user. */
+    public function destroy(int $id): JsonResponse
     {
         $user = User::findOrFail($id);
 

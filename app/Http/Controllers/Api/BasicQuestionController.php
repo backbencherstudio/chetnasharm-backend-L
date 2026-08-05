@@ -10,12 +10,8 @@ use Illuminate\Http\Request;
 
 class BasicQuestionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function index(Request $request)
+    /** List basic questions with optional search filtering. */
+    public function index(Request $request): JsonResponse
     {
         $query = BasicQuestion::query();
 
@@ -40,12 +36,8 @@ class BasicQuestionController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Create a basic question. */
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'question' => 'required|string',
@@ -65,12 +57,8 @@ class BasicQuestionController extends Controller
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function show($id)
+    /** Show a single basic question. */
+    public function show(int $id): JsonResponse
     {
         $basicQuestion = BasicQuestion::findOrFail($id);
 
@@ -80,12 +68,8 @@ class BasicQuestionController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function update(Request $request, $id)
+    /** Update a basic question. */
+    public function update(Request $request, int $id): JsonResponse
     {
         $basicQuestion = BasicQuestion::findOrFail($id);
 
@@ -108,12 +92,8 @@ class BasicQuestionController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function destroy($id)
+    /** Delete a basic question. */
+    public function destroy(int $id): JsonResponse
     {
         $basicQuestion = BasicQuestion::findOrFail($id);
 
@@ -125,12 +105,8 @@ class BasicQuestionController extends Controller
         ]);
     }
 
-    /**
-     * List resources for the frontend.
-     *
-     * @return JsonResponse
-     */
-    public function frontendList(Request $request)
+    /** List active basic questions for the frontend. */
+    public function frontendList(Request $request): JsonResponse
     {
         $topics = BasicQuestion::where('status', 1)
             ->oldest()

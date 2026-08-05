@@ -17,11 +17,10 @@ class SendClassReminderJob implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
-    /**
-     * Prevent overlapping reminder scans.
-     */
+    /** Prevent overlapping reminder scans. */
     public int $uniqueFor = 55;
 
+    /** Dispatch class reminder notifications for upcoming schedules. */
     public function handle(): void
     {
         $minutes = (int) (Setting::value('class_notify_time') ?: 20);
@@ -59,6 +58,7 @@ class SendClassReminderJob implements ShouldBeUnique, ShouldQueue
             });
     }
 
+    /** Queue reminder notifications for all recipients of a schedule. */
     private function sendRemindersForSchedule(BatchSchedule $schedule, string $currentDate): void
     {
         $batch = $schedule->batch;

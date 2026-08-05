@@ -17,12 +17,8 @@ use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class AuthController extends Controller
 {
-    /**
-     * Authenticate a user and return an access token.
-     *
-     * @return JsonResponse
-     */
-    public function login(Request $request)
+    /** Authenticate a user and return an access token. */
+    public function login(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
@@ -63,12 +59,8 @@ class AuthController extends Controller
         return $this->respondWithToken($token, $user);
     }
 
-    /**
-     * Get the authenticated user profile.
-     *
-     * @return JsonResponse
-     */
-    public function me()
+    /** Get the authenticated user profile. */
+    public function me(): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -101,12 +93,8 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Invalidate the current access token.
-     *
-     * @return JsonResponse
-     */
-    public function logout()
+    /** Invalidate the current access token. */
+    public function logout(): JsonResponse
     {
         auth('api')->logout();
 
@@ -116,12 +104,8 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Refresh the authentication token.
-     *
-     * @return JsonResponse
-     */
-    public function refresh()
+    /** Refresh the authentication token. */
+    public function refresh(): JsonResponse
     {
         try {
             $token = auth('api')->refresh();
@@ -155,12 +139,8 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Build the token response payload.
-     *
-     * @return JsonResponse
-     */
-    protected function respondWithToken($token, $user)
+    /** Build the token response payload. */
+    protected function respondWithToken(string $token, User $user): JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -171,12 +151,8 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Register a new student user.
-     *
-     * @return JsonResponse
-     */
-    public function register(Request $request)
+    /** Register a new student user. */
+    public function register(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -231,24 +207,16 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Redirect the user to Google OAuth.
-     *
-     * @return RedirectResponse
-     */
-    public function googleRedirect()
+    /** Redirect the user to Google OAuth. */
+    public function googleRedirect(): RedirectResponse
     {
         return Socialite::driver('google')->stateless()
             ->with(['prompt' => 'select_account'])
             ->redirect();
     }
 
-    /**
-     * Handle the Google OAuth callback.
-     *
-     * @return RedirectResponse
-     */
-    public function googleCallback()
+    /** Handle the Google OAuth callback. */
+    public function googleCallback(): RedirectResponse
     {
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();

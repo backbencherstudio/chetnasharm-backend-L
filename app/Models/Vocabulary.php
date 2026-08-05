@@ -21,7 +21,8 @@ class Vocabulary extends Model
 
     protected $appends = ['image_url'];
 
-    public function getImageUrlAttribute()
+    /** Get the full URL for the vocabulary image. */
+    public function getImageUrlAttribute(): ?string
     {
         return $this->image ? asset('storage/'.$this->image) : null;
     }

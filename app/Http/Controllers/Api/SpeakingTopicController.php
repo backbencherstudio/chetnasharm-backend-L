@@ -10,12 +10,8 @@ use Illuminate\Http\Request;
 
 class SpeakingTopicController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function index(Request $request)
+    /** List speaking topics with optional search filtering. */
+    public function index(Request $request): JsonResponse
     {
         $query = SpeakingTopic::query();
 
@@ -40,12 +36,8 @@ class SpeakingTopicController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Create a speaking topic. */
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'topic' => 'required|string',
@@ -65,12 +57,8 @@ class SpeakingTopicController extends Controller
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function show($id)
+    /** Show a single speaking topic. */
+    public function show(int $id): JsonResponse
     {
         $topic = SpeakingTopic::findOrFail($id);
 
@@ -80,12 +68,8 @@ class SpeakingTopicController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function update(Request $request, $id)
+    /** Update a speaking topic. */
+    public function update(Request $request, int $id): JsonResponse
     {
         $topic = SpeakingTopic::findOrFail($id);
 
@@ -108,12 +92,8 @@ class SpeakingTopicController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function destroy($id)
+    /** Delete a speaking topic. */
+    public function destroy(int $id): JsonResponse
     {
         $topic = SpeakingTopic::findOrFail($id);
 
@@ -125,12 +105,8 @@ class SpeakingTopicController extends Controller
         ]);
     }
 
-    /**
-     * List resources for the frontend.
-     *
-     * @return JsonResponse
-     */
-    public function frontendList(Request $request)
+    /** List active speaking topics for the frontend. */
+    public function frontendList(Request $request): JsonResponse
     {
         $topics = SpeakingTopic::where('status', 1)
             ->oldest()

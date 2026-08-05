@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TeacherNote extends Model
 {
@@ -15,12 +16,14 @@ class TeacherNote extends Model
         'note_link',
     ];
 
-    public function batch()
+    /** Get the batch this note belongs to. */
+    public function batch(): BelongsTo
     {
         return $this->belongsTo(Batch::class);
     }
 
-    public function teacher()
+    /** Get the user who authored this note. */
+    public function teacher(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }

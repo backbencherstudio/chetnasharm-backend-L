@@ -27,16 +27,19 @@ class StudentActivityNote extends Model
         'status',
     ];
 
+    /** Get the teacher who wrote this note. */
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
     }
 
+    /** Get the batch this note relates to. */
     public function batch(): BelongsTo
     {
         return $this->belongsTo(Batch::class);
     }
 
+    /** Get the student this note is about. */
     public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'student_user_id');

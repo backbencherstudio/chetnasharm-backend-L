@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ClassRecording extends Model
 {
@@ -15,7 +16,8 @@ class ClassRecording extends Model
         'recording_url',
     ];
 
-    public function batch()
+    /** Get the batch this recording belongs to. */
+    public function batch(): BelongsTo
     {
         return $this->belongsTo(Batch::class);
     }

@@ -15,12 +15,8 @@ class AttendanceController extends Controller
 {
     use AuthorizesBatchAccess;
 
-    /**
-     * Get the attendance sheet for a batch date.
-     *
-     * @return JsonResponse
-     */
-    public function getAttendanceSheet(Request $request, $batchId)
+    /** Get the attendance sheet for a batch on a given date. */
+    public function getAttendanceSheet(Request $request, int $batchId): JsonResponse
     {
         $user = auth('api')->user();
         $date = $request->query('date');
@@ -80,12 +76,8 @@ class AttendanceController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Save attendance records for a batch class date. */
+    public function store(Request $request): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -142,12 +134,8 @@ class AttendanceController extends Controller
         ]);
     }
 
-    /**
-     * Update a single attendance record.
-     *
-     * @return JsonResponse
-     */
-    public function updateSingle(Request $request)
+    /** Update a single student's attendance for a class date. */
+    public function updateSingle(Request $request): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -194,12 +182,8 @@ class AttendanceController extends Controller
         ]);
     }
 
-    /**
-     * Get monthly attendance markers for a batch.
-     *
-     * @return JsonResponse
-     */
-    public function getMonthlyAttendance(Request $request, $batchId)
+    /** Get monthly attendance markers for a batch. */
+    public function getMonthlyAttendance(Request $request, int $batchId): JsonResponse
     {
         $user = auth('api')->user();
 

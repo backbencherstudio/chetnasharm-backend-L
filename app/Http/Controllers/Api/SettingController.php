@@ -12,11 +12,10 @@ use Illuminate\Http\Request;
 
 class SettingController extends Controller
 {
-    /**
-     * Create a new class instance.
-     */
+    /** Inject integration configuration dependencies. */
     public function __construct(private IntegrationConfig $integrationConfig) {}
 
+    /** Retrieve application settings. */
     public function show(): JsonResponse
     {
         $setting = Setting::query()->first();
@@ -28,6 +27,7 @@ class SettingController extends Controller
         ]);
     }
 
+    /** Update application settings. */
     public function update(Request $request): JsonResponse
     {
         $request->validate([
@@ -62,6 +62,7 @@ class SettingController extends Controller
         ]);
     }
 
+    /** Retrieve the configured class duration in minutes. */
     public function getClassTime(): JsonResponse
     {
         $time = Setting::select('class_time')->first();
@@ -80,6 +81,7 @@ class SettingController extends Controller
         ]);
     }
 
+    /** List paginated notification logs. */
     public function logs(Request $request): JsonResponse
     {
         $perPage = Pagination::perPage($request);
@@ -126,6 +128,7 @@ class SettingController extends Controller
         ]);
     }
 
+    /** Retrieve public support contact information. */
     public function support(): JsonResponse
     {
         $setting = Setting::select('support_number', 'support_email')->first();
@@ -147,9 +150,7 @@ class SettingController extends Controller
         ]);
     }
 
-    /**
-     * Get public social links.
-     */
+    /** Get public social links. */
     public function socialLinks(): JsonResponse
     {
         $setting = Setting::query()->first();
@@ -161,9 +162,7 @@ class SettingController extends Controller
         ]);
     }
 
-    /**
-     * Get social links for admin.
-     */
+    /** Get social links for admin. */
     public function getSocialLinks(): JsonResponse
     {
         $setting = Setting::query()->first();
@@ -175,9 +174,7 @@ class SettingController extends Controller
         ]);
     }
 
-    /**
-     * Update social links (platform keys are fixed; URLs/phone are editable).
-     */
+    /** Update social links for fixed platform keys. */
     public function updateSocialLinks(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -209,9 +206,7 @@ class SettingController extends Controller
         ]);
     }
 
-    /**
-     * Get masked integration settings for admin.
-     */
+    /** Get masked integration settings for admin. */
     public function getEnvSettings(): JsonResponse
     {
         $stripe = $this->integrationConfig->stripe();
@@ -242,9 +237,7 @@ class SettingController extends Controller
         ]);
     }
 
-    /**
-     * Mask a sensitive setting value.
-     */
+    /** Mask a sensitive setting value for display. */
     private function maskSecret(?string $value): ?string
     {
         if (blank($value)) {
@@ -254,9 +247,7 @@ class SettingController extends Controller
         return '******'.substr($value, -6);
     }
 
-    /**
-     * Update integration settings in the database.
-     */
+    /** Update integration settings in the database. */
     public function updateEnvSettings(Request $request): JsonResponse
     {
         $validated = $request->validate([

@@ -19,20 +19,14 @@ use Stripe\Stripe;
 
 class PaymentController extends Controller
 {
-    /**
-     * Create a new class instance.
-     */
+    /** Inject payment enrollment and integration dependencies. */
     public function __construct(
         private EnrollStudentFromPayment $enrollStudentFromPayment,
         private IntegrationConfig $integrationConfig,
     ) {}
 
-    /**
-     * Create a payment session for a batch enrollment.
-     *
-     * @return JsonResponse
-     */
-    public function createPayment(Request $request)
+    /** Create a payment session for a batch enrollment. */
+    public function createPayment(Request $request): JsonResponse
     {
         $request->validate([
             'batch_id' => 'required|exists:batches,id',
@@ -122,12 +116,8 @@ class PaymentController extends Controller
         }
     }
 
-    /**
-     * Route the payment to the selected gateway.
-     *
-     * @return JsonResponse
-     */
-    private function handlePayment($payment, $batch)
+    /** Route the payment to the selected gateway. */
+    private function handlePayment(Payment $payment, Batch $batch): JsonResponse
     {
         if ($payment->payment_method === 'stripe') {
             return $this->stripeCheckout($payment, $batch);
@@ -158,12 +148,8 @@ class PaymentController extends Controller
         ], 400);
     }
 
-    /**
-     * Create a Stripe checkout session.
-     *
-     * @return JsonResponse
-     */
-    public function stripeCheckout($payment, $batch)
+    /** Create a Stripe checkout session. */
+    public function stripeCheckout(Payment $payment, Batch $batch): JsonResponse
     {
         Stripe::setApiKey($this->integrationConfig->stripe()['secret']);
 
@@ -193,9 +179,7 @@ class PaymentController extends Controller
         ]);
     }
 
-    /**
-     * Resolve the PayPal API base URL.
-     */
+    /** Resolve the PayPal API base URL. */
     private function paypalBaseUrl(): string
     {
         $paypal = $this->integrationConfig->paypal();
@@ -210,12 +194,8 @@ class PaymentController extends Controller
             : 'https://api-m.sandbox.paypal.com';
     }
 
-    /**
-     * Fetch a PayPal OAuth access token.
-     *
-     * @return mixed
-     */
-    private function getPayPalToken()
+    /** Fetch a PayPal OAuth access token. */
+    private function getPayPalToken(): string
     {
         $client = new Client;
         $paypal = $this->integrationConfig->paypal();
@@ -233,12 +213,8 @@ class PaymentController extends Controller
         return json_decode($response->getBody(), true)['access_token'];
     }
 
-    /**
-     * Create a PayPal checkout order.
-     *
-     * @return JsonResponse
-     */
-    public function paypalCheckout($payment, $batch)
+    /** Create a PayPal checkout order. */
+    public function paypalCheckout(Payment $payment, Batch $batch): JsonResponse
     {
         try {
             $token = $this->getPayPalToken();
@@ -314,12 +290,8 @@ class PaymentController extends Controller
         }
     }
 
-    /**
-     * Capture an approved PayPal payment.
-     *
-     * @return RedirectResponse
-     */
-    public function paypalCapture(Request $request)
+    /** Capture an approved PayPal payment. */
+    public function paypalCapture(Request $request): RedirectResponse
     {
         $request->validate([
             'token' => 'required',
@@ -431,12 +403,8 @@ class PaymentController extends Controller
         }
     }
 
-    /**
-     * Generate a unique payment reference ID.
-     *
-     * @return mixed
-     */
-    private function generatePaymentId()
+    /** Generate a unique payment reference ID. */
+    private function generatePaymentId(): int
     {
         do {
             $paymentId = rand(100000, 999999);
@@ -445,12 +413,8 @@ class PaymentController extends Controller
         return $paymentId;
     }
 
-    /**
-     * Handle a cancelled PayPal checkout.
-     *
-     * @return RedirectResponse
-     */
-    public function paypalCancel(Request $request)
+    /** Handle a cancelled PayPal checkout. */
+    public function paypalCancel(Request $request): RedirectResponse
     {
         return redirect()->away(
             config('app.frontend_cancel_url').'?status=cancelled'

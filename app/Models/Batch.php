@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Batch extends Model
@@ -28,26 +29,31 @@ class Batch extends Model
         'end_date' => 'date',
     ];
 
-    public function class()
+    /** Get the class this batch belongs to. */
+    public function class(): BelongsTo
     {
         return $this->belongsTo(ClassModel::class, 'class_id');
     }
 
-    public function schedules()
+    /** Get the weekly schedules for this batch. */
+    public function schedules(): HasMany
     {
         return $this->hasMany(BatchSchedule::class);
     }
 
-    public function teacher()
+    /** Get the teacher assigned to this batch. */
+    public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class, 'teacher_id');
     }
 
-    public function enrollments()
+    /** Get all enrollments for this batch. */
+    public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);
     }
 
+    /** Get all assignments for this batch. */
     public function assignments(): HasMany
     {
         return $this->hasMany(BatchAssignment::class);

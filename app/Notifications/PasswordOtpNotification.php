@@ -11,24 +11,16 @@ class PasswordOtpNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    /**
-     * Create a new notification instance.
-     */
+    /** Create a new password OTP notification. */
     public function __construct(public int|string $otp) {}
 
-    /**
-     * Get the notification delivery channels.
-     *
-     * @return array<int, string>
-     */
+    /** Get the notification delivery channels. */
     public function via(object $notifiable): array
     {
         return ['mail'];
     }
 
-    /**
-     * Build the password reset OTP mail message.
-     */
+    /** Build the password reset OTP mail message. */
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)

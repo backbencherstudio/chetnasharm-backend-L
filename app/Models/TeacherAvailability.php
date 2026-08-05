@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TeacherAvailability extends Model
 {
@@ -13,7 +14,8 @@ class TeacherAvailability extends Model
         'end_time',
     ];
 
-    public function teacher()
+    /** Get the teacher who owns this availability slot. */
+    public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
     }

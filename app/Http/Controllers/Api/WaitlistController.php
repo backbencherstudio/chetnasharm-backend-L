@@ -10,12 +10,8 @@ use Illuminate\Http\Request;
 
 class WaitlistController extends Controller
 {
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Add the authenticated user to a batch waitlist. */
+    public function store(Request $request): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -46,12 +42,8 @@ class WaitlistController extends Controller
         ]);
     }
 
-    /**
-     * List waitlist entries for admin.
-     *
-     * @return JsonResponse
-     */
-    public function getForAdmin(Request $request)
+    /** List waitlist entries for admin with optional batch filtering. */
+    public function getForAdmin(Request $request): JsonResponse
     {
         $query = Waitlist::with([
             'user:id,name,email',
@@ -79,12 +71,8 @@ class WaitlistController extends Controller
         ]);
     }
 
-    /**
-     * List waitlist entries for the authenticated user.
-     *
-     * @return JsonResponse
-     */
-    public function getForUser(Request $request)
+    /** List waitlist entries for the authenticated user. */
+    public function getForUser(Request $request): JsonResponse
     {
         $user = auth('api')->user();
 

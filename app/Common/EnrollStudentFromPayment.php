@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class EnrollStudentFromPayment
 {
-    /**
-     * Execute the primary class operation.
-     */
+    /** Enroll a student from a paid payment, creating or reusing an enrollment. */
     public function handle(Payment $payment, ?int $batchId = null, bool $wrapInTransaction = true): ?Enrollment
     {
         $callback = function () use ($payment, $batchId): ?Enrollment {

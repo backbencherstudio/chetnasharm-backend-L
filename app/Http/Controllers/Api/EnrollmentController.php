@@ -15,12 +15,8 @@ class EnrollmentController extends Controller
 {
     use AuthorizesBatchAccess;
 
-    /**
-     * List enrollments for a batch.
-     *
-     * @return JsonResponse
-     */
-    public function getEnrollmentsByBatch(Request $request, $batchId)
+    /** List enrollments for a batch. */
+    public function getEnrollmentsByBatch(Request $request, int $batchId): JsonResponse
     {
         $user = auth('api')->user();
         $search = $request->query('search');
@@ -67,12 +63,8 @@ class EnrollmentController extends Controller
         ]);
     }
 
-    /**
-     * Move a student enrollment to another batch.
-     *
-     * @return JsonResponse
-     */
-    public function changeBatch(Request $request)
+    /** Move a student enrollment to another batch. */
+    public function changeBatch(Request $request): JsonResponse
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',

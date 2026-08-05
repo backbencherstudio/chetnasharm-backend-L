@@ -21,6 +21,7 @@ class AssignmentSubmission extends Model
         'graded_at',
     ];
 
+    /** Get the attribute casts for the model. */
     protected function casts(): array
     {
         return [
@@ -29,11 +30,13 @@ class AssignmentSubmission extends Model
         ];
     }
 
+    /** Get the assignment this submission belongs to. */
     public function assignment(): BelongsTo
     {
         return $this->belongsTo(BatchAssignment::class, 'assignment_id');
     }
 
+    /** Get the student who submitted this assignment. */
     public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'student_user_id');

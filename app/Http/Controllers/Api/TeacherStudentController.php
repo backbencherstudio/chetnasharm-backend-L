@@ -360,6 +360,7 @@ class TeacherStudentController extends Controller
         ]);
     }
 
+    /** Get the authenticated teacher record. */
     private function currentTeacher(): ?Teacher
     {
         $user = auth('api')->user();
@@ -373,10 +374,8 @@ class TeacherStudentController extends Controller
         return $user->teacher;
     }
 
-    /**
-     * @return Collection<int, int>
-     */
-    private function runningBatchIds(int $teacherId)
+    /** Get IDs of the teacher's currently running batches. */
+    private function runningBatchIds(int $teacherId): Collection
     {
         return Batch::query()
             ->where('teacher_id', $teacherId)
@@ -389,6 +388,7 @@ class TeacherStudentController extends Controller
             ->pluck('id');
     }
 
+    /** Find a batch owned by the given teacher. */
     private function teacherBatch(int $teacherId, int $batchId): ?Batch
     {
         return Batch::query()
@@ -397,6 +397,7 @@ class TeacherStudentController extends Controller
             ->first();
     }
 
+    /** Check whether a student is actively enrolled in a batch. */
     private function studentEnrolledInBatch(int $studentUserId, int $batchId): bool
     {
         return Enrollment::query()

@@ -15,12 +15,8 @@ use Illuminate\Support\Facades\Storage;
 
 class ClassController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function index(Request $request)
+    /** Display a paginated listing of classes. */
+    public function index(Request $request): JsonResponse
     {
         $perPage = Pagination::perPage($request);
         $search = $request->search;
@@ -50,12 +46,8 @@ class ClassController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Store a newly created class. */
+    public function store(Request $request): JsonResponse
     {
         $this->normalizeCurriculumInput($request);
 
@@ -90,12 +82,8 @@ class ClassController extends Controller
         ], 201);
     }
 
-    /**
-     * Get data for editing the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function edit($id)
+    /** Get a class for editing. */
+    public function edit(int $id): JsonResponse
     {
         $class = ClassModel::find($id);
 
@@ -115,12 +103,8 @@ class ClassController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function update(Request $request, $id)
+    /** Update the specified class. */
+    public function update(Request $request, int $id): JsonResponse
     {
         $class = ClassModel::find($id);
 
@@ -170,12 +154,8 @@ class ClassController extends Controller
         ]);
     }
 
-    /**
-     * Toggle the active status of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function status($id)
+    /** Toggle the active status of a class. */
+    public function status(int $id): JsonResponse
     {
         $class = ClassModel::find($id);
 
@@ -195,12 +175,8 @@ class ClassController extends Controller
         ]);
     }
 
-    /**
-     * List classes for the public landing page.
-     *
-     * @return JsonResponse
-     */
-    public function landClass(Request $request)
+    /** List classes for the public landing page. */
+    public function landClass(Request $request): JsonResponse
     {
         $query = ClassModel::where('is_active', 1);
 
@@ -245,12 +221,8 @@ class ClassController extends Controller
         ]);
     }
 
-    /**
-     * List batches for a class on the landing page.
-     *
-     * @return JsonResponse
-     */
-    public function landBatch(Request $request, $classId)
+    /** List batches for a class on the landing page. */
+    public function landBatch(Request $request, int $classId): JsonResponse
     {
         $query = Batch::where('class_id', $classId)
             ->where('active_status', 1);
@@ -292,12 +264,8 @@ class ClassController extends Controller
         ]);
     }
 
-    /**
-     * Get details for a single batch.
-     *
-     * @return JsonResponse
-     */
-    public function singleBatch($batchId)
+    /** Get details for a single batch on the landing page. */
+    public function singleBatch(int $batchId): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -344,12 +312,8 @@ class ClassController extends Controller
         ]);
     }
 
-    /**
-     * List teachers linked to a class.
-     *
-     * @return JsonResponse
-     */
-    public function classTeachers($classId)
+    /** List teachers linked to a class. */
+    public function classTeachers(int $classId): JsonResponse
     {
         $class = ClassModel::find($classId);
 
@@ -367,12 +331,8 @@ class ClassController extends Controller
         ]);
     }
 
-    /**
-     * Get public details for a class.
-     *
-     * @return JsonResponse
-     */
-    public function singleClass($classId)
+    /** Get public details for a class. */
+    public function singleClass(int $classId): JsonResponse
     {
         $class = ClassModel::where('id', $classId)
             ->where('is_active', 1)
@@ -407,9 +367,7 @@ class ClassController extends Controller
         ]);
     }
 
-    /**
-     * Accept curriculum as an array or JSON string (multipart-friendly).
-     */
+    /** Accept curriculum as an array or JSON string. */
     private function normalizeCurriculumInput(Request $request): void
     {
         $curriculum = $request->input('curriculum');
@@ -425,10 +383,8 @@ class ClassController extends Controller
         }
     }
 
-    /**
-     * Attach teachers/batches summary derived from batch assignments.
-     */
-    private function withAssignedTeachers($classes): void
+    /** Attach teachers and batches summary derived from batch assignments. */
+    private function withAssignedTeachers(LengthAwarePaginator|Collection $classes): void
     {
         $items = $classes instanceof LengthAwarePaginator
             ? collect($classes->items())
@@ -490,10 +446,8 @@ class ClassController extends Controller
         }
     }
 
-    /**
-     * @return Collection<int, array<string, mixed>>
-     */
-    private function assignedTeachersForClass(int $classId)
+    /** Get assigned teachers for a class. */
+    private function assignedTeachersForClass(int $classId): Collection
     {
         $class = new ClassModel;
         $class->id = $classId;

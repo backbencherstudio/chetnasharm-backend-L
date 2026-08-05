@@ -25,6 +25,7 @@ class BatchAssignment extends Model
         'total_marks',
     ];
 
+    /** Get the attribute casts for the model. */
     protected function casts(): array
     {
         return [
@@ -34,21 +35,25 @@ class BatchAssignment extends Model
         ];
     }
 
+    /** Get the batch this assignment belongs to. */
     public function batch(): BelongsTo
     {
         return $this->belongsTo(Batch::class);
     }
 
+    /** Get the teacher who created this assignment. */
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
     }
 
+    /** Get all submissions for this assignment. */
     public function submissions(): HasMany
     {
         return $this->hasMany(AssignmentSubmission::class, 'assignment_id');
     }
 
+    /** Determine whether the assignment is open for submission. */
     public function isOpenForSubmission(): bool
     {
         if ($this->starts_at !== null && now()->lt($this->starts_at)) {
@@ -62,9 +67,7 @@ class BatchAssignment extends Model
         return true;
     }
 
-    /**
-     * Assignments that have reached starts_at (or have no start).
-     */
+    /** Scope to assignments that have reached their start time. */
     public function scopeStarted(Builder $query): Builder
     {
         return $query->where(function (Builder $builder) {
@@ -73,9 +76,7 @@ class BatchAssignment extends Model
         });
     }
 
-    /**
-     * Assignments currently inside the submission window.
-     */
+    /** Scope to assignments currently within the submission window. */
     public function scopeActive(Builder $query): Builder
     {
         return $query

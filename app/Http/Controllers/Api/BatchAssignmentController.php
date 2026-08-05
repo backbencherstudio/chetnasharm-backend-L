@@ -572,9 +572,7 @@ class BatchAssignmentController extends Controller
         ]);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** Format an assignment for API responses. */
     private function formatAssignment(BatchAssignment $assignment): array
     {
         return [
@@ -595,9 +593,7 @@ class BatchAssignmentController extends Controller
         ];
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
+    /** Format the authenticated student's submission for API responses. */
     private function formatMySubmission(?AssignmentSubmission $submission): ?array
     {
         if (! $submission) {
@@ -614,6 +610,7 @@ class BatchAssignmentController extends Controller
         ];
     }
 
+    /** Get the authenticated teacher record. */
     private function currentTeacher(): ?Teacher
     {
         $user = auth('api')->user();
@@ -627,6 +624,7 @@ class BatchAssignmentController extends Controller
         return $user->teacher;
     }
 
+    /** Find a batch owned by the given teacher. */
     private function teacherBatch(int $teacherId, int $batchId): ?Batch
     {
         return Batch::query()
@@ -635,6 +633,7 @@ class BatchAssignmentController extends Controller
             ->first();
     }
 
+    /** Check whether a student is actively enrolled in a batch. */
     private function studentEnrolledInBatch(int $studentUserId, int $batchId): bool
     {
         return Enrollment::query()

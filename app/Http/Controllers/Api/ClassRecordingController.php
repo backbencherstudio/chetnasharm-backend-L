@@ -13,12 +13,8 @@ use Illuminate\Http\Request;
 
 class ClassRecordingController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function index(Request $request, $batch_id)
+    /** List class recordings for a batch. */
+    public function index(Request $request, int $batch_id): JsonResponse
     {
         $user = auth('api')->user();
         $perPage = Pagination::perPage($request);
@@ -62,12 +58,8 @@ class ClassRecordingController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Create a class recording for a batch. */
+    public function store(Request $request): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -108,12 +100,8 @@ class ClassRecordingController extends Controller
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function show($id)
+    /** Show a single class recording. */
+    public function show(int $id): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -146,12 +134,8 @@ class ClassRecordingController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function update(Request $request, $id)
+    /** Update a class recording. */
+    public function update(Request $request, int $id): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -207,12 +191,8 @@ class ClassRecordingController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function destroy($id)
+    /** Delete a class recording. */
+    public function destroy(int $id): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -242,12 +222,8 @@ class ClassRecordingController extends Controller
         ]);
     }
 
-    /**
-     * List resources available to an enrolled student.
-     *
-     * @return JsonResponse
-     */
-    public function forStudent(Request $request, $batch_id)
+    /** List class recordings for an enrolled student in a batch. */
+    public function forStudent(Request $request, int $batch_id): JsonResponse
     {
         $user = auth('api')->user();
 

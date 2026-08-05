@@ -21,12 +21,8 @@ class BatchController extends Controller
 {
     use AuthorizesBatchAccess;
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function index(Request $request)
+    /** Display a paginated listing of batches. */
+    public function index(Request $request): JsonResponse
     {
         $perPage = Pagination::perPage($request);
         $search = $request->query('search');
@@ -86,12 +82,8 @@ class BatchController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Store a newly created batch with schedules. */
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'class_id' => 'required|exists:classes,id',
@@ -170,12 +162,8 @@ class BatchController extends Controller
         }
     }
 
-    /**
-     * Get data for editing the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function edit($id)
+    /** Get a batch for editing. */
+    public function edit(int $id): JsonResponse
     {
         $batch = Batch::with('schedules')->find($id);
 
@@ -192,12 +180,8 @@ class BatchController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function update(Request $request, $id)
+    /** Update the specified batch and its schedules. */
+    public function update(Request $request, int $id): JsonResponse
     {
         $batch = Batch::find($id);
         if (! $batch) {
@@ -296,12 +280,8 @@ class BatchController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function destroy($id)
+    /** Delete the specified batch. */
+    public function destroy(int $id): JsonResponse
     {
         $batch = Batch::find($id);
 
@@ -326,12 +306,8 @@ class BatchController extends Controller
         ]);
     }
 
-    /**
-     * List active classes for batch forms.
-     *
-     * @return JsonResponse
-     */
-    public function classList()
+    /** List active classes for batch forms. */
+    public function classList(): JsonResponse
     {
         $classes = ClassModel::where('is_active', 1)->select('id', 'title')->get();
 
@@ -342,12 +318,8 @@ class BatchController extends Controller
         ]);
     }
 
-    /**
-     * List active teachers for batch forms.
-     *
-     * @return JsonResponse
-     */
-    public function teacherList()
+    /** List active teachers for batch forms. */
+    public function teacherList(): JsonResponse
     {
         $teachers = Teacher::query()
             ->active()
@@ -366,12 +338,8 @@ class BatchController extends Controller
         ]);
     }
 
-    /**
-     * Toggle the active status of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function status($id)
+    /** Toggle the active status of a batch. */
+    public function status(int $id): JsonResponse
     {
         $batch = Batch::find($id);
 
@@ -394,12 +362,8 @@ class BatchController extends Controller
         ]);
     }
 
-    /**
-     * List batches assigned to the authenticated teacher.
-     *
-     * @return JsonResponse
-     */
-    public function teacherBatch(Request $request)
+    /** List batches assigned to the authenticated teacher. */
+    public function teacherBatch(Request $request): JsonResponse
     {
         $perPage = Pagination::perPage($request);
         $search = $request->query('search');
@@ -473,12 +437,8 @@ class BatchController extends Controller
         ]);
     }
 
-    /**
-     * List active batches for a class.
-     *
-     * @return JsonResponse
-     */
-    public function getBatchesByClass($classId)
+    /** List active batches for a class. */
+    public function getBatchesByClass(int $classId): JsonResponse
     {
         $batches = Batch::where('class_id', $classId)
             ->select('id', 'name', 'total_seat', 'filled_seat')
@@ -492,12 +452,8 @@ class BatchController extends Controller
         ]);
     }
 
-    /**
-     * List batches for the authenticated student.
-     *
-     * @return JsonResponse
-     */
-    public function studentBatch(Request $request)
+    /** List batches for the authenticated student. */
+    public function studentBatch(Request $request): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -560,12 +516,8 @@ class BatchController extends Controller
         ]);
     }
 
-    /**
-     * Update the Zoom link for a batch.
-     *
-     * @return JsonResponse
-     */
-    public function updateZoomLink(Request $request, $batchId)
+    /** Update the Zoom link for a batch. */
+    public function updateZoomLink(Request $request, int $batchId): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -632,12 +584,8 @@ class BatchController extends Controller
         ], 403);
     }
 
-    /**
-     * Get details for a single batch.
-     *
-     * @return JsonResponse
-     */
-    public function singleBatch($batchId)
+    /** Get details for a single batch for authenticated users. */
+    public function singleBatch(int $batchId): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -686,11 +634,7 @@ class BatchController extends Controller
         ]);
     }
 
-    /**
-     * Validate and sync batch schedule slots.
-     *
-     * @param  array<int, array{day_of_week: int, start_time: string}>  $schedules
-     */
+    /** Validate and sync batch schedule slots. */
     private function syncSchedules(
         Batch $batch,
         array $schedules,

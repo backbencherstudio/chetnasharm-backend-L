@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
 {
@@ -27,17 +28,20 @@ class Payment extends Model
         'paid_at' => 'datetime',
     ];
 
-    public function user()
+    /** Get the user who made this payment. */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function enrollment()
+    /** Get the enrollment created from this payment. */
+    public function enrollment(): BelongsTo
     {
         return $this->belongsTo(Enrollment::class);
     }
 
-    public function batch()
+    /** Get the batch this payment is for. */
+    public function batch(): BelongsTo
     {
         return $this->belongsTo(Batch::class);
     }

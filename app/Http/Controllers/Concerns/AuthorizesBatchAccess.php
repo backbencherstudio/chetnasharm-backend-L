@@ -7,9 +7,7 @@ use App\Models\User;
 
 trait AuthorizesBatchAccess
 {
-    /**
-     * Determine whether the user can manage the batch.
-     */
+    /** Determine whether the user can manage the batch. */
     protected function canManageBatch(User $user, int $batchId): bool
     {
         $user->loadMissing(['roles', 'teacher:id,user_id']);

@@ -20,12 +20,8 @@ use Spatie\Permission\Models\Role;
 
 class TeacherController extends Controller
 {
-    /**
-     * Fetch the paginated list for admin management.
-     *
-     * @return JsonResponse
-     */
-    public function data(Request $request)
+    /** Fetch the paginated teacher list for admin management. */
+    public function data(Request $request): JsonResponse
     {
         $perPage = Pagination::perPage($request);
 
@@ -89,12 +85,8 @@ class TeacherController extends Controller
         ], 200);
     }
 
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Create a new teacher with linked user account. */
+    public function store(Request $request): JsonResponse
     {
         $this->normalizeProfileArrayInputs($request);
 
@@ -214,12 +206,8 @@ class TeacherController extends Controller
         }
     }
 
-    /**
-     * Get data for editing the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function edit($id)
+    /** Get a teacher for editing. */
+    public function edit(int $id): JsonResponse
     {
         $teacher = Teacher::query()->with('user')->findOrFail($id);
 
@@ -251,12 +239,8 @@ class TeacherController extends Controller
         ], 200);
     }
 
-    /**
-     * Update the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function update(Request $request, $id)
+    /** Update the specified teacher. */
+    public function update(Request $request, int $id): JsonResponse
     {
         $teacher = Teacher::with('user')->findOrFail($id);
         $linkedUser = $teacher->user;
@@ -378,12 +362,8 @@ class TeacherController extends Controller
         }
     }
 
-    /**
-     * Toggle the suspend status of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function suspend($id)
+    /** Toggle the suspend status of a teacher. */
+    public function suspend(int $id): JsonResponse
     {
         $teacher = Teacher::with('user')->findOrFail($id);
         $user = $teacher->user;
@@ -425,12 +405,8 @@ class TeacherController extends Controller
         }
     }
 
-    /**
-     * List teachers for the public landing page.
-     *
-     * @return JsonResponse
-     */
-    public function landTeacher(Request $request)
+    /** List teachers for the public landing page. */
+    public function landTeacher(Request $request): JsonResponse
     {
         $perPage = Pagination::perPage($request);
         $search = $request->search;
@@ -484,12 +460,8 @@ class TeacherController extends Controller
         ], 200);
     }
 
-    /**
-     * Get a single teacher for the public landing page.
-     *
-     * @return JsonResponse
-     */
-    public function show(int $id)
+    /** Get a single teacher for the public landing page. */
+    public function show(int $id): JsonResponse
     {
         $teacher = Teacher::query()
             ->where('id', $id)
@@ -607,12 +579,8 @@ class TeacherController extends Controller
         ], 200);
     }
 
-    /**
-     * Toggle the teacher top status flag.
-     *
-     * @return JsonResponse
-     */
-    public function toggleTopStatus($id)
+    /** Toggle the teacher top status flag. */
+    public function toggleTopStatus(int $id): JsonResponse
     {
         $teacher = Teacher::findOrFail($id);
 
@@ -626,9 +594,7 @@ class TeacherController extends Controller
         ]);
     }
 
-    /**
-     * Show country and timezone for the authenticated teacher.
-     */
+    /** Show country and timezone for the authenticated teacher. */
     public function showTimezone(): JsonResponse
     {
         $user = auth('api')->user();
@@ -653,9 +619,7 @@ class TeacherController extends Controller
         ]);
     }
 
-    /**
-     * Accept profile array fields as arrays or JSON strings (multipart-friendly).
-     */
+    /** Accept profile array fields as arrays or JSON strings. */
     private function normalizeProfileArrayInputs(Request $request): void
     {
         foreach (['specializations', 'languages_spoken', 'courses_can_teach', 'interests'] as $field) {

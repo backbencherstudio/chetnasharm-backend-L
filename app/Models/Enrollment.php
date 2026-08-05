@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Enrollment extends Model
 {
@@ -23,17 +24,20 @@ class Enrollment extends Model
         'expiry_date' => 'datetime',
     ];
 
-    public function user()
+    /** Get the enrolled user. */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function batch()
+    /** Get the batch this enrollment belongs to. */
+    public function batch(): BelongsTo
     {
         return $this->belongsTo(Batch::class);
     }
 
-    public function class()
+    /** Get the class this enrollment is for. */
+    public function class(): BelongsTo
     {
         return $this->belongsTo(ClassModel::class);
     }

@@ -34,27 +34,26 @@ class ClassModel extends Model
 
     protected $appends = ['image_url'];
 
-    public function getImageUrlAttribute()
+    /** Get the full URL for the class image. */
+    public function getImageUrlAttribute(): ?string
     {
         return $this->image ? asset('storage/'.$this->image) : null;
     }
 
-    public function batches()
+    /** Get active batches for this class. */
+    public function batches(): HasMany
     {
         return $this->hasMany(Batch::class, 'class_id')
             ->where('active_status', 1);
     }
 
+    /** Get all batches for this class regardless of status. */
     public function allBatches(): HasMany
     {
         return $this->hasMany(Batch::class, 'class_id');
     }
 
-    /**
-     * Teachers assigned via batches for this class.
-     *
-     * @return Collection<int, Teacher>
-     */
+    /** Get distinct teachers assigned to batches for this class. */
     public function teachers(): Collection
     {
         $teacherIds = $this->allBatches()

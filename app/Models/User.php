@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -29,6 +31,7 @@ class User extends Authenticatable implements JWTSubject
         'remember_token',
     ];
 
+    /** Get the attribute casts for the model. */
     protected function casts(): array
     {
         return [
@@ -37,7 +40,8 @@ class User extends Authenticatable implements JWTSubject
         ];
     }
 
-    public function getImageUrlAttribute()
+    /** Get the full URL for the user's profile image. */
+    public function getImageUrlAttribute(): ?string
     {
         if (! $this->image) {
             return null;
@@ -50,22 +54,26 @@ class User extends Authenticatable implements JWTSubject
         return asset('storage/'.$this->image);
     }
 
-    public function getJWTIdentifier()
+    /** Get the identifier that will be stored in the JWT subject claim. */
+    public function getJWTIdentifier(): mixed
     {
         return $this->getKey();
     }
 
-    public function getJWTCustomClaims()
+    /** Return a key-value array of custom claims to add to the JWT. */
+    public function getJWTCustomClaims(): array
     {
         return [];
     }
 
-    public function teacher()
+    /** Get the teacher profile linked to this user. */
+    public function teacher(): HasOne
     {
         return $this->hasOne(Teacher::class);
     }
 
-    public function enrollments()
+    /** Get all enrollments for this user. */
+    public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);
     }

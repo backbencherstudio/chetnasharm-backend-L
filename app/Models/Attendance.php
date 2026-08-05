@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Attendance extends Model
 {
@@ -13,12 +14,14 @@ class Attendance extends Model
         'status',
     ];
 
-    public function batch()
+    /** Get the batch this attendance record belongs to. */
+    public function batch(): BelongsTo
     {
         return $this->belongsTo(Batch::class);
     }
 
-    public function user()
+    /** Get the user this attendance record belongs to. */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

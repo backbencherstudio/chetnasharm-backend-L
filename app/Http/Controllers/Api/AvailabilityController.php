@@ -13,12 +13,8 @@ use Illuminate\Support\Collection;
 
 class AvailabilityController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return JsonResponse
-     */
-    public function index(Request $request)
+    /** List teacher availability slots grouped by day of week. */
+    public function index(Request $request): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -71,12 +67,8 @@ class AvailabilityController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource.
-     *
-     * @return JsonResponse
-     */
-    public function store(Request $request)
+    /** Create availability slots for a teacher on a given day. */
+    public function store(Request $request): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -163,12 +155,8 @@ class AvailabilityController extends Controller
         ]);
     }
 
-    /**
-     * Get data for editing the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function edit(Request $request)
+    /** Get availability slots for a teacher on a specific day. */
+    public function edit(Request $request): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -197,12 +185,8 @@ class AvailabilityController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function update(Request $request)
+    /** Sync availability slots for a teacher on a given day. */
+    public function update(Request $request): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -317,12 +301,8 @@ class AvailabilityController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified resource.
-     *
-     * @return JsonResponse
-     */
-    public function destroy($id)
+    /** Delete a single availability slot. */
+    public function destroy(int $id): JsonResponse
     {
         $user = auth('api')->user();
 
@@ -352,12 +332,8 @@ class AvailabilityController extends Controller
         ]);
     }
 
-    /**
-     * Get available teacher slots for a date range.
-     *
-     * @return JsonResponse
-     */
-    public function availabilityByDate(Request $request)
+    /** Get available teacher slots for a date range. */
+    public function availabilityByDate(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'teacher_id' => 'required|exists:teachers,id',
@@ -450,12 +426,8 @@ class AvailabilityController extends Controller
         ]);
     }
 
-    /**
-     * Get busy teacher slots for a date range.
-     *
-     * @return JsonResponse
-     */
-    public function teacherBusySlots(Request $request)
+    /** Get busy teacher slots for a date range. */
+    public function teacherBusySlots(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'teacher_id' => 'required|exists:teachers,id',
@@ -518,12 +490,8 @@ class AvailabilityController extends Controller
         ]);
     }
 
-    /**
-     * Get busy and available slots for a teacher schedule.
-     *
-     * @return JsonResponse
-     */
-    public function teacherSchedule(Request $request)
+    /** Get busy and available slots for a teacher schedule. */
+    public function teacherSchedule(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'teacher_id' => 'required|exists:teachers,id',
@@ -644,18 +612,13 @@ class AvailabilityController extends Controller
         ]);
     }
 
-    /**
-     * Load teacher schedules whose batches overlap the given date range.
-     *
-     * @param  array<int, string>  $batchColumns
-     * @return Collection<int, BatchSchedule>
-     */
+    /** Load teacher schedules whose batches overlap the given date range. */
     private function teacherSchedulesInRange(
         int $teacherId,
         Carbon $startDate,
         Carbon $endDate,
         array $batchColumns = ['id', 'start_date', 'end_date']
-    ) {
+    ): Collection {
         return BatchSchedule::with(['batch' => fn ($query) => $query->select($batchColumns)])
             ->where('teacher_id', $teacherId)
             ->whereHas('batch', function ($query) use ($startDate, $endDate) {

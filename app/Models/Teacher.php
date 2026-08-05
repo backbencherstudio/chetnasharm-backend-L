@@ -50,24 +50,25 @@ class Teacher extends Model
         'user',
     ];
 
+    /** Get the user account linked to this teacher. */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** Get the weekly availability slots for this teacher. */
     public function availabilities(): HasMany
     {
         return $this->hasMany(TeacherAvailability::class);
     }
 
+    /** Get the batches assigned to this teacher. */
     public function batches(): HasMany
     {
         return $this->hasMany(Batch::class);
     }
 
-    /**
-     * Teachers whose linked user is not suspended.
-     */
+    /** Scope to teachers whose linked user is not suspended. */
     public function scopeActive(Builder $query): Builder
     {
         return $query->whereHas('user', function (Builder $userQuery) {
@@ -75,6 +76,7 @@ class Teacher extends Model
         });
     }
 
+    /** Accessor for the linked user's name. */
     protected function name(): Attribute
     {
         return Attribute::make(
@@ -82,6 +84,7 @@ class Teacher extends Model
         );
     }
 
+    /** Accessor for the linked user's email. */
     protected function email(): Attribute
     {
         return Attribute::make(
@@ -89,6 +92,7 @@ class Teacher extends Model
         );
     }
 
+    /** Accessor for the linked user's mobile number. */
     protected function mobile(): Attribute
     {
         return Attribute::make(
@@ -96,6 +100,7 @@ class Teacher extends Model
         );
     }
 
+    /** Accessor for the linked user's profile image path. */
     protected function image(): Attribute
     {
         return Attribute::make(
@@ -103,6 +108,7 @@ class Teacher extends Model
         );
     }
 
+    /** Accessor for the linked user's suspension status. */
     protected function suspendStatus(): Attribute
     {
         return Attribute::make(
@@ -110,6 +116,7 @@ class Teacher extends Model
         );
     }
 
+    /** Accessor for the full URL of the linked user's profile image. */
     protected function imageUrl(): Attribute
     {
         return Attribute::make(
@@ -129,6 +136,7 @@ class Teacher extends Model
         );
     }
 
+    /** Accessor for the full URL of the teacher's intro video. */
     protected function introVideoUrl(): Attribute
     {
         return Attribute::make(
