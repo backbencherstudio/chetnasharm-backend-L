@@ -22,6 +22,10 @@ Homestead.json
 /.vagrant
 .phpunit.result.cache
 
+# Envoy compiled task files
+/Envoy*.php
+!/Envoy.blade.php
+
 /public/build
 /storage/pail
 .env.backup
