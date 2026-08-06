@@ -29,12 +29,12 @@ class StudentActivityNoteSeeder extends Seeder
         }
 
         $noteTemplates = [
+            ['comment' => 'Outstanding participation and fluency this week.', 'status' => 'excellent'],
             ['comment' => 'Participates actively in speaking drills.', 'status' => 'good'],
             ['comment' => 'Grammar is improving, needs more fluency practice.', 'status' => 'average'],
-            ['comment' => 'Missed homework twice this week — follow up needed.', 'status' => 'needs_attention'],
-            ['comment' => 'Struggling with pronunciation in longer sentences.', 'status' => 'bad'],
+            ['comment' => 'Missed homework twice this week — follow up needed.', 'status' => 'needs_improvement'],
+            ['comment' => 'Struggling with pronunciation in longer sentences.', 'status' => 'requires_support'],
             ['comment' => 'Great progress on vocabulary retention.', 'status' => 'good'],
-            ['comment' => 'Confidence is growing during pair activities.', 'status' => 'average'],
         ];
 
         foreach ($teachers as $teacherIndex => $teacher) {

@@ -13,10 +13,11 @@ class StudentActivityNote extends Model
     use HasFactory;
 
     public const STATUSES = [
+        'excellent',
         'good',
         'average',
-        'needs_attention',
-        'bad',
+        'needs_improvement',
+        'requires_support',
     ];
 
     protected $fillable = [

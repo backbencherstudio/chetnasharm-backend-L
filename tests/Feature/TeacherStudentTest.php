@@ -169,11 +169,11 @@ test('teacher can manage student activity notes', function () {
             'batch_id' => $batch->id,
             'student_user_id' => $student->id,
             'comment' => 'Needs more speaking practice',
-            'status' => 'bad',
+            'status' => 'requires_support',
         ])
         ->assertCreated()
         ->assertJsonPath('success', true)
-        ->assertJsonPath('data.status', 'bad');
+        ->assertJsonPath('data.status', 'requires_support');
 
     $noteId = $create->json('data.id');
 
@@ -181,7 +181,7 @@ test('teacher can manage student activity notes', function () {
         'id' => $noteId,
         'teacher_id' => $teacher->id,
         'student_user_id' => $student->id,
-        'status' => 'bad',
+        'status' => 'requires_support',
     ]);
 
     $this->withHeader('Authorization', "Bearer {$token}")
