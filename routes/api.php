@@ -24,104 +24,104 @@ use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/login', function () {
+Route::get('login', function () {
     return response()->json([
         'success' => false,
         'message' => 'Please login to continue',
     ], 401);
 })->name('login');
 
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
-Route::post('/send-otp', [ForgotPasswordController::class, 'sendOtp'])->middleware('throttle:5,1');
-Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->middleware('throttle:10,1');
-Route::post('/password-reset', [ForgotPasswordController::class, 'resetPassword'])->middleware('throttle:5,1');
-Route::post('/register', [AuthController::class, 'register']);
+Route::post('send-otp', [ForgotPasswordController::class, 'sendOtp'])->middleware('throttle:5,1');
+Route::post('verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->middleware('throttle:10,1');
+Route::post('password-reset', [ForgotPasswordController::class, 'resetPassword'])->middleware('throttle:5,1');
+Route::post('register', [AuthController::class, 'register']);
 
 // google register
-Route::get('/auth/google/redirect', [AuthController::class, 'googleRedirect']);
-Route::get('/auth/google/callback', [AuthController::class, 'googleCallback']);
+Route::get('auth/google/redirect', [AuthController::class, 'googleRedirect']);
+Route::get('auth/google/callback', [AuthController::class, 'googleCallback']);
 
-Route::post('/refresh', [AuthController::class, 'refresh']);
+Route::post('refresh', [AuthController::class, 'refresh']);
 
-Route::get('/classes', [ClassController::class, 'landClass']);
-Route::get('/teachers', [TeacherController::class, 'landTeacher']);
-Route::get('/teachers/{id}', [TeacherController::class, 'show']);
+Route::get('classes', [ClassController::class, 'landClass']);
+Route::get('teachers', [TeacherController::class, 'landTeacher']);
+Route::get('teachers/{id}', [TeacherController::class, 'show']);
 
 Route::get('single-class/{classId}', [ClassController::class, 'singleClass']);
 Route::get('class-teachers/{classId}', [ClassController::class, 'classTeachers']);
-Route::get('/batches/{classId}', [ClassController::class, 'landBatch']);
+Route::get('batches/{classId}', [ClassController::class, 'landBatch']);
 Route::get('single-batch/{batchId}', [ClassController::class, 'singleBatch']);
 
-Route::get('/support', [SettingController::class, 'support']);
-Route::get('/social-links', [SettingController::class, 'socialLinks']);
+Route::get('support', [SettingController::class, 'support']);
+Route::get('social-links', [SettingController::class, 'socialLinks']);
 Route::get('vocabularies', [VocabularyController::class, 'vocabularies']);
 Route::get('speaking-topics', [SpeakingTopicController::class, 'frontendList']);
 Route::get('basic-questions', [BasicQuestionController::class, 'frontendList']);
 
 Route::middleware('auth:api')->group(function () {
 
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('logout', [AuthController::class, 'logout']);
+    Route::get('me', [AuthController::class, 'me']);
 
-    Route::post('/update-password', [UserController::class, 'updatePass']);
-    Route::post('/profile-update', [UserController::class, 'profileUpdate']);
+    Route::post('update-password', [UserController::class, 'updatePass']);
+    Route::post('profile-update', [UserController::class, 'profileUpdate']);
 });
 
 Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function () {
 
     // User Management
-    Route::get('/users', [UserController::class, 'data']);
-    Route::post('/user-store', [UserController::class, 'store']);
-    Route::get('/user-edit-data/{id}', [UserController::class, 'edit']);
-    Route::post('/user-update/{id}', [UserController::class, 'update']);
-    Route::patch('/user-suspend/{id}', [UserController::class, 'suspend']);
-    Route::delete('/user/{id}', [UserController::class, 'destroy']);
+    Route::get('users', [UserController::class, 'data']);
+    Route::post('user-store', [UserController::class, 'store']);
+    Route::get('user-edit-data/{id}', [UserController::class, 'edit']);
+    Route::post('user-update/{id}', [UserController::class, 'update']);
+    Route::patch('user-suspend/{id}', [UserController::class, 'suspend']);
+    Route::delete('user/{id}', [UserController::class, 'destroy']);
 
     // Teacher Management
-    Route::get('/teachers', [TeacherController::class, 'data']);
-    Route::post('/teacher-store', [TeacherController::class, 'store']);
-    Route::get('/teacher-edit-data/{id}', [TeacherController::class, 'edit']);
-    Route::post('/teacher-update/{id}', [TeacherController::class, 'update']);
-    Route::patch('/teacher-suspend/{id}', [TeacherController::class, 'suspend']);
+    Route::get('teachers', [TeacherController::class, 'data']);
+    Route::post('teacher-store', [TeacherController::class, 'store']);
+    Route::get('teacher-edit-data/{id}', [TeacherController::class, 'edit']);
+    Route::post('teacher-update/{id}', [TeacherController::class, 'update']);
+    Route::patch('teacher-suspend/{id}', [TeacherController::class, 'suspend']);
     // teacher top status
-    Route::post('/teachers/{id}/toggle-top', [TeacherController::class, 'toggleTopStatus']);
+    Route::post('teachers/{id}/toggle-top', [TeacherController::class, 'toggleTopStatus']);
 
     // Class Management
-    Route::get('classes/', [ClassController::class, 'index']);
-    Route::post('classes/', [ClassController::class, 'store']);
+    Route::get('classes', [ClassController::class, 'index']);
+    Route::post('classes', [ClassController::class, 'store']);
     Route::get('classes/{id}', [ClassController::class, 'edit']);
     Route::post('classes/{id}', [ClassController::class, 'update']);
     Route::patch('class-status/{id}', [ClassController::class, 'status']);
 
     // Batch Management
-    Route::get('/batches', [BatchController::class, 'index']);
-    Route::post('/batches', [BatchController::class, 'store']);
-    Route::get('/batches/{id}', [BatchController::class, 'edit']);
-    Route::post('/batches/{id}', [BatchController::class, 'update']);
-    Route::delete('/batches/{id}', [BatchController::class, 'destroy']);
-    Route::patch('/batch-active-status/{id}', [BatchController::class, 'status']);
+    Route::get('batches', [BatchController::class, 'index']);
+    Route::post('batches', [BatchController::class, 'store']);
+    Route::get('batches/{id}', [BatchController::class, 'edit']);
+    Route::post('batches/{id}', [BatchController::class, 'update']);
+    Route::delete('batches/{id}', [BatchController::class, 'destroy']);
+    Route::patch('batch-active-status/{id}', [BatchController::class, 'status']);
 
-    Route::get('/batches-by-class/{classId}', [BatchController::class, 'getBatchesByClass']);
-    Route::post('/change-batch', [EnrollmentController::class, 'changeBatch']);
+    Route::get('batches-by-class/{classId}', [BatchController::class, 'getBatchesByClass']);
+    Route::post('change-batch', [EnrollmentController::class, 'changeBatch']);
     // Waitlist
-    Route::get('/waiting-list', [WaitlistController::class, 'getForAdmin']);
+    Route::get('waiting-list', [WaitlistController::class, 'getForAdmin']);
 
-    Route::get('/class-list', [BatchController::class, 'classList']);
-    Route::get('/teacher-list', [BatchController::class, 'teacherList']);
+    Route::get('class-list', [BatchController::class, 'classList']);
+    Route::get('teacher-list', [BatchController::class, 'teacherList']);
     Route::get('teacher-availablity/by-date', [AvailabilityController::class, 'availabilityByDate']);
     Route::get('teacher-busy-slots', [AvailabilityController::class, 'teacherBusySlots']);
 
-    Route::get('/settings', [SettingController::class, 'show']);
-    Route::post('/settings', [SettingController::class, 'update']);
+    Route::get('settings', [SettingController::class, 'show']);
+    Route::post('settings', [SettingController::class, 'update']);
 
-    Route::get('/social-links', [SettingController::class, 'getSocialLinks']);
-    Route::put('/social-links', [SettingController::class, 'updateSocialLinks']);
+    Route::get('social-links', [SettingController::class, 'getSocialLinks']);
+    Route::put('social-links', [SettingController::class, 'updateSocialLinks']);
 
-    Route::get('/notification-logs', [SettingController::class, 'logs']);
+    Route::get('notification-logs', [SettingController::class, 'logs']);
 
     // payment
-    Route::post('/mark-as-paid/{id}', [TransactionController::class, 'markAsPaid']);
+    Route::post('mark-as-paid/{id}', [TransactionController::class, 'markAsPaid']);
 
     // dashboard
     Route::get('total-student-per-month', [DashboardController::class, 'totalStudentMonthly']);
@@ -147,8 +147,8 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::post('basic-questions/{id}', [BasicQuestionController::class, 'update']);
     Route::delete('basic-questions/{id}', [BasicQuestionController::class, 'destroy']);
 
-    Route::get('/env-settings', [SettingController::class, 'getEnvSettings']);
-    Route::post('/env-settings', [SettingController::class, 'updateEnvSettings']);
+    Route::get('env-settings', [SettingController::class, 'getEnvSettings']);
+    Route::post('env-settings', [SettingController::class, 'updateEnvSettings']);
 });
 
 Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
@@ -174,36 +174,36 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
 
 Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
 
-    Route::get('/timezone', [TeacherController::class, 'showTimezone']);
+    Route::get('timezone', [TeacherController::class, 'showTimezone']);
 
-    Route::get('/batches', [BatchController::class, 'teacherBatch']);
-    Route::get('/single-batch/{batchId}', [BatchController::class, 'singleBatch']);
+    Route::get('batches', [BatchController::class, 'teacherBatch']);
+    Route::get('single-batch/{batchId}', [BatchController::class, 'singleBatch']);
 
-    Route::get('/recordings/{batchId}', [ClassRecordingController::class, 'index']);
-    Route::post('/recordings', [ClassRecordingController::class, 'store']);
-    Route::get('/edit-recording/{id}', [ClassRecordingController::class, 'show']);
-    Route::post('/recordings/{id}', [ClassRecordingController::class, 'update']);
-    Route::delete('/recordings/{id}', [ClassRecordingController::class, 'destroy']);
+    Route::get('recordings/{batchId}', [ClassRecordingController::class, 'index']);
+    Route::post('recordings', [ClassRecordingController::class, 'store']);
+    Route::get('edit-recording/{id}', [ClassRecordingController::class, 'show']);
+    Route::post('recordings/{id}', [ClassRecordingController::class, 'update']);
+    Route::delete('recordings/{id}', [ClassRecordingController::class, 'destroy']);
 
-    Route::get('/notes/{batch_id}', [TeacherNoteController::class, 'index']);
-    Route::post('/notes', [TeacherNoteController::class, 'store']);
-    Route::get('/notes-edit/{id}', [TeacherNoteController::class, 'show']);
-    Route::post('/notes/{id}', [TeacherNoteController::class, 'update']);
-    Route::delete('/notes/{id}', [TeacherNoteController::class, 'destroy']);
+    Route::get('notes/{batch_id}', [TeacherNoteController::class, 'index']);
+    Route::post('notes', [TeacherNoteController::class, 'store']);
+    Route::get('notes-edit/{id}', [TeacherNoteController::class, 'show']);
+    Route::post('notes/{id}', [TeacherNoteController::class, 'update']);
+    Route::delete('notes/{id}', [TeacherNoteController::class, 'destroy']);
 
-    Route::get('/students', [TeacherStudentController::class, 'index']);
-    Route::get('/students/{userId}/notes', [TeacherStudentController::class, 'notes']);
-    Route::post('/student-notes', [TeacherStudentController::class, 'storeNote']);
-    Route::put('/student-notes/{id}', [TeacherStudentController::class, 'updateNote']);
-    Route::delete('/student-notes/{id}', [TeacherStudentController::class, 'destroyNote']);
+    Route::get('students', [TeacherStudentController::class, 'index']);
+    Route::get('students/{userId}/notes', [TeacherStudentController::class, 'notes']);
+    Route::post('student-notes', [TeacherStudentController::class, 'storeNote']);
+    Route::put('student-notes/{id}', [TeacherStudentController::class, 'updateNote']);
+    Route::delete('student-notes/{id}', [TeacherStudentController::class, 'destroyNote']);
 
-    Route::get('/assignments/{batchId}', [BatchAssignmentController::class, 'index']);
-    Route::post('/assignments', [BatchAssignmentController::class, 'store']);
-    Route::get('/assignments-edit/{id}', [BatchAssignmentController::class, 'show']);
-    Route::post('/assignments/{id}', [BatchAssignmentController::class, 'update']);
-    Route::delete('/assignments/{id}', [BatchAssignmentController::class, 'destroy']);
-    Route::get('/assignments/{id}/submissions', [BatchAssignmentController::class, 'submissions']);
-    Route::post('/assignments/submissions/{submissionId}/grade', [BatchAssignmentController::class, 'grade']);
+    Route::get('assignments/{batchId}', [BatchAssignmentController::class, 'index']);
+    Route::post('assignments', [BatchAssignmentController::class, 'store']);
+    Route::get('assignments-edit/{id}', [BatchAssignmentController::class, 'show']);
+    Route::post('assignments/{id}', [BatchAssignmentController::class, 'update']);
+    Route::delete('assignments/{id}', [BatchAssignmentController::class, 'destroy']);
+    Route::get('assignments/{id}/submissions', [BatchAssignmentController::class, 'submissions']);
+    Route::post('assignments/submissions/{submissionId}/grade', [BatchAssignmentController::class, 'grade']);
 
     Route::get('dashboard', [DashboardController::class, 'teacherDashboard']);
 });
@@ -212,33 +212,29 @@ Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(functi
 
     Route::post('create-payment', [PaymentController::class, 'createPayment']);
 
-    // Whatsapp
-    // Route::post('whatsapp-number', [UserController::class, 'updateWhatsapp']);
+    Route::get('waiting-list', [WaitlistController::class, 'getForUser']);
+    Route::post('waiting-list', [WaitlistController::class, 'store']);
 
-    Route::get('/waiting-list', [WaitlistController::class, 'getForUser']);
-    Route::post('/waiting-list', [WaitlistController::class, 'store']);
-    // Route::delete('/waitlist/{batchId}', [WaitlistController::class, 'destroy']);
+    Route::get('batches', [BatchController::class, 'studentBatch']);
+    Route::get('single-batch/{batchId}', [BatchController::class, 'singleBatch']);
+    Route::get('recordings/{batchId}', [ClassRecordingController::class, 'forStudent']);
 
-    Route::get('/batches', [BatchController::class, 'studentBatch']);
-    Route::get('/single-batch/{batchId}', [BatchController::class, 'singleBatch']);
-    Route::get('/recordings/{batchId}', [ClassRecordingController::class, 'forStudent']);
+    Route::get('notes/{batch_id}', [TeacherNoteController::class, 'forStudent']);
 
-    Route::get('/notes/{batch_id}', [TeacherNoteController::class, 'forStudent']);
-
-    Route::get('/assignments', [BatchAssignmentController::class, 'activeForStudent']);
-    Route::get('/assignments/{batchId}', [BatchAssignmentController::class, 'forStudent']);
-    Route::post('/assignments/{assignmentId}/submit', [BatchAssignmentController::class, 'submit']);
-    Route::get('/activity-notes', [TeacherStudentController::class, 'forStudent']);
+    Route::get('assignments', [BatchAssignmentController::class, 'activeForStudent']);
+    Route::get('assignments/{batchId}', [BatchAssignmentController::class, 'forStudent']);
+    Route::post('assignments/{assignmentId}/submit', [BatchAssignmentController::class, 'submit']);
+    Route::get('activity-notes', [TeacherStudentController::class, 'forStudent']);
 
     Route::get('dashboard', [DashboardController::class, 'studentDashboard']);
 });
 
 Route::middleware(['auth:api', 'role:admin|student'])->group(function () {
 
-    Route::get('/payments', [TransactionController::class, 'index']);
+    Route::get('payments', [TransactionController::class, 'index']);
 });
 
-Route::post('/stripe/webhook', [WebhookController::class, 'stripeWebhook']);
+Route::post('stripe/webhook', [WebhookController::class, 'stripeWebhook']);
 
 Route::get('paypal-success', [PaymentController::class, 'paypalCapture'])->name('paypal.capture');
 Route::get('paypal-cancel', [PaymentController::class, 'paypalCancel']);

@@ -2,53 +2,33 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Common\Pagination;
 use App\Http\Controllers\Controller;
-use App\Models\BasicQuestion;
+use App\Http\Requests\BasicQuestion\StoreBasicQuestionRequest;
+use App\Http\Requests\BasicQuestion\UpdateBasicQuestionRequest;
+use App\Services\BasicQuestionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BasicQuestionController extends Controller
 {
+    public function __construct(private BasicQuestionService $basicQuestions) {}
+
     /** List basic questions with optional search filtering. */
     public function index(Request $request): JsonResponse
     {
-        $query = BasicQuestion::query();
-
-        if ($request->filled('search')) {
-            $query->where('question', 'like', '%'.$request->search.'%');
-        }
-
-        $basicQuestions = $query
-
-            ->oldest()
-            ->paginate(Pagination::perPage($request));
+        $result = $this->basicQuestions->index($request);
 
         return response()->json([
             'success' => true,
-            'data' => $basicQuestions->items(),
-            'pagination' => [
-                'current_page' => $basicQuestions->currentPage(),
-                'per_page' => $basicQuestions->perPage(),
-                'total' => $basicQuestions->total(),
-                'last_page' => $basicQuestions->lastPage(),
-            ],
+            'data' => $result['items'],
+            'pagination' => $result['pagination'],
         ]);
     }
 
     /** Create a basic question. */
-    public function store(Request $request): JsonResponse
+    public function store(StoreBasicQuestionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'question' => 'required|string',
-            'level' => 'nullable|string|max:50',
-        ]);
-
-        $basicQuestion = BasicQuestion::create([
-            'question' => $validated['question'],
-            'level' => $validated['level'] ?? null,
-            'status' => 1,
-        ]);
+        $basicQuestion = $this->basicQuestions->store($request->validated());
 
         return response()->json([
             'success' => true,
@@ -60,7 +40,7 @@ class BasicQuestionController extends Controller
     /** Show a single basic question. */
     public function show(int $id): JsonResponse
     {
-        $basicQuestion = BasicQuestion::findOrFail($id);
+        $basicQuestion = $this->basicQuestions->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -69,35 +49,23 @@ class BasicQuestionController extends Controller
     }
 
     /** Update a basic question. */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateBasicQuestionRequest $request, int $id): JsonResponse
     {
-        $basicQuestion = BasicQuestion::findOrFail($id);
-
-        $validated = $request->validate([
-            'question' => 'required|string',
-            'level' => 'nullable|string|max:50',
-            'status' => 'nullable|in:0,1',
-        ]);
-
-        $basicQuestion->update([
-            'question' => $validated['question'],
-            'level' => $validated['level'] ?? null,
-            'status' => $validated['status'] ?? $basicQuestion->status,
-        ]);
+        $basicQuestion = $this->basicQuestions->findOrFail($id);
+        $basicQuestion = $this->basicQuestions->update($basicQuestion, $request->validated());
 
         return response()->json([
             'success' => true,
             'message' => 'Basic question updated successfully.',
-            'data' => $basicQuestion->fresh(),
+            'data' => $basicQuestion,
         ]);
     }
 
     /** Delete a basic question. */
     public function destroy(int $id): JsonResponse
     {
-        $basicQuestion = BasicQuestion::findOrFail($id);
-
-        $basicQuestion->delete();
+        $basicQuestion = $this->basicQuestions->findOrFail($id);
+        $this->basicQuestions->destroy($basicQuestion);
 
         return response()->json([
             'success' => true,
@@ -108,19 +76,12 @@ class BasicQuestionController extends Controller
     /** List active basic questions for the frontend. */
     public function frontendList(Request $request): JsonResponse
     {
-        $topics = BasicQuestion::where('status', 1)
-            ->oldest()
-            ->paginate(Pagination::perPage($request));
+        $result = $this->basicQuestions->frontendList($request);
 
         return response()->json([
             'success' => true,
-            'data' => $topics->items(),
-            'pagination' => [
-                'current_page' => $topics->currentPage(),
-                'per_page' => $topics->perPage(),
-                'total' => $topics->total(),
-                'last_page' => $topics->lastPage(),
-            ],
+            'data' => $result['items'],
+            'pagination' => $result['pagination'],
         ]);
     }
 }

@@ -2,56 +2,33 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Common\Pagination;
 use App\Http\Controllers\Controller;
-use App\Models\Vocabulary;
+use App\Http\Requests\Vocabulary\StoreVocabularyRequest;
+use App\Http\Requests\Vocabulary\UpdateVocabularyRequest;
+use App\Services\VocabularyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class VocabularyController extends Controller
 {
+    public function __construct(private VocabularyService $vocabulary) {}
+
     /** List vocabularies with optional search filtering. */
     public function index(Request $request): JsonResponse
     {
-        $query = Vocabulary::query();
-
-        if ($request->search) {
-            $query->where('word', 'like', '%'.$request->search.'%');
-        }
-
-        $vocabularies = $query->oldest()->paginate(Pagination::perPage($request));
+        $result = $this->vocabulary->index($request);
 
         return response()->json([
             'success' => true,
-            'data' => $vocabularies->items(),
-            'pagination' => [
-                'current_page' => $vocabularies->currentPage(),
-                'per_page' => $vocabularies->perPage(),
-                'total' => $vocabularies->total(),
-                'last_page' => $vocabularies->lastPage(),
-            ],
+            'data' => $result['items'],
+            'pagination' => $result['pagination'],
         ]);
     }
 
     /** Create a vocabulary entry. */
-    public function store(Request $request): JsonResponse
+    public function store(StoreVocabularyRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'word' => 'required|string|max:255|unique:vocabularies,word',
-            'meaning' => 'required|string',
-            'example' => 'nullable|string',
-            'pronunciation' => 'nullable|string',
-            'part_of_speech' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
-        ]);
-
-        if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')
-                ->store('vocabulary', 'public');
-        }
-
-        $vocabulary = Vocabulary::create($validated);
+        $vocabulary = $this->vocabulary->store($request->validated(), $request->file('image'));
 
         return response()->json([
             'success' => true,
@@ -63,7 +40,7 @@ class VocabularyController extends Controller
     /** Show a single vocabulary entry. */
     public function show(int $id): JsonResponse
     {
-        $vocabulary = Vocabulary::find($id);
+        $vocabulary = $this->vocabulary->find($id);
 
         if (! $vocabulary) {
             return response()->json([
@@ -79,30 +56,10 @@ class VocabularyController extends Controller
     }
 
     /** Update a vocabulary entry. */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateVocabularyRequest $request, int $id): JsonResponse
     {
-        $vocabulary = Vocabulary::findOrFail($id);
-
-        $validated = $request->validate([
-            'word' => 'required|string|max:255|unique:vocabularies,word,'.$vocabulary->id,
-            'meaning' => 'required|string',
-            'example' => 'nullable|string',
-            'pronunciation' => 'nullable|string',
-            'part_of_speech' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
-            'status' => 'nullable|integer|in:1,0',
-        ]);
-
-        if ($request->hasFile('image')) {
-            if ($vocabulary->image) {
-                Storage::disk('public')->delete($vocabulary->image);
-            }
-
-            $validated['image'] = $request->file('image')
-                ->store('vocabulary', 'public');
-        }
-
-        $vocabulary->update($validated);
+        $vocabulary = $this->vocabulary->findOrFail($id);
+        $vocabulary = $this->vocabulary->update($vocabulary, $request->validated(), $request->file('image'));
 
         return response()->json([
             'success' => true,
@@ -114,13 +71,8 @@ class VocabularyController extends Controller
     /** Delete a vocabulary entry. */
     public function destroy(int $id): JsonResponse
     {
-        $vocabulary = Vocabulary::findOrFail($id);
-
-        if ($vocabulary->image) {
-            Storage::disk('public')->delete($vocabulary->image);
-        }
-
-        $vocabulary->delete();
+        $vocabulary = $this->vocabulary->findOrFail($id);
+        $this->vocabulary->destroy($vocabulary);
 
         return response()->json([
             'success' => true,
@@ -131,21 +83,12 @@ class VocabularyController extends Controller
     /** List active vocabularies for the frontend. */
     public function vocabularies(Request $request): JsonResponse
     {
-        $perPage = Pagination::perPage($request);
-
-        $vocabularies = Vocabulary::where('status', 1)
-            ->oldest()
-            ->paginate($perPage);
+        $result = $this->vocabulary->vocabularies($request);
 
         return response()->json([
             'success' => true,
-            'data' => $vocabularies->items(),
-            'pagination' => [
-                'current_page' => $vocabularies->currentPage(),
-                'per_page' => $vocabularies->perPage(),
-                'total' => $vocabularies->total(),
-                'last_page' => $vocabularies->lastPage(),
-            ],
+            'data' => $result['items'],
+            'pagination' => $result['pagination'],
         ]);
     }
 }
