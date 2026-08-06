@@ -7,18 +7,19 @@ use App\Models\User;
 use Database\Seeders\Concerns\GeneratesSeedData;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
-/** Bulk-seeds large volumes of domain data for local/staging. Delete before production. */
+/** Bulk-seeds ~1M+ rows for performance testing. Delete before production. */
 class HeavyDataSeeder extends Seeder
 {
     use GeneratesSeedData;
     use WithoutModelEvents;
 
-    private int $chunk = 500;
+    private int $chunk = 2000;
 
     private string $passwordHash;
 
@@ -30,11 +31,16 @@ class HeavyDataSeeder extends Seeder
 
     private int $paymentSeq = 1;
 
+    private int $enrollmentCount = 0;
+
     public function run(): void
     {
+        $started = microtime(true);
+
         $this->passwordHash = Hash::make('12345678');
         $this->now = now()->toDateTimeString();
         $this->paymentSeq = 1;
+        $this->enrollmentCount = 0;
 
         $this->teacherRoleId = (int) Role::query()->where('name', 'teacher')->where('guard_name', 'api')->value('id');
         $this->studentRoleId = (int) Role::query()->where('name', 'student')->where('guard_name', 'api')->value('id');
@@ -45,25 +51,56 @@ class HeavyDataSeeder extends Seeder
             return;
         }
 
-        $this->command?->info('HeavyDataSeeder starting…');
+        $this->prepareDatabaseForBulkInsert();
 
-        $teacherIds = $this->seedTeachers(100);
-        $studentIds = $this->seedStudents(15000);
-        $classIds = $this->seedClasses(50);
-        $batches = $this->seedBatches($classIds, $teacherIds, 6);
+        $this->command?->info('HeavyDataSeeder starting (target ≈ 1M enrollments/payments + related rows)…');
+
+        // 500 teachers × 100k students × 200 classes × 5 batches = 1,000 batches
+        // 1,000 batches × 1,000 enrollments = 1,000,000 enrollments (+ payments)
+        $teacherIds = $this->seedTeachers(500);
+        $studentIds = $this->seedStudents(100000);
+        $classIds = $this->seedClasses(200);
+        $batches = $this->seedBatches($classIds, $teacherIds, 5);
         $this->seedSchedulesAndAvailability($batches, $teacherIds);
-        $enrollmentPairs = $this->seedEnrollmentsAndPayments($batches, $studentIds, 350);
-        $this->seedAttendances($enrollmentPairs, 12);
-        $this->seedStudentActivityNotes($batches, $studentIds, 50000);
-        $this->seedAssignmentsAndSubmissions($batches, $enrollmentPairs, 4);
+        $this->seedEnrollmentsAndPayments($batches, $studentIds, 1000);
+        $this->seedAttendances($batches, 50, 20); // 1000 × 50 × 20 = 1,000,000
+        $this->seedStudentActivityNotes($batches, $studentIds, 500000);
+        $this->seedAssignmentsAndSubmissions($batches, 5);
         $this->seedTeacherNotesAndRecordings($batches);
-        $this->seedWaitlists($batches, $studentIds, 5000);
-        $this->seedNotificationLogs($batches, $studentIds, 20000);
+        $this->seedWaitlists($batches, $studentIds, 100000);
+        $this->seedNotificationLogs($batches, $studentIds, 200000);
         $this->seedPasswordOtpsAndResets($studentIds);
         $this->seedAdminDirectPermissions();
         $this->seedFrameworkTables($studentIds);
 
-        $this->command?->info('HeavyDataSeeder finished.');
+        $this->restoreDatabaseAfterBulkInsert();
+
+        $seconds = round(microtime(true) - $started, 1);
+        $this->command?->info("HeavyDataSeeder finished in {$seconds}s. Enrollments: {$this->enrollmentCount}");
+    }
+
+    private function prepareDatabaseForBulkInsert(): void
+    {
+        DB::connection()->disableQueryLog();
+
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            DB::statement('SET UNIQUE_CHECKS=0');
+
+            try {
+                DB::statement('SET SESSION sql_log_bin=0');
+            } catch (\Throwable) {
+                // Optional; may require elevated MySQL privileges.
+            }
+        }
+    }
+
+    private function restoreDatabaseAfterBulkInsert(): void
+    {
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('SET UNIQUE_CHECKS=1');
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        }
     }
 
     /** @return list<int> */
@@ -283,7 +320,7 @@ class HeavyDataSeeder extends Seeder
                     'class_id' => $classId,
                     'teacher_id' => $teacherIds[($classIndex + $b) % $teacherCount],
                     'name' => $name,
-                    'total_seat' => 500,
+                    'total_seat' => 1000,
                     'filled_seat' => 0,
                     'start_date' => $start->toDateString(),
                     'end_date' => $start->copy()->addDays($duration)->toDateString(),
@@ -386,20 +423,24 @@ class HeavyDataSeeder extends Seeder
     /**
      * @param  list<array{id: int, class_id: int, teacher_id: int, price: float|string}>  $batches
      * @param  list<int>  $studentIds
-     * @return list<array{batch_id: int, class_id: int, teacher_id: int, user_id: int, enrollment_id: int}>
      */
-    private function seedEnrollmentsAndPayments(array $batches, array $studentIds, int $perBatch): array
+    private function seedEnrollmentsAndPayments(array $batches, array $studentIds, int $perBatch): void
     {
-        $this->command?->info('Seeding enrollments and payments…');
+        $this->command?->info('Seeding enrollments and payments (≈1M)…');
 
         $studentCount = count($studentIds);
         $perBatch = min($perBatch, $studentCount);
-        $pairs = [];
+        $batchMap = collect($batches)->keyBy('id');
         $enrollmentRows = [];
         $filledByBatch = [];
+        $batchTotal = count($batches);
 
         foreach ($batches as $batchIndex => $batch) {
-            $offset = ($batchIndex * 37) % max(1, $studentCount);
+            if ($batchIndex > 0 && $batchIndex % 50 === 0) {
+                $this->command?->info("  enrollments progress: {$batchIndex}/{$batchTotal} batches ({$this->enrollmentCount} rows)");
+            }
+
+            $offset = ($batchIndex * 97) % max(1, $studentCount);
             $selected = [];
 
             for ($i = 0; $i < $perBatch; $i++) {
@@ -423,68 +464,56 @@ class HeavyDataSeeder extends Seeder
                 $filledByBatch[$batch['id']] = ($filledByBatch[$batch['id']] ?? 0) + 1;
 
                 if (count($enrollmentRows) >= $this->chunk) {
-                    $pairs = array_merge($pairs, $this->flushEnrollmentsAndPayments($enrollmentRows, $batches));
+                    $this->flushEnrollmentsAndPayments($enrollmentRows, $batchMap);
                     $enrollmentRows = [];
                 }
             }
         }
 
         if ($enrollmentRows !== []) {
-            $pairs = array_merge($pairs, $this->flushEnrollmentsAndPayments($enrollmentRows, $batches));
+            $this->flushEnrollmentsAndPayments($enrollmentRows, $batchMap);
         }
 
         foreach ($filledByBatch as $batchId => $filled) {
-            DB::table('batches')->where('id', $batchId)->update(['filled_seat' => $filled]);
+            DB::table('batches')->where('id', $batchId)->update([
+                'filled_seat' => $filled,
+                'total_seat' => max(1000, $filled),
+            ]);
         }
 
-        $this->command?->info('Enrollments created: '.count($pairs));
-
-        return $pairs;
+        $this->command?->info("Enrollments created: {$this->enrollmentCount}");
     }
 
     /**
      * @param  list<array<string, mixed>>  $enrollmentRows
-     * @param  list<array{id: int, class_id: int, teacher_id: int, price: float|string}>  $batches
-     * @return list<array{batch_id: int, class_id: int, teacher_id: int, user_id: int, enrollment_id: int}>
+     * @param  Collection<int|string, array{id: int, class_id: int, teacher_id: int, price: float|string}>  $batchMap
      */
-    private function flushEnrollmentsAndPayments(array $enrollmentRows, array $batches): array
+    private function flushEnrollmentsAndPayments(array $enrollmentRows, $batchMap): void
     {
-        $batchMap = collect($batches)->keyBy('id');
-        $before = (int) DB::table('enrollments')->max('id');
+        $before = (int) (DB::table('enrollments')->max('id') ?? 0);
 
         DB::table('enrollments')->insert($enrollmentRows);
 
-        $created = DB::table('enrollments')
-            ->where('id', '>', $before)
-            ->orderBy('id')
-            ->get(['id', 'user_id', 'batch_id', 'class_id']);
-
-        $pairs = [];
         $paymentRows = [];
+        $count = count($enrollmentRows);
 
-        foreach ($created as $enrollment) {
-            $batch = $batchMap->get($enrollment->batch_id);
-            $pairs[] = [
-                'batch_id' => (int) $enrollment->batch_id,
-                'class_id' => (int) $enrollment->class_id,
-                'teacher_id' => (int) ($batch['teacher_id'] ?? 0),
-                'user_id' => (int) $enrollment->user_id,
-                'enrollment_id' => (int) $enrollment->id,
-            ];
-
+        for ($i = 0; $i < $count; $i++) {
+            $enrollment = $enrollmentRows[$i];
+            $enrollmentId = $before + $i + 1;
+            $batch = $batchMap->get($enrollment['batch_id']);
             $status = $this->seedPick(['paid', 'paid', 'paid', 'pending', 'failed']);
             $paymentId = 'H'.str_pad((string) $this->paymentSeq, 9, '0', STR_PAD_LEFT);
             $this->paymentSeq++;
 
             $paymentRows[] = [
                 'payment_id' => $paymentId,
-                'user_id' => $enrollment->user_id,
-                'enrollment_id' => $enrollment->id,
-                'batch_id' => $enrollment->batch_id,
+                'user_id' => $enrollment['user_id'],
+                'enrollment_id' => $enrollmentId,
+                'batch_id' => $enrollment['batch_id'],
                 'amount' => $batch['price'] ?? 3000,
                 'currency' => 'USD',
                 'payment_method' => $this->seedPick(['stripe', 'paypal', 'token']),
-                'transaction_id' => 'txn_'.Str::lower(Str::random(16)).'_'.$enrollment->id,
+                'transaction_id' => 'txn_'.$enrollmentId.'_'.$this->paymentSeq,
                 'status' => $status,
                 'paid_at' => $status === 'paid' ? $this->now : null,
                 'created_at' => $this->now,
@@ -501,29 +530,38 @@ class HeavyDataSeeder extends Seeder
             DB::table('payments')->insert($paymentRows);
         }
 
-        return $pairs;
+        $this->enrollmentCount += $count;
     }
 
     /**
-     * @param  list<array{batch_id: int, class_id: int, teacher_id: int, user_id: int, enrollment_id: int}>  $pairs
+     * @param  list<array{id: int, class_id: int, teacher_id: int, price: float|string}>  $batches
      */
-    private function seedAttendances(array $pairs, int $datesCount): void
+    private function seedAttendances(array $batches, int $studentsPerBatch, int $datesCount): void
     {
-        $this->command?->info('Seeding attendances…');
+        $this->command?->info('Seeding attendances (≈1M)…');
 
-        $byBatch = collect($pairs)->groupBy('batch_id');
         $rows = [];
         $total = 0;
+        $batchTotal = count($batches);
 
-        foreach ($byBatch as $batchId => $batchPairs) {
-            $students = $batchPairs->take(80)->pluck('user_id')->all();
+        foreach ($batches as $batchIndex => $batch) {
+            if ($batchIndex > 0 && $batchIndex % 50 === 0) {
+                $this->command?->info("  attendances progress: {$batchIndex}/{$batchTotal} batches ({$total} rows)");
+            }
+
+            $studentIds = DB::table('enrollments')
+                ->where('batch_id', $batch['id'])
+                ->orderBy('id')
+                ->limit($studentsPerBatch)
+                ->pluck('user_id')
+                ->all();
 
             for ($d = 0; $d < $datesCount; $d++) {
                 $date = now()->subDays($datesCount - $d)->toDateString();
 
-                foreach ($students as $userId) {
+                foreach ($studentIds as $userId) {
                     $rows[] = [
-                        'batch_id' => $batchId,
+                        'batch_id' => $batch['id'],
                         'user_id' => $userId,
                         'class_date' => $date,
                         'status' => $this->seedBool(85) ? 'present' : 'absent',
@@ -586,9 +624,8 @@ class HeavyDataSeeder extends Seeder
 
     /**
      * @param  list<array{id: int, class_id: int, teacher_id: int, price: float|string}>  $batches
-     * @param  list<array{batch_id: int, class_id: int, teacher_id: int, user_id: int, enrollment_id: int}>  $pairs
      */
-    private function seedAssignmentsAndSubmissions(array $batches, array $pairs, int $perBatch): void
+    private function seedAssignmentsAndSubmissions(array $batches, int $perBatch): void
     {
         $this->command?->info('Seeding assignments and submissions…');
 
@@ -625,18 +662,21 @@ class HeavyDataSeeder extends Seeder
             ->where('title', 'like', 'Heavy Assignment%')
             ->get(['id', 'batch_id']);
 
-        $studentsByBatch = collect($pairs)->groupBy('batch_id');
         $submissionRows = [];
         $total = 0;
 
         foreach ($assignments as $assignment) {
-            $students = $studentsByBatch->get($assignment->batch_id, collect())->take(40);
+            $studentIds = DB::table('enrollments')
+                ->where('batch_id', $assignment->batch_id)
+                ->orderBy('id')
+                ->limit(40)
+                ->pluck('user_id');
 
-            foreach ($students as $pair) {
+            foreach ($studentIds as $userId) {
                 $submissionRows[] = [
                     'assignment_id' => $assignment->id,
-                    'student_user_id' => $pair['user_id'],
-                    'file_path' => 'assignments/heavy/'.$assignment->id.'_'.$pair['user_id'].'.pdf',
+                    'student_user_id' => $userId,
+                    'file_path' => 'assignments/heavy/'.$assignment->id.'_'.$userId.'.pdf',
                     'obtained_marks' => $this->seedBool(70) ? $this->seedFloat(40, 100) : null,
                     'feedback' => $this->seedBool(50) ? $this->seedSentence() : null,
                     'graded_at' => $this->seedBool(60) ? $this->now : null,

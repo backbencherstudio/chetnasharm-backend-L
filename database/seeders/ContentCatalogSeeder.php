@@ -21,9 +21,9 @@ class ContentCatalogSeeder extends Seeder
         $now = now()->toDateTimeString();
         $levels = ['beginner', 'elementary', 'intermediate', 'upper_intermediate', 'advanced'];
 
-        $this->seedVocabularies($now, 2000);
-        $this->seedSpeakingTopics($now, $levels, 1000);
-        $this->seedBasicQuestions($now, $levels, 1000);
+        $this->seedVocabularies($now, 10000);
+        $this->seedSpeakingTopics($now, $levels, 5000);
+        $this->seedBasicQuestions($now, $levels, 5000);
 
         $this->command?->info(sprintf(
             'Content catalog seeded: %d vocabularies, %d speaking topics, %d basic questions',
