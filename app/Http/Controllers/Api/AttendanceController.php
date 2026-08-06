@@ -4,30 +4,23 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Concerns\AuthorizesBatchAccess;
 use App\Http\Controllers\Controller;
-use App\Models\Attendance;
-use App\Models\Enrollment;
-use Carbon\Carbon;
-use Carbon\CarbonPeriod;
+use App\Http\Requests\Attendance\GetAttendanceSheetRequest;
+use App\Http\Requests\Attendance\GetMonthlyAttendanceRequest;
+use App\Http\Requests\Attendance\StoreAttendanceRequest;
+use App\Http\Requests\Attendance\UpdateSingleAttendanceRequest;
+use App\Services\AttendanceService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
 {
     use AuthorizesBatchAccess;
 
+    public function __construct(private AttendanceService $attendance) {}
+
     /** Get the attendance sheet for a batch on a given date. */
-    public function getAttendanceSheet(Request $request, int $batchId): JsonResponse
+    public function getAttendanceSheet(GetAttendanceSheetRequest $request, int $batchId): JsonResponse
     {
         $user = auth('api')->user();
-        $date = $request->query('date');
-        $search = $request->query('search');
-
-        if (! $date) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Date is required',
-            ], 422);
-        }
 
         if (! $this->canManageBatch($user, (int) $batchId)) {
             return response()->json([
@@ -36,38 +29,11 @@ class AttendanceController extends Controller
             ], 403);
         }
 
-        $query = Enrollment::query()
-            ->where('batch_id', $batchId)
-            ->where('status', 'active');
-
-        if ($search) {
-            $query->withWhereHas('user', function ($q) use ($search) {
-                $q->select('id', 'name', 'email')
-                    ->where(function ($userQuery) use ($search) {
-                        $userQuery->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%");
-                    });
-            });
-        } else {
-            $query->with('user:id,name,email');
-        }
-
-        $enrollments = $query->get();
-
-        $attendanceMap = Attendance::where('batch_id', $batchId)
-            ->whereDate('class_date', $date)
-            ->pluck('status', 'user_id');
-
-        $data = $enrollments->map(function ($enrollment) use ($attendanceMap) {
-            $user = $enrollment->user;
-
-            return [
-                'user_id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'status' => $attendanceMap[$user->id] ?? 'absent',
-            ];
-        });
+        $data = $this->attendance->getAttendanceSheet(
+            $batchId,
+            $request->query('date'),
+            $request->query('search')
+        );
 
         return response()->json([
             'success' => true,
@@ -77,56 +43,19 @@ class AttendanceController extends Controller
     }
 
     /** Save attendance records for a batch class date. */
-    public function store(Request $request): JsonResponse
+    public function store(StoreAttendanceRequest $request): JsonResponse
     {
         $user = auth('api')->user();
+        $validated = $request->validated();
 
-        $request->validate([
-            'batch_id' => 'required|exists:batches,id',
-            'class_date' => 'required|date',
-            'attendances' => 'required|array',
-            'attendances.*.user_id' => 'required|exists:users,id',
-            'attendances.*.status' => 'required|in:present,absent',
-        ]);
-
-        if (! $this->canManageBatch($user, (int) $request->batch_id)) {
+        if (! $this->canManageBatch($user, (int) $validated['batch_id'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized',
             ], 403);
         }
 
-        $enrolledUserIds = Enrollment::where('batch_id', $request->batch_id)
-            ->whereIn('user_id', collect($request->attendances)->pluck('user_id'))
-            ->pluck('user_id')
-            ->all();
-
-        $enrolledLookup = array_flip($enrolledUserIds);
-        $now = now();
-        $rows = [];
-
-        foreach ($request->attendances as $item) {
-            if (! isset($enrolledLookup[$item['user_id']])) {
-                continue;
-            }
-
-            $rows[] = [
-                'batch_id' => $request->batch_id,
-                'user_id' => $item['user_id'],
-                'class_date' => $request->class_date,
-                'status' => $item['status'],
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-        }
-
-        if ($rows !== []) {
-            Attendance::upsert(
-                $rows,
-                ['batch_id', 'user_id', 'class_date'],
-                ['status', 'updated_at']
-            );
-        }
+        $this->attendance->store($validated);
 
         return response()->json([
             'success' => true,
@@ -135,66 +64,38 @@ class AttendanceController extends Controller
     }
 
     /** Update a single student's attendance for a class date. */
-    public function updateSingle(Request $request): JsonResponse
+    public function updateSingle(UpdateSingleAttendanceRequest $request): JsonResponse
     {
         $user = auth('api')->user();
+        $validated = $request->validated();
 
-        $request->validate([
-            'batch_id' => 'required|exists:batches,id',
-            'user_id' => 'required|exists:users,id',
-            'class_date' => 'required|date',
-            'status' => 'required|in:present,absent',
-        ]);
-
-        if (! $this->canManageBatch($user, (int) $request->batch_id)) {
+        if (! $this->canManageBatch($user, (int) $validated['batch_id'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized',
             ], 403);
         }
 
-        $isEnrolled = Enrollment::where('batch_id', $request->batch_id)
-            ->where('user_id', $request->user_id)
-            ->exists();
+        $result = $this->attendance->updateSingle($validated);
 
-        if (! $isEnrolled) {
+        if (isset($result['error'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Student not enrolled in this batch',
+                'message' => $result['error'],
             ], 422);
         }
-
-        $attendance = Attendance::updateOrCreate(
-            [
-                'batch_id' => $request->batch_id,
-                'user_id' => $request->user_id,
-                'class_date' => $request->class_date,
-            ],
-            [
-                'status' => $request->status,
-            ]
-        );
 
         return response()->json([
             'success' => true,
             'message' => 'Attendance updated successfully',
-            'data' => $attendance,
+            'data' => $result['attendance'],
         ]);
     }
 
     /** Get monthly attendance markers for a batch. */
-    public function getMonthlyAttendance(Request $request, int $batchId): JsonResponse
+    public function getMonthlyAttendance(GetMonthlyAttendanceRequest $request, int $batchId): JsonResponse
     {
         $user = auth('api')->user();
-
-        $month = $request->query('month');
-
-        if (! $month) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Month is required (format: YYYY-MM)',
-            ], 422);
-        }
 
         if (! $this->canManageBatch($user, (int) $batchId)) {
             return response()->json([
@@ -203,28 +104,7 @@ class AttendanceController extends Controller
             ], 403);
         }
 
-        $start = Carbon::parse($month.'-01')->startOfMonth();
-        $end = Carbon::parse($month.'-01')->endOfMonth();
-
-        $attendanceDates = Attendance::where('batch_id', $batchId)
-            ->whereBetween('class_date', [$start, $end])
-            ->selectRaw('DATE(class_date) as date')
-            ->distinct()
-            ->pluck('date')
-            ->toArray();
-
-        $period = CarbonPeriod::create($start, $end);
-
-        $data = [];
-
-        foreach ($period as $date) {
-            $formattedDate = $date->toDateString();
-
-            $data[] = [
-                'date' => $formattedDate,
-                'has_status' => in_array($formattedDate, $attendanceDates) ? 1 : 0,
-            ];
-        }
+        $data = $this->attendance->getMonthlyAttendance($batchId, $request->query('month'));
 
         return response()->json([
             'success' => true,
