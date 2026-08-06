@@ -21,8 +21,9 @@ class AvailabilityController extends Controller
     public function index(IndexAvailabilityRequest $request): JsonResponse
     {
         $user = auth('api')->user();
-        $teacherId = $this->availability->resolveTeacherId($user, $request->teacher_id);
-        $dayOfWeek = $request->has('day_of_week') ? (int) $request->day_of_week : null;
+        $validated = $request->validated();
+        $teacherId = $this->availability->resolveTeacherId($user, $validated['teacher_id'] ?? null);
+        $dayOfWeek = array_key_exists('day_of_week', $validated) ? (int) $validated['day_of_week'] : null;
 
         $result = $this->availability->index($teacherId, $dayOfWeek);
 

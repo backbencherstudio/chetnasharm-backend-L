@@ -19,6 +19,8 @@ class IndexAvailabilityRequest extends FormRequest
      */
     public function rules(): array
     {
-        return $this->teacherIdRules(required: false);
+        return array_merge($this->teacherIdRules(required: false), [
+            'day_of_week' => 'nullable|integer|min:0|max:6',
+        ]);
     }
 }

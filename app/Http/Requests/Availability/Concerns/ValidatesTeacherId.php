@@ -14,7 +14,7 @@ trait ValidatesTeacherId
         }
 
         return [
-            'teacher_id' => ($required ? 'required' : 'nullable').'|exists:teachers,id',
+            'teacher_id' => ($required ? 'required' : 'nullable').'|integer|exists:teachers,id',
         ];
     }
 }

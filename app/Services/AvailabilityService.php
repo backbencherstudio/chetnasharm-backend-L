@@ -464,13 +464,17 @@ class AvailabilityService
         return $result;
     }
 
-    public function resolveTeacherId(User $user, ?int $requestTeacherId): ?int
+    public function resolveTeacherId(User $user, int|string|null $requestTeacherId): ?int
     {
         if ($user->hasRole('teacher')) {
             return $user->teacher->id;
         }
 
-        return $requestTeacherId;
+        if ($requestTeacherId === null || $requestTeacherId === '') {
+            return null;
+        }
+
+        return (int) $requestTeacherId;
     }
 
     /** Load teacher schedules whose batches overlap the given date range. */
