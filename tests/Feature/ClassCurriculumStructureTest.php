@@ -129,5 +129,40 @@ test('curriculum validation requires title and keypoints', function () {
             ],
         ])
         ->assertStatus(422)
-        ->assertJsonValidationErrors(['curriculum.0.keypoints']);
+        ->assertJsonValidationErrors(['curriculum.0.keypoints'])
+        ->assertJson([
+            'errors' => [
+                'curriculum.0.keypoints' => ['Curriculum item #1 needs at least one keypoint.'],
+            ],
+        ]);
+});
+
+test('curriculum validation uses clear messages for missing titles', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $token = auth('api')->login($admin);
+
+    $this->withHeader('Authorization', "Bearer {$token}")
+        ->postJson('/api/admin/classes', [
+            'title' => 'Invalid Curriculum Title',
+            'price' => 1000,
+            'duration_in_days' => 30,
+            'total_classes' => 10,
+            'curriculum' => [
+                [
+                    'title' => 'First module',
+                    'keypoints' => ['Point A'],
+                ],
+                [
+                    'keypoints' => ['Point B'],
+                ],
+            ],
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['curriculum.1.title'])
+        ->assertJson([
+            'errors' => [
+                'curriculum.1.title' => ['Curriculum item #2 needs a title.'],
+            ],
+        ]);
 });

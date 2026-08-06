@@ -65,7 +65,7 @@ class ClassController extends Controller
             'duration_in_days' => 'required|integer|min:1',
             'total_classes' => 'required|integer|min:1',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
+        ], $this->curriculumValidationMessages());
 
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('classes', 'public');
@@ -132,7 +132,7 @@ class ClassController extends Controller
             'total_classes' => 'sometimes|integer|min:1',
             'is_active' => 'nullable|in:0,1',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
+        ], $this->curriculumValidationMessages());
 
         if ($request->hasFile('image')) {
 
@@ -381,6 +381,27 @@ class ClassController extends Controller
         if (json_last_error() === JSON_ERROR_NONE) {
             $request->merge(['curriculum' => $decoded]);
         }
+    }
+
+    /**
+     * Clear curriculum validation messages using human-readable item numbers.
+     *
+     * @return array<string, string>
+     */
+    private function curriculumValidationMessages(): array
+    {
+        return [
+            'curriculum.array' => 'Curriculum must be a list of modules.',
+            'curriculum.*.title.required' => 'Curriculum item #:position needs a title.',
+            'curriculum.*.title.string' => 'Curriculum item #:position title must be text.',
+            'curriculum.*.title.max' => 'Curriculum item #:position title may not be greater than :max characters.',
+            'curriculum.*.keypoints.required' => 'Curriculum item #:position needs at least one keypoint.',
+            'curriculum.*.keypoints.array' => 'Curriculum item #:position keypoints must be a list.',
+            'curriculum.*.keypoints.min' => 'Curriculum item #:position needs at least one keypoint.',
+            'curriculum.*.keypoints.*.required' => 'Curriculum item #:position has an empty keypoint at position #:second-position.',
+            'curriculum.*.keypoints.*.string' => 'Curriculum item #:position keypoint #:second-position must be text.',
+            'curriculum.*.keypoints.*.max' => 'Curriculum item #:position keypoint #:second-position may not be greater than :max characters.',
+        ];
     }
 
     /** Attach teachers and batches summary derived from batch assignments. */
