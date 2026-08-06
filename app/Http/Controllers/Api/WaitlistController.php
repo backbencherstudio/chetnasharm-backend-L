@@ -2,72 +2,46 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Common\Pagination;
 use App\Http\Controllers\Controller;
-use App\Models\Waitlist;
+use App\Http\Requests\Waitlist\StoreWaitlistRequest;
+use App\Services\WaitlistService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class WaitlistController extends Controller
 {
+    public function __construct(private WaitlistService $waitlist) {}
+
     /** Add the authenticated user to a batch waitlist. */
-    public function store(Request $request): JsonResponse
+    public function store(StoreWaitlistRequest $request): JsonResponse
     {
         $user = auth('api')->user();
+        $result = $this->waitlist->store($user->id, (int) $request->validated('batch_id'));
 
-        $request->validate([
-            'batch_id' => 'required|exists:batches,id',
-        ]);
-
-        $exists = Waitlist::where('user_id', $user->id)
-            ->where('batch_id', $request->batch_id)
-            ->exists();
-
-        if ($exists) {
+        if (isset($result['error'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Already in waitlist',
+                'message' => $result['error'],
             ], 400);
         }
-
-        $waitlist = Waitlist::create([
-            'user_id' => $user->id,
-            'batch_id' => $request->batch_id,
-        ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Added to waitlist successfully',
-            'data' => $waitlist,
+            'data' => $result['waitlist'],
         ]);
     }
 
     /** List waitlist entries for admin with optional batch filtering. */
     public function getForAdmin(Request $request): JsonResponse
     {
-        $query = Waitlist::with([
-            'user:id,name,email',
-            'batch:id,name,teacher_id',
-            'batch.teacher:id,user_id',
-            'batch.teacher.user:id,name',
-        ])->latest();
-
-        if ($request->filled('batch_id')) {
-            $query->where('batch_id', $request->batch_id);
-        }
-
-        $waitlists = $query->paginate(Pagination::perPage($request));
+        $result = $this->waitlist->getForAdmin($request);
 
         return response()->json([
             'success' => true,
             'message' => 'Waitlist fetched successfully',
-            'data' => $waitlists->items(),
-            'pagination' => [
-                'current_page' => $waitlists->currentPage(),
-                'per_page' => $waitlists->perPage(),
-                'total' => $waitlists->total(),
-                'last_page' => $waitlists->lastPage(),
-            ],
+            'data' => $result['items'],
+            'pagination' => $result['pagination'],
         ]);
     }
 
@@ -75,27 +49,13 @@ class WaitlistController extends Controller
     public function getForUser(Request $request): JsonResponse
     {
         $user = auth('api')->user();
-
-        $query = Waitlist::with([
-            'batch:id,name,teacher_id',
-            'batch.teacher:id,user_id',
-            'batch.teacher.user:id,name',
-        ])
-            ->where('user_id', $user->id)
-            ->latest();
-
-        $waitlists = $query->paginate(Pagination::perPage($request));
+        $result = $this->waitlist->getForUser($user->id, $request);
 
         return response()->json([
             'success' => true,
             'message' => 'Waitlist fetched successfully',
-            'data' => $waitlists->items(),
-            'pagination' => [
-                'current_page' => $waitlists->currentPage(),
-                'per_page' => $waitlists->perPage(),
-                'total' => $waitlists->total(),
-                'last_page' => $waitlists->lastPage(),
-            ],
+            'data' => $result['items'],
+            'pagination' => $result['pagination'],
         ]);
     }
 }
