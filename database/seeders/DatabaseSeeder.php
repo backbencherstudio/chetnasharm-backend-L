@@ -16,7 +16,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
         $this->call(RolePermissionSeeder::class);
 
         $adminApi = User::updateOrCreate(
@@ -30,7 +29,11 @@ class DatabaseSeeder extends Seeder
         );
         $adminApi->assignRole(Role::where('name', 'admin')->where('guard_name', 'api')->first());
 
-        $this->call(DemoDataSeeder::class);
-        $this->call(StudentActivityNoteSeeder::class);
+        $this->call([
+            DemoDataSeeder::class,
+            StudentActivityNoteSeeder::class,
+            ContentCatalogSeeder::class,
+            HeavyDataSeeder::class,
+        ]);
     }
 }
