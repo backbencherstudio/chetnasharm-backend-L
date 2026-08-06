@@ -101,25 +101,8 @@ class TeacherStudentService
 
         $enrollments = $query->paginate($perPage);
 
-        $studentUserIds = collect($enrollments->items())->pluck('user_id')->filter()->unique()->values();
-
-        $latestNoteIds = StudentActivityNote::query()
-            ->selectRaw('MAX(id) as id')
-            ->where('teacher_id', $teacher->id)
-            ->whereIn('batch_id', $runningBatchIds)
-            ->whereIn('student_user_id', $studentUserIds)
-            ->groupBy('batch_id', 'student_user_id')
-            ->pluck('id');
-
-        $latestNotes = StudentActivityNote::query()
-            ->whereIn('id', $latestNoteIds)
-            ->get()
-            ->keyBy(fn (StudentActivityNote $note) => $note->batch_id.'-'.$note->student_user_id);
-
-        $items = collect($enrollments->items())->map(function (Enrollment $enrollment) use ($latestNotes) {
+        $items = collect($enrollments->items())->map(function (Enrollment $enrollment) {
             $user = $enrollment->user;
-            $noteKey = $enrollment->batch_id.'-'.$enrollment->user_id;
-            $latestNote = $latestNotes->get($noteKey);
 
             return [
                 'user_id' => $user?->id,
@@ -132,12 +115,6 @@ class TeacherStudentService
                 'class_title' => $enrollment->class?->title,
                 'enrollment_status' => $enrollment->status,
                 'enrolled_at' => $enrollment->enrolled_at,
-                'latest_note' => $latestNote ? [
-                    'id' => $latestNote->id,
-                    'status' => $latestNote->status,
-                    'comment' => $latestNote->comment,
-                    'created_at' => $latestNote->created_at,
-                ] : null,
             ];
         })->values()->all();
 

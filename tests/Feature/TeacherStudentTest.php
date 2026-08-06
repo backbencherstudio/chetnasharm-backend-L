@@ -3,7 +3,6 @@
 use App\Models\Batch;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
-use App\Models\StudentActivityNote;
 use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
@@ -65,26 +64,8 @@ function createTeacherStudentContext(array $batchOverrides = []): array
     return [$teacherUser, $teacher, $batch, $student, $class];
 }
 
-test('teacher can list students from running batches with latest note', function () {
+test('teacher can list students from running batches', function () {
     [$teacherUser, $teacher, $batch, $student] = createTeacherStudentContext();
-
-    StudentActivityNote::create([
-        'teacher_id' => $teacher->id,
-        'batch_id' => $batch->id,
-        'student_user_id' => $student->id,
-        'comment' => 'Older note',
-        'status' => 'average',
-        'created_at' => now()->subDay(),
-        'updated_at' => now()->subDay(),
-    ]);
-
-    StudentActivityNote::create([
-        'teacher_id' => $teacher->id,
-        'batch_id' => $batch->id,
-        'student_user_id' => $student->id,
-        'comment' => 'Latest progress note',
-        'status' => 'good',
-    ]);
 
     $token = auth('api')->login($teacherUser);
 
@@ -95,8 +76,7 @@ test('teacher can list students from running batches with latest note', function
         ->assertJsonPath('data.0.user_id', $student->id)
         ->assertJsonPath('data.0.batch_id', $batch->id)
         ->assertJsonPath('data.0.name', 'Student Alpha')
-        ->assertJsonPath('data.0.latest_note.status', 'good')
-        ->assertJsonPath('data.0.latest_note.comment', 'Latest progress note');
+        ->assertJsonMissingPath('data.0.latest_note');
 });
 
 test('teacher students list excludes non running batches and supports search', function () {
