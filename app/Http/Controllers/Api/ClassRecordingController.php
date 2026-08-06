@@ -2,74 +2,38 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Common\Pagination;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ClassRecording\StoreClassRecordingRequest;
+use App\Http\Requests\ClassRecording\UpdateClassRecordingRequest;
 use App\Models\Batch;
-use App\Models\ClassRecording;
-use App\Models\Enrollment;
-use App\Models\Teacher;
+use App\Services\ClassRecordingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ClassRecordingController extends Controller
 {
+    public function __construct(private ClassRecordingService $recordings) {}
+
     /** List class recordings for a batch. */
     public function index(Request $request, int $batch_id): JsonResponse
     {
         $user = auth('api')->user();
-        $perPage = Pagination::perPage($request);
-
-        $user->loadMissing('teacher:id,user_id');
-        $teacher = $user->teacher;
-
-        $canAccess = $teacher
-            ? Batch::where('id', $batch_id)->where('teacher_id', $teacher->id)->exists()
-            : Enrollment::where('batch_id', $batch_id)->where('user_id', $user->id)->exists();
-
-        if (! $canAccess) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Recordings retrieved successfully',
-                'data' => [],
-                'pagination' => [
-                    'current_page' => 1,
-                    'per_page' => $perPage,
-                    'total' => 0,
-                    'last_page' => 1,
-                ],
-            ]);
-        }
-
-        $recordings = ClassRecording::with('batch:id,name,teacher_id')
-            ->where('batch_id', $batch_id)
-            ->latest()
-            ->paginate($perPage);
+        $result = $this->recordings->index($user, $batch_id, $request);
 
         return response()->json([
             'success' => true,
             'message' => 'Recordings retrieved successfully',
-            'data' => $recordings->items(),
-            'pagination' => [
-                'current_page' => $recordings->currentPage(),
-                'per_page' => $recordings->perPage(),
-                'total' => $recordings->total(),
-                'last_page' => $recordings->lastPage(),
-            ],
+            'data' => $result['items'],
+            'pagination' => $result['pagination'],
         ]);
     }
 
     /** Create a class recording for a batch. */
-    public function store(Request $request): JsonResponse
+    public function store(StoreClassRecordingRequest $request): JsonResponse
     {
         $user = auth('api')->user();
 
-        $request->validate([
-            'batch_id' => 'required|exists:batches,id',
-            'class_date' => 'required|date',
-            'recording_url' => 'required|url',
-        ]);
-
-        $teacher = Teacher::where('user_id', $user->id)->first();
+        $teacher = $this->recordings->findTeacherForUser($user);
 
         if (! $teacher) {
             return response()->json([
@@ -78,7 +42,8 @@ class ClassRecordingController extends Controller
             ], 403);
         }
 
-        $batch = Batch::findOrFail($request->batch_id);
+        $validated = $request->validated();
+        $batch = Batch::findOrFail($validated['batch_id']);
 
         if ($batch->teacher_id !== $teacher->id) {
             return response()->json([
@@ -87,11 +52,7 @@ class ClassRecordingController extends Controller
             ], 403);
         }
 
-        $recording = ClassRecording::create([
-            'batch_id' => $request->batch_id,
-            'class_date' => $request->class_date,
-            'recording_url' => $request->recording_url,
-        ]);
+        $recording = $this->recordings->store($validated);
 
         return response()->json([
             'success' => true,
@@ -105,9 +66,9 @@ class ClassRecordingController extends Controller
     {
         $user = auth('api')->user();
 
-        $recording = ClassRecording::with('batch:id,name,teacher_id')->findOrFail($id);
+        $recording = $this->recordings->findWithBatch($id);
 
-        $teacher = Teacher::where('user_id', $user->id)->first();
+        $teacher = $this->recordings->findTeacherForUser($user);
 
         if ($teacher) {
             if ($recording->batch->teacher_id !== $teacher->id) {
@@ -117,9 +78,7 @@ class ClassRecordingController extends Controller
                 ], 403);
             }
         } else {
-            $enrolled = $recording->batch->enrollments()->where('user_id', $user->id)->exists();
-
-            if (! $enrolled) {
+            if (! $recording->batch->enrollments()->where('user_id', $user->id)->exists()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized: You are not enrolled in this batch',
@@ -135,19 +94,13 @@ class ClassRecordingController extends Controller
     }
 
     /** Update a class recording. */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateClassRecordingRequest $request, int $id): JsonResponse
     {
         $user = auth('api')->user();
 
-        $recording = ClassRecording::findOrFail($id);
+        $recording = $this->recordings->find($id);
 
-        $request->validate([
-            'batch_id' => 'sometimes|exists:batches,id',
-            'class_date' => 'sometimes|date',
-            'recording_url' => 'sometimes|url',
-        ]);
-
-        $teacher = Teacher::where('user_id', $user->id)->first();
+        $teacher = $this->recordings->findTeacherForUser($user);
 
         if (! $teacher) {
             return response()->json([
@@ -165,7 +118,8 @@ class ClassRecordingController extends Controller
             ], 403);
         }
 
-        $batchId = $request->batch_id ?? $recording->batch_id;
+        $validated = $request->validated();
+        $batchId = $validated['batch_id'] ?? $recording->batch_id;
 
         if ((int) $batchId !== (int) $recording->batch_id) {
             $destinationBatch = Batch::findOrFail($batchId);
@@ -178,11 +132,7 @@ class ClassRecordingController extends Controller
             }
         }
 
-        $recording->update([
-            'batch_id' => $batchId,
-            'class_date' => $request->class_date ?? $recording->class_date,
-            'recording_url' => $request->recording_url ?? $recording->recording_url,
-        ]);
+        $recording = $this->recordings->update($recording, $validated, (int) $batchId);
 
         return response()->json([
             'success' => true,
@@ -196,9 +146,9 @@ class ClassRecordingController extends Controller
     {
         $user = auth('api')->user();
 
-        $recording = ClassRecording::with('batch:id,teacher_id')->findOrFail($id);
+        $recording = $this->recordings->findWithBatch($id);
 
-        $teacher = Teacher::where('user_id', $user->id)->first();
+        $teacher = $this->recordings->findTeacherForUser($user);
 
         if (! $teacher) {
             return response()->json([
@@ -214,7 +164,7 @@ class ClassRecordingController extends Controller
             ], 403);
         }
 
-        $recording->delete();
+        $this->recordings->destroy($recording);
 
         return response()->json([
             'success' => true,
@@ -227,34 +177,20 @@ class ClassRecordingController extends Controller
     {
         $user = auth('api')->user();
 
-        $isEnrolled = Enrollment::where('user_id', $user->id)
-            ->where('batch_id', $batch_id)
-            ->exists();
-
-        if (! $isEnrolled) {
+        if (! $this->recordings->isStudentEnrolled($user, $batch_id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized: You are not enrolled in this batch',
             ], 403);
         }
 
-        $query = ClassRecording::with('batch:id,name')
-            ->where('batch_id', $batch_id);
-
-        $perPage = Pagination::perPage($request);
-
-        $recordings = $query->latest()->paginate($perPage);
+        $result = $this->recordings->forStudent($batch_id, $request);
 
         return response()->json([
             'success' => true,
             'message' => 'Recordings retrieved successfully',
-            'data' => $recordings->items(),
-            'pagination' => [
-                'current_page' => $recordings->currentPage(),
-                'per_page' => $recordings->perPage(),
-                'total' => $recordings->total(),
-                'last_page' => $recordings->lastPage(),
-            ],
+            'data' => $result['items'],
+            'pagination' => $result['pagination'],
         ]);
     }
 }

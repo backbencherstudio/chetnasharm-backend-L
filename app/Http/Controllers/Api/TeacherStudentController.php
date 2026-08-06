@@ -2,24 +2,22 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Common\Pagination;
 use App\Http\Controllers\Controller;
-use App\Models\Batch;
-use App\Models\Enrollment;
-use App\Models\StudentActivityNote;
-use App\Models\Teacher;
+use App\Http\Requests\TeacherStudent\ListStudentNotesRequest;
+use App\Http\Requests\TeacherStudent\StoreStudentActivityNoteRequest;
+use App\Http\Requests\TeacherStudent\UpdateStudentActivityNoteRequest;
+use App\Services\TeacherStudentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 
 class TeacherStudentController extends Controller
 {
-    /**
-     * List all students from the teacher's running batches.
-     */
+    public function __construct(private TeacherStudentService $teacherStudents) {}
+
+    /** List all students from the teacher's running batches. */
     public function index(Request $request): JsonResponse
     {
-        $teacher = $this->currentTeacher();
+        $teacher = $this->teacherStudents->currentTeacher();
 
         if (! $teacher) {
             return response()->json([
@@ -28,102 +26,20 @@ class TeacherStudentController extends Controller
             ], 403);
         }
 
-        $search = $request->query('search');
-        $perPage = Pagination::perPage($request);
-        $runningBatchIds = $this->runningBatchIds($teacher->id);
-
-        if ($runningBatchIds->isEmpty()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Students fetched successfully',
-                'data' => [],
-                'pagination' => [
-                    'current_page' => 1,
-                    'per_page' => $perPage,
-                    'total' => 0,
-                    'last_page' => 1,
-                ],
-            ]);
-        }
-
-        $query = Enrollment::query()
-            ->whereIn('batch_id', $runningBatchIds)
-            ->where('status', 'active')
-            ->with([
-                'user:id,name,email,image',
-                'batch:id,name,class_id,teacher_id,status,active_status,end_date',
-                'class:id,title',
-            ])
-            ->latest();
-
-        if ($search) {
-            $query->whereHas('user', function ($userQuery) use ($search) {
-                $userQuery->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-
-        $enrollments = $query->paginate($perPage);
-
-        $studentUserIds = collect($enrollments->items())->pluck('user_id')->filter()->unique()->values();
-
-        $latestNoteIds = StudentActivityNote::query()
-            ->selectRaw('MAX(id) as id')
-            ->where('teacher_id', $teacher->id)
-            ->whereIn('batch_id', $runningBatchIds)
-            ->whereIn('student_user_id', $studentUserIds)
-            ->groupBy('batch_id', 'student_user_id')
-            ->pluck('id');
-
-        $latestNotes = StudentActivityNote::query()
-            ->whereIn('id', $latestNoteIds)
-            ->get()
-            ->keyBy(fn (StudentActivityNote $note) => $note->batch_id.'-'.$note->student_user_id);
-
-        $data = collect($enrollments->items())->map(function (Enrollment $enrollment) use ($latestNotes) {
-            $user = $enrollment->user;
-            $noteKey = $enrollment->batch_id.'-'.$enrollment->user_id;
-            $latestNote = $latestNotes->get($noteKey);
-
-            return [
-                'user_id' => $user?->id,
-                'name' => $user?->name,
-                'email' => $user?->email,
-                'image' => $user?->image,
-                'image_url' => $user?->image_url,
-                'batch_id' => $enrollment->batch_id,
-                'batch_name' => $enrollment->batch?->name,
-                'class_title' => $enrollment->class?->title,
-                'enrollment_status' => $enrollment->status,
-                'enrolled_at' => $enrollment->enrolled_at,
-                'latest_note' => $latestNote ? [
-                    'id' => $latestNote->id,
-                    'status' => $latestNote->status,
-                    'comment' => $latestNote->comment,
-                    'created_at' => $latestNote->created_at,
-                ] : null,
-            ];
-        })->values();
+        $result = $this->teacherStudents->index($teacher, $request);
 
         return response()->json([
             'success' => true,
             'message' => 'Students fetched successfully',
-            'data' => $data,
-            'pagination' => [
-                'current_page' => $enrollments->currentPage(),
-                'per_page' => $enrollments->perPage(),
-                'total' => $enrollments->total(),
-                'last_page' => $enrollments->lastPage(),
-            ],
+            'data' => $result['items'],
+            'pagination' => $result['pagination'],
         ]);
     }
 
-    /**
-     * List activity notes for a student in a batch.
-     */
-    public function notes(Request $request, int $userId): JsonResponse
+    /** List activity notes for a student in a batch. */
+    public function notes(ListStudentNotesRequest $request, int $userId): JsonResponse
     {
-        $teacher = $this->currentTeacher();
+        $teacher = $this->teacherStudents->currentTeacher();
 
         if (! $teacher) {
             return response()->json([
@@ -132,11 +48,9 @@ class TeacherStudentController extends Controller
             ], 403);
         }
 
-        $validated = $request->validate([
-            'batch_id' => 'required|exists:batches,id',
-        ]);
+        $validated = $request->validated();
 
-        $batch = $this->teacherBatch($teacher->id, (int) $validated['batch_id']);
+        $batch = $this->teacherStudents->teacherBatch($teacher->id, (int) $validated['batch_id']);
 
         if (! $batch) {
             return response()->json([
@@ -145,47 +59,27 @@ class TeacherStudentController extends Controller
             ], 403);
         }
 
-        if (! $this->studentEnrolledInBatch($userId, $batch->id)) {
+        if (! $this->teacherStudents->studentEnrolledInBatch($userId, $batch->id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Student is not enrolled in this batch',
             ], 422);
         }
 
-        $notes = StudentActivityNote::query()
-            ->where('teacher_id', $teacher->id)
-            ->where('batch_id', $batch->id)
-            ->where('student_user_id', $userId)
-            ->latest()
-            ->paginate(Pagination::perPage($request));
+        $result = $this->teacherStudents->notes($teacher, $userId, $batch->id, $request);
 
         return response()->json([
             'success' => true,
             'message' => 'Student notes fetched successfully',
-            'data' => collect($notes->items())->map(fn (StudentActivityNote $note) => [
-                'id' => $note->id,
-                'batch_id' => $note->batch_id,
-                'student_user_id' => $note->student_user_id,
-                'comment' => $note->comment,
-                'status' => $note->status,
-                'created_at' => $note->created_at,
-                'updated_at' => $note->updated_at,
-            ])->values(),
-            'pagination' => [
-                'current_page' => $notes->currentPage(),
-                'per_page' => $notes->perPage(),
-                'total' => $notes->total(),
-                'last_page' => $notes->lastPage(),
-            ],
+            'data' => $result['items'],
+            'pagination' => $result['pagination'],
         ]);
     }
 
-    /**
-     * Create a student activity note.
-     */
-    public function storeNote(Request $request): JsonResponse
+    /** Create a student activity note. */
+    public function storeNote(StoreStudentActivityNoteRequest $request): JsonResponse
     {
-        $teacher = $this->currentTeacher();
+        $teacher = $this->teacherStudents->currentTeacher();
 
         if (! $teacher) {
             return response()->json([
@@ -194,14 +88,9 @@ class TeacherStudentController extends Controller
             ], 403);
         }
 
-        $validated = $request->validate([
-            'batch_id' => 'required|exists:batches,id',
-            'student_user_id' => 'required|exists:users,id',
-            'comment' => 'required|string',
-            'status' => 'required|in:'.implode(',', StudentActivityNote::STATUSES),
-        ]);
+        $validated = $request->validated();
 
-        $batch = $this->teacherBatch($teacher->id, (int) $validated['batch_id']);
+        $batch = $this->teacherStudents->teacherBatch($teacher->id, (int) $validated['batch_id']);
 
         if (! $batch) {
             return response()->json([
@@ -210,41 +99,26 @@ class TeacherStudentController extends Controller
             ], 403);
         }
 
-        if (! $this->studentEnrolledInBatch((int) $validated['student_user_id'], $batch->id)) {
+        if (! $this->teacherStudents->studentEnrolledInBatch((int) $validated['student_user_id'], $batch->id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Student is not enrolled in this batch',
             ], 422);
         }
 
-        $note = StudentActivityNote::create([
-            'teacher_id' => $teacher->id,
-            'batch_id' => $batch->id,
-            'student_user_id' => $validated['student_user_id'],
-            'comment' => $validated['comment'],
-            'status' => $validated['status'],
-        ]);
+        $note = $this->teacherStudents->storeNote($teacher, $batch, $validated);
 
         return response()->json([
             'success' => true,
             'message' => 'Student note created successfully',
-            'data' => [
-                'id' => $note->id,
-                'batch_id' => $note->batch_id,
-                'student_user_id' => $note->student_user_id,
-                'comment' => $note->comment,
-                'status' => $note->status,
-                'created_at' => $note->created_at,
-            ],
+            'data' => $this->teacherStudents->formatCreatedNote($note),
         ], 201);
     }
 
-    /**
-     * Update a student activity note.
-     */
-    public function updateNote(Request $request, int $id): JsonResponse
+    /** Update a student activity note. */
+    public function updateNote(UpdateStudentActivityNoteRequest $request, int $id): JsonResponse
     {
-        $teacher = $this->currentTeacher();
+        $teacher = $this->teacherStudents->currentTeacher();
 
         if (! $teacher) {
             return response()->json([
@@ -253,10 +127,7 @@ class TeacherStudentController extends Controller
             ], 403);
         }
 
-        $note = StudentActivityNote::query()
-            ->where('id', $id)
-            ->where('teacher_id', $teacher->id)
-            ->first();
+        $note = $this->teacherStudents->findNoteForTeacher($teacher->id, $id);
 
         if (! $note) {
             return response()->json([
@@ -265,33 +136,19 @@ class TeacherStudentController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
-            'comment' => 'required|string',
-            'status' => 'required|in:'.implode(',', StudentActivityNote::STATUSES),
-        ]);
-
-        $note->update($validated);
+        $note = $this->teacherStudents->updateNote($note, $request->validated());
 
         return response()->json([
             'success' => true,
             'message' => 'Student note updated successfully',
-            'data' => [
-                'id' => $note->id,
-                'batch_id' => $note->batch_id,
-                'student_user_id' => $note->student_user_id,
-                'comment' => $note->comment,
-                'status' => $note->status,
-                'updated_at' => $note->updated_at,
-            ],
+            'data' => $this->teacherStudents->formatUpdatedNote($note),
         ]);
     }
 
-    /**
-     * Delete a student activity note.
-     */
+    /** Delete a student activity note. */
     public function destroyNote(int $id): JsonResponse
     {
-        $teacher = $this->currentTeacher();
+        $teacher = $this->teacherStudents->currentTeacher();
 
         if (! $teacher) {
             return response()->json([
@@ -300,10 +157,7 @@ class TeacherStudentController extends Controller
             ], 403);
         }
 
-        $note = StudentActivityNote::query()
-            ->where('id', $id)
-            ->where('teacher_id', $teacher->id)
-            ->first();
+        $note = $this->teacherStudents->findNoteForTeacher($teacher->id, $id);
 
         if (! $note) {
             return response()->json([
@@ -312,7 +166,7 @@ class TeacherStudentController extends Controller
             ], 404);
         }
 
-        $note->delete();
+        $this->teacherStudents->destroyNote($note);
 
         return response()->json([
             'success' => true,
@@ -320,90 +174,17 @@ class TeacherStudentController extends Controller
         ]);
     }
 
-    /**
-     * List activity notes for the authenticated student.
-     */
+    /** List activity notes for the authenticated student. */
     public function forStudent(Request $request): JsonResponse
     {
         $user = auth('api')->user();
-
-        $notes = StudentActivityNote::query()
-            ->where('student_user_id', $user->id)
-            ->with([
-                'batch:id,name',
-                'teacher:id,user_id',
-                'teacher.user:id,name',
-            ])
-            ->latest()
-            ->paginate(Pagination::perPage($request));
+        $result = $this->teacherStudents->forStudent($user, $request);
 
         return response()->json([
             'success' => true,
             'message' => 'Activity notes fetched successfully',
-            'data' => collect($notes->items())->map(fn (StudentActivityNote $note) => [
-                'id' => $note->id,
-                'batch_id' => $note->batch_id,
-                'batch_name' => $note->batch?->name,
-                'teacher_id' => $note->teacher_id,
-                'teacher_name' => $note->teacher?->name,
-                'comment' => $note->comment,
-                'status' => $note->status,
-                'created_at' => $note->created_at,
-                'updated_at' => $note->updated_at,
-            ])->values(),
-            'pagination' => [
-                'current_page' => $notes->currentPage(),
-                'per_page' => $notes->perPage(),
-                'total' => $notes->total(),
-                'last_page' => $notes->lastPage(),
-            ],
+            'data' => $result['items'],
+            'pagination' => $result['pagination'],
         ]);
-    }
-
-    /** Get the authenticated teacher record. */
-    private function currentTeacher(): ?Teacher
-    {
-        $user = auth('api')->user();
-
-        if (! $user) {
-            return null;
-        }
-
-        $user->loadMissing('teacher:id,user_id');
-
-        return $user->teacher;
-    }
-
-    /** Get IDs of the teacher's currently running batches. */
-    private function runningBatchIds(int $teacherId): Collection
-    {
-        return Batch::query()
-            ->where('teacher_id', $teacherId)
-            ->where('active_status', 1)
-            ->where('status', 'ongoing')
-            ->where(function ($query) {
-                $query->whereNull('end_date')
-                    ->orWhereDate('end_date', '>=', now()->toDateString());
-            })
-            ->pluck('id');
-    }
-
-    /** Find a batch owned by the given teacher. */
-    private function teacherBatch(int $teacherId, int $batchId): ?Batch
-    {
-        return Batch::query()
-            ->where('id', $batchId)
-            ->where('teacher_id', $teacherId)
-            ->first();
-    }
-
-    /** Check whether a student is actively enrolled in a batch. */
-    private function studentEnrolledInBatch(int $studentUserId, int $batchId): bool
-    {
-        return Enrollment::query()
-            ->where('user_id', $studentUserId)
-            ->where('batch_id', $batchId)
-            ->where('status', 'active')
-            ->exists();
     }
 }
