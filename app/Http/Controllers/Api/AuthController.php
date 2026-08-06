@@ -3,72 +3,46 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Role;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Laravel\Socialite\Facades\Socialite;
-use Tymon\JWTAuth\Exceptions\JWTException;
-use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class AuthController extends Controller
 {
+    public function __construct(private AuthService $auth) {}
+
     /** Authenticate a user and return an access token. */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
-        ]);
+        $result = $this->auth->login($request->validated());
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $credentials = $validator->validated();
-
-        if (! $token = auth('api')->attempt($credentials)) {
+        if ($result['type'] === 'invalid_credentials') {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
             ], 401);
         }
 
-        $user = auth('api')->user();
-
-        if ($user->suspend_status == 1) {
-            auth('api')->logout();
-
+        if ($result['type'] === 'suspended') {
             return response()->json([
                 'success' => false,
                 'message' => 'Your account has been suspended. Please contact admin.',
             ], 403);
         }
 
-        $user->role = $user->getRoleNames()->first();
-        unset($user->roles);
-
-        return $this->respondWithToken($token, $user);
+        return $this->respondWithToken($result['token'], $result['user']);
     }
 
     /** Get the authenticated user profile. */
     public function me(): JsonResponse
     {
-        $user = auth('api')->user();
+        $result = $this->auth->me(auth('api')->user());
 
-        $user->load(['roles', 'teacher:id,user_id']);
-
-        if ($user->suspend_status == 1) {
-            auth('api')->logout();
-
+        if ($result['type'] === 'suspended') {
             return response()->json([
                 'success' => false,
                 'message' => 'Your account has been suspended. Please contact admin.',
@@ -78,18 +52,7 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'User fetched successfully',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'mobile' => $user->mobile ?? null,
-                'department' => $user->department ?? null,
-                'image' => $user->image,
-                'image_url' => $user->image_url,
-                'role' => $user->roles->pluck('name')->implode(', '),
-                'teacher_id' => $user->teacher ? $user->teacher->id : null,
-                'has_password' => $user->password ? true : false,
-            ],
+            'user' => $result['user'],
         ]);
     }
 
@@ -107,36 +70,30 @@ class AuthController extends Controller
     /** Refresh the authentication token. */
     public function refresh(): JsonResponse
     {
-        try {
-            $token = auth('api')->refresh();
+        $result = $this->auth->refresh();
 
-            $user = auth('api')->user();
+        if ($result['type'] === 'suspended') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your account has been suspended. Please contact admin.',
+            ], 403);
+        }
 
-            if ($user && $user->suspend_status == 1) {
-                auth('api')->logout();
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Your account has been suspended. Please contact admin.',
-                ], 403);
-            }
-
-            return $this->respondWithToken($token, $user);
-
-        } catch (TokenExpiredException $e) {
-
+        if ($result['type'] === 'token_expired') {
             return response()->json([
                 'success' => false,
                 'message' => 'Refresh token expired. Please login again.',
             ], 401);
+        }
 
-        } catch (JWTException $e) {
-
+        if ($result['type'] === 'token_invalid') {
             return response()->json([
                 'success' => false,
                 'message' => 'Token invalid or not provided',
             ], 401);
         }
+
+        return $this->respondWithToken($result['token'], $result['user']);
     }
 
     /** Build the token response payload. */
@@ -147,54 +104,22 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth('api')->factory()->getTTL() * 60,
+            'expires_in' => $this->auth->getTokenTtlSeconds(),
         ]);
     }
 
     /** Register a new student user. */
-    public function register(Request $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Validation failed.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        DB::beginTransaction();
-
         try {
-
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => bcrypt($request->password),
-                'department' => 'Student',
-                'suspend_status' => 0,
-            ]);
-
-            if (Role::where('name', 'student')->exists()) {
-                $user->assignRole('student');
-            }
-
-            DB::commit();
+            $user = $this->auth->register($request->validated());
 
             return response()->json([
                 'status' => true,
                 'message' => 'User registered successfully.',
                 'data' => $user,
             ], 201);
-
         } catch (\Throwable $e) {
-            DB::rollBack();
-
             Log::error('Registration failed', [
                 'error' => $e->getMessage(),
             ]);
@@ -210,46 +135,16 @@ class AuthController extends Controller
     /** Redirect the user to Google OAuth. */
     public function googleRedirect(): RedirectResponse
     {
-        return Socialite::driver('google')->stateless()
-            ->with(['prompt' => 'select_account'])
-            ->redirect();
+        $result = $this->auth->googleRedirect();
+
+        return redirect()->away($result['url']);
     }
 
     /** Handle the Google OAuth callback. */
     public function googleCallback(): RedirectResponse
     {
-        try {
-            $googleUser = Socialite::driver('google')->stateless()->user();
+        $result = $this->auth->googleCallback();
 
-            $user = User::where('email', $googleUser->email)->first();
-
-            if (! $user) {
-                $user = User::create([
-                    'name' => $googleUser->name,
-                    'email' => $googleUser->email,
-                    'password' => null,
-                    'department' => 'Student',
-                    'image' => $googleUser->avatar,
-                    'provider' => 'google',
-                    'provider_id' => $googleUser->id,
-                    'suspend_status' => 0,
-                ]);
-
-                if (Role::where('name', 'student')->exists()) {
-                    $user->assignRole('student');
-                }
-            }
-
-            if ($user->suspend_status == 1) {
-                return redirect(config('app.frontend_url').'/login?error=account_suspended');
-            }
-            $token = auth('api')->login($user);
-
-            return redirect(config('app.frontend_url')."/auth/callback?token={$token}");
-
-        } catch (\Throwable $e) {
-
-            return redirect(config('app.frontend_url').'/login?error=google_login_failed');
-        }
+        return redirect()->away($result['url']);
     }
 }
