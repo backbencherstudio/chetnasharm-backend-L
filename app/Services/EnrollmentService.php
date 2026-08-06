@@ -25,14 +25,14 @@ class EnrollmentService
 
         if ($search) {
             $query->withWhereHas('user', function ($q) use ($search) {
-                $q->select('id', 'name', 'email')
+                $q->select('id', 'name', 'email', 'image')
                     ->where(function ($userQuery) use ($search) {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
                     });
             });
         } else {
-            $query->with('user:id,name,email');
+            $query->with('user:id,name,email,image');
         }
 
         $query->with([

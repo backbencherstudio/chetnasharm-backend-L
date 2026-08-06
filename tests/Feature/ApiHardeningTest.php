@@ -318,6 +318,34 @@ test('teacher cannot fetch other teacher enrollments', function () {
         ]);
 });
 
+test('batch enrollments include user image fields', function () {
+    [$batch, $student] = createBatchWithStudent();
+    $student->update(['image' => 'users/avatar.webp']);
+
+    $teacherUser = User::query()->find(
+        Teacher::query()->where('id', $batch->teacher_id)->value('user_id')
+    );
+
+    Enrollment::create([
+        'user_id' => $student->id,
+        'batch_id' => $batch->id,
+        'class_id' => $batch->class_id,
+        'status' => 'active',
+        'enrolled_at' => now(),
+        'expiry_date' => $batch->end_date,
+    ]);
+
+    $token = auth('api')->login($teacherUser);
+
+    $this->withHeader('Authorization', "Bearer {$token}")
+        ->getJson("/api/enrollments/{$batch->id}")
+        ->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('data.0.user.id', $student->id)
+        ->assertJsonPath('data.0.user.image', 'users/avatar.webp')
+        ->assertJsonPath('data.0.user.image_url', asset('storage/users/avatar.webp'));
+});
+
 test('login is throttled', function () {
     for ($i = 0; $i < 5; $i++) {
         $this->postJson('/api/login', [

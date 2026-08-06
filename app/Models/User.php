@@ -31,6 +31,10 @@ class User extends Authenticatable implements JWTSubject
         'remember_token',
     ];
 
+    protected $appends = [
+        'image_url',
+    ];
+
     /** Get the attribute casts for the model. */
     protected function casts(): array
     {
