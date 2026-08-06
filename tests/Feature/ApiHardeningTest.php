@@ -1,12 +1,12 @@
 <?php
 
-use App\Common\EnrollStudentFromPayment;
 use App\Common\Pagination;
 use App\Models\Batch;
 use App\Models\Enrollment;
 use App\Models\Payment;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Services\EnrollmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
@@ -57,7 +57,7 @@ test('enroll student from payment creates enrollment and increments seats', func
         'paid_at' => now(),
     ]);
 
-    $enrollment = app(EnrollStudentFromPayment::class)->handle($payment, $batch->id);
+    $enrollment = app(EnrollmentService::class)->enrollFromPayment($payment, $batch->id);
 
     expect($enrollment)->not->toBeNull()
         ->and($batch->fresh()->filled_seat)->toBe(1)
@@ -245,7 +245,7 @@ test('enroll rejects batch mismatch', function () {
         'paid_at' => now(),
     ]);
 
-    expect(fn () => app(EnrollStudentFromPayment::class)->handle($payment, $otherBatch->id))
+    expect(fn () => app(EnrollmentService::class)->enrollFromPayment($payment, $otherBatch->id))
         ->toThrow(Exception::class, 'Batch mismatch');
 });
 
