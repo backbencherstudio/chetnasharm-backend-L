@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\BasicQuestion;
 use App\Models\SpeakingTopic;
 use App\Models\Vocabulary;
+use Database\Seeders\Concerns\GeneratesSeedData;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,7 @@ use Illuminate\Support\Str;
 
 class ContentCatalogSeeder extends Seeder
 {
+    use GeneratesSeedData;
     use WithoutModelEvents;
 
     public function run(): void
@@ -38,12 +40,12 @@ class ContentCatalogSeeder extends Seeder
         for ($i = 1; $i <= $count; $i++) {
             $rows[] = [
                 'word' => 'word_'.Str::lower(Str::random(6)).'_'.$i,
-                'meaning' => fake()->sentence(8),
-                'example' => fake()->sentence(12),
-                'pronunciation' => '/'.fake()->lexify('???-???').'/',
-                'part_of_speech' => fake()->randomElement(['noun', 'verb', 'adjective', 'adverb', 'phrase']),
+                'meaning' => $this->seedSentence(8),
+                'example' => $this->seedSentence(12),
+                'pronunciation' => '/'.$this->seedLexify('???-???').'/',
+                'part_of_speech' => $this->seedPick(['noun', 'verb', 'adjective', 'adverb', 'phrase']),
                 'image' => null,
-                'status' => fake()->boolean(90) ? 1 : 0,
+                'status' => $this->seedBool(90) ? 1 : 0,
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
@@ -66,9 +68,9 @@ class ContentCatalogSeeder extends Seeder
 
         for ($i = 1; $i <= $count; $i++) {
             $rows[] = [
-                'topic' => fake()->sentence(6).' (#'.$i.')',
-                'level' => fake()->randomElement($levels),
-                'status' => fake()->boolean(90) ? 1 : 0,
+                'topic' => $this->seedSentence(6).' (#'.$i.')',
+                'level' => $this->seedPick($levels),
+                'status' => $this->seedBool(90) ? 1 : 0,
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
@@ -91,9 +93,9 @@ class ContentCatalogSeeder extends Seeder
 
         for ($i = 1; $i <= $count; $i++) {
             $rows[] = [
-                'question' => fake()->sentence(10).'?',
-                'level' => fake()->randomElement($levels),
-                'status' => fake()->boolean(90) ? 1 : 0,
+                'question' => rtrim($this->seedSentence(10), '.').'?',
+                'level' => $this->seedPick($levels),
+                'status' => $this->seedBool(90) ? 1 : 0,
                 'created_at' => $now,
                 'updated_at' => $now,
             ];

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\StudentActivityNote;
 use App\Models\User;
+use Database\Seeders\Concerns\GeneratesSeedData;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,7 @@ use Spatie\Permission\Models\Role;
 /** Bulk-seeds large volumes of domain data for local/staging. Delete before production. */
 class HeavyDataSeeder extends Seeder
 {
+    use GeneratesSeedData;
     use WithoutModelEvents;
 
     private int $chunk = 500;
@@ -77,7 +79,7 @@ class HeavyDataSeeder extends Seeder
             $email = "heavy.teacher{$i}@example.com";
             $emails[] = $email;
             $userRows[] = [
-                'name' => fake()->name(),
+                'name' => $this->seedName(),
                 'email' => $email,
                 'department' => 'Teaching',
                 'mobile' => '018'.str_pad((string) $i, 8, '0', STR_PAD_LEFT),
@@ -106,18 +108,18 @@ class HeavyDataSeeder extends Seeder
         foreach ($userIds as $userId) {
             $teacherRows[] = [
                 'user_id' => $userId,
-                'country' => fake()->country(),
-                'timezone' => fake()->timezone(),
-                'qualification' => fake()->randomElement(['BA English', 'MA Linguistics', 'CELTA', 'TESOL']),
-                'expertise' => fake()->randomElement(['Spoken English', 'IELTS', 'Business English', 'Grammar']),
-                'years_of_exp' => fake()->numberBetween(1, 15),
-                'bio' => fake()->sentence(12),
-                'about' => fake()->paragraph(),
+                'country' => $this->seedCountry(),
+                'timezone' => $this->seedTimezone(),
+                'qualification' => $this->seedPick(['BA English', 'MA Linguistics', 'CELTA', 'TESOL']),
+                'expertise' => $this->seedPick(['Spoken English', 'IELTS', 'Business English', 'Grammar']),
+                'years_of_exp' => $this->seedNumber(1, 15),
+                'bio' => $this->seedSentence(12),
+                'about' => $this->seedParagraph(),
                 'specializations' => json_encode(['Speaking', 'Writing']),
                 'languages_spoken' => json_encode(['English', 'Bengali']),
                 'courses_can_teach' => json_encode(['Spoken English']),
                 'interests' => json_encode(['Teaching', 'Travel']),
-                'is_top' => fake()->boolean(15) ? 1 : 0,
+                'is_top' => $this->seedBool(15) ? 1 : 0,
                 'created_at' => $this->now,
                 'updated_at' => $this->now,
             ];
@@ -156,7 +158,7 @@ class HeavyDataSeeder extends Seeder
             $email = "heavy.student{$i}@example.com";
             $chunkEmails[] = $email;
             $userRows[] = [
-                'name' => fake()->name(),
+                'name' => $this->seedName(),
                 'email' => $email,
                 'department' => 'Student',
                 'mobile' => '019'.str_pad((string) $i, 8, '0', STR_PAD_LEFT),
@@ -218,23 +220,23 @@ class HeavyDataSeeder extends Seeder
         $titles = [];
 
         for ($i = 1; $i <= $count; $i++) {
-            $title = 'Heavy Class '.$i.' - '.fake()->words(3, true);
+            $title = 'Heavy Class '.$i.' - '.$this->seedWords(3);
             $titles[] = $title;
             $rows[] = [
                 'title' => $title,
-                'description' => fake()->paragraph(),
-                'short_description' => fake()->sentence(),
-                'who_is_for' => fake()->sentence(),
+                'description' => $this->seedParagraph(),
+                'short_description' => $this->seedSentence(),
+                'who_is_for' => $this->seedSentence(),
                 'curriculum' => json_encode([
                     [
                         'title' => 'Module 1',
                         'keypoints' => ['Basics', 'Practice', 'Review'],
                     ],
                 ]),
-                'is_class_recording' => fake()->boolean(60) ? 1 : 0,
-                'price' => fake()->randomElement([2000, 3000, 4000, 5000, 7500]),
-                'duration_in_days' => fake()->randomElement([30, 60, 90, 120]),
-                'total_classes' => fake()->numberBetween(8, 36),
+                'is_class_recording' => $this->seedBool(60) ? 1 : 0,
+                'price' => $this->seedPick([2000, 3000, 4000, 5000, 7500]),
+                'duration_in_days' => $this->seedPick([30, 60, 90, 120]),
+                'total_classes' => $this->seedNumber(8, 36),
                 'image' => null,
                 'is_active' => 1,
                 'created_at' => $this->now,
@@ -273,9 +275,9 @@ class HeavyDataSeeder extends Seeder
             for ($b = 1; $b <= $batchesPerClass; $b++) {
                 $name = "Heavy Batch C{$classId}-{$b}";
                 $names[] = $name;
-                $start = now()->subDays(fake()->numberBetween(0, 40))->addDays(($classIndex + $b) % 20);
-                $duration = fake()->randomElement([30, 60, 90]);
-                $status = fake()->randomElement(['upcoming', 'ongoing', 'ongoing', 'completed']);
+                $start = now()->subDays($this->seedNumber(0, 40))->addDays(($classIndex + $b) % 20);
+                $duration = $this->seedPick([30, 60, 90]);
+                $status = $this->seedPick(['upcoming', 'ongoing', 'ongoing', 'completed']);
 
                 $rows[] = [
                     'class_id' => $classId,
@@ -285,7 +287,7 @@ class HeavyDataSeeder extends Seeder
                     'filled_seat' => 0,
                     'start_date' => $start->toDateString(),
                     'end_date' => $start->copy()->addDays($duration)->toDateString(),
-                    'zoom_link' => 'https://zoom.us/j/'.fake()->numerify('#########'),
+                    'zoom_link' => 'https://zoom.us/j/'.$this->seedDigits(9),
                     'status' => $status,
                     'active_status' => 1,
                     'created_at' => $this->now,
@@ -470,7 +472,7 @@ class HeavyDataSeeder extends Seeder
                 'enrollment_id' => (int) $enrollment->id,
             ];
 
-            $status = fake()->randomElement(['paid', 'paid', 'paid', 'pending', 'failed']);
+            $status = $this->seedPick(['paid', 'paid', 'paid', 'pending', 'failed']);
             $paymentId = 'H'.str_pad((string) $this->paymentSeq, 9, '0', STR_PAD_LEFT);
             $this->paymentSeq++;
 
@@ -481,7 +483,7 @@ class HeavyDataSeeder extends Seeder
                 'batch_id' => $enrollment->batch_id,
                 'amount' => $batch['price'] ?? 3000,
                 'currency' => 'USD',
-                'payment_method' => fake()->randomElement(['stripe', 'paypal', 'token']),
+                'payment_method' => $this->seedPick(['stripe', 'paypal', 'token']),
                 'transaction_id' => 'txn_'.Str::lower(Str::random(16)).'_'.$enrollment->id,
                 'status' => $status,
                 'paid_at' => $status === 'paid' ? $this->now : null,
@@ -524,7 +526,7 @@ class HeavyDataSeeder extends Seeder
                         'batch_id' => $batchId,
                         'user_id' => $userId,
                         'class_date' => $date,
-                        'status' => fake()->boolean(85) ? 'present' : 'absent',
+                        'status' => $this->seedBool(85) ? 'present' : 'absent',
                         'created_at' => $this->now,
                         'updated_at' => $this->now,
                     ];
@@ -565,7 +567,7 @@ class HeavyDataSeeder extends Seeder
                 'teacher_id' => $batch['teacher_id'],
                 'batch_id' => $batch['id'],
                 'student_user_id' => $studentIds[$i % $studentCount],
-                'comment' => fake()->sentence(12),
+                'comment' => $this->seedSentence(12),
                 'status' => $statuses[$i % count($statuses)],
                 'created_at' => $this->now,
                 'updated_at' => $this->now,
@@ -599,7 +601,7 @@ class HeavyDataSeeder extends Seeder
                     'batch_id' => $batch['id'],
                     'teacher_id' => $batch['teacher_id'],
                     'title' => "Heavy Assignment {$a} for batch {$batch['id']}",
-                    'description' => fake()->paragraph(),
+                    'description' => $this->seedParagraph(),
                     'attachment' => null,
                     'starts_at' => $starts->toDateTimeString(),
                     'due_at' => $starts->copy()->addDays(7)->toDateTimeString(),
@@ -635,9 +637,9 @@ class HeavyDataSeeder extends Seeder
                     'assignment_id' => $assignment->id,
                     'student_user_id' => $pair['user_id'],
                     'file_path' => 'assignments/heavy/'.$assignment->id.'_'.$pair['user_id'].'.pdf',
-                    'obtained_marks' => fake()->boolean(70) ? fake()->randomFloat(2, 40, 100) : null,
-                    'feedback' => fake()->boolean(50) ? fake()->sentence() : null,
-                    'graded_at' => fake()->boolean(60) ? $this->now : null,
+                    'obtained_marks' => $this->seedBool(70) ? $this->seedFloat(40, 100) : null,
+                    'feedback' => $this->seedBool(50) ? $this->seedSentence() : null,
+                    'graded_at' => $this->seedBool(60) ? $this->now : null,
                     'created_at' => $this->now,
                     'updated_at' => $this->now,
                 ];
@@ -677,9 +679,9 @@ class HeavyDataSeeder extends Seeder
                         'title' => "Heavy note {$n} batch {$batch['id']}",
                         'user_id' => $userId,
                         'batch_id' => $batch['id'],
-                        'note' => fake()->paragraph(),
+                        'note' => $this->seedParagraph(),
                         'note_file' => null,
-                        'note_link' => fake()->boolean(40) ? fake()->url() : null,
+                        'note_link' => $this->seedBool(40) ? $this->seedUrl() : null,
                         'created_at' => $this->now,
                         'updated_at' => $this->now,
                     ];
@@ -777,10 +779,10 @@ class HeavyDataSeeder extends Seeder
             $rows[] = [
                 'user_id' => $studentIds[$i % $studentCount],
                 'batch_id' => $batches[$i % $batchCount]['id'],
-                'type' => fake()->randomElement(['email', 'whatsapp']),
-                'message_type' => fake()->randomElement(['class_reminder', 'payment', 'general']),
-                'message' => fake()->sentence(10),
-                'status' => fake()->boolean(90) ? 'sent' : 'failed',
+                'type' => $this->seedPick(['email', 'whatsapp']),
+                'message_type' => $this->seedPick(['class_reminder', 'payment', 'general']),
+                'message' => $this->seedSentence(10),
+                'status' => $this->seedBool(90) ? 'sent' : 'failed',
                 'sent_at' => $this->now,
                 'created_at' => $this->now,
                 'updated_at' => $this->now,
@@ -811,7 +813,7 @@ class HeavyDataSeeder extends Seeder
         foreach ($sample as $userId) {
             $otpRows[] = [
                 'user_id' => $userId,
-                'otp' => str_pad((string) fake()->numberBetween(0, 999999), 6, '0', STR_PAD_LEFT),
+                'otp' => str_pad((string) $this->seedNumber(0, 999999), 6, '0', STR_PAD_LEFT),
                 'expires_at' => now()->addMinutes(15)->toDateTimeString(),
                 'created_at' => $this->now,
                 'updated_at' => $this->now,
@@ -883,8 +885,8 @@ class HeavyDataSeeder extends Seeder
             $sessionRows[] = [
                 'id' => Str::random(40),
                 'user_id' => $userId,
-                'ip_address' => fake()->ipv4(),
-                'user_agent' => fake()->userAgent(),
+                'ip_address' => $this->seedIpv4(),
+                'user_agent' => $this->seedUserAgent(),
                 'payload' => base64_encode(serialize(['user_id' => $userId])),
                 'last_activity' => now()->subMinutes($index)->timestamp,
             ];
@@ -944,7 +946,7 @@ class HeavyDataSeeder extends Seeder
         for ($i = 1; $i <= 100; $i++) {
             $cacheRows[] = [
                 'key' => 'heavy_seed_cache_'.$i,
-                'value' => serialize(['index' => $i, 'message' => fake()->sentence()]),
+                'value' => serialize(['index' => $i, 'message' => $this->seedSentence()]),
                 'expiration' => now()->addDay()->timestamp,
             ];
         }
