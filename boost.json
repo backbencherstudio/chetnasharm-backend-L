@@ -1,6 +1,5 @@
 {
     "agents": [
-        "cursor",
         "opencode"
     ],
     "cloud": false,
