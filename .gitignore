@@ -33,9 +33,27 @@ Homestead.json
 .phpactor.json
 auth.json
 
+# Agent configuration files
 /.agents
+/.claude
 /.cursor
+/.codex
+/.windsurf
+/.gemini
+/.copilot
 /.ai
+/.opencode
 /AGENTS.md
+/agents.md
+/CLAUDE.md
+/claude.md
+/COPILOT.md
+/copilot.md
+/GEMINI.md
+/gemini.md
+/CODEX.md
+/codex.md
+/.cursorrules
+/.windsurfrules
 /boost.json
 /opencode.json
