@@ -36,4 +36,6 @@ auth.json
 /.agents
 /.cursor
 /.ai
-/agents.md
+/AGENTS.md
+/boost.json
+/opencode.json
