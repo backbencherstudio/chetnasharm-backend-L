@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\Setting;
 use App\Models\User;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Stripe\Checkout\Session;
@@ -550,20 +551,24 @@ class PaymentService
 
     private function getPayPalToken(): string
     {
-        $client = new Client;
         $paypal = $this->integrationConfig->paypal();
+        $cacheKey = 'paypal_access_token_'.md5($paypal['client_id']);
 
-        $response = $client->post($this->paypalBaseUrl().'/v1/oauth2/token', [
-            'auth' => [
-                $paypal['client_id'],
-                $paypal['client_secret'],
-            ],
-            'form_params' => [
-                'grant_type' => 'client_credentials',
-            ],
-        ]);
+        return Cache::remember($cacheKey, 8 * 60 * 60, function () use ($paypal) {
+            $client = new Client;
 
-        return json_decode($response->getBody(), true)['access_token'];
+            $response = $client->post($this->paypalBaseUrl().'/v1/oauth2/token', [
+                'auth' => [
+                    $paypal['client_id'],
+                    $paypal['client_secret'],
+                ],
+                'form_params' => [
+                    'grant_type' => 'client_credentials',
+                ],
+            ]);
+
+            return json_decode($response->getBody(), true)['access_token'];
+        });
     }
 
     private function generatePaymentId(): int

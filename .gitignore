@@ -35,3 +35,5 @@ auth.json
 
 /.agents
 /.cursor
+/.ai
+/agents.md

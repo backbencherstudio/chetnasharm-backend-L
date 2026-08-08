@@ -9,7 +9,7 @@ beforeEach(function () {
     }
 });
 
-test('admin users list hides admin role users', function () {
+test('admin users list includes admin role users', function () {
     $admin = User::factory()->create(['email' => 'admin@example.com']);
     $admin->assignRole('admin');
 
@@ -31,12 +31,15 @@ test('admin users list hides admin role users', function () {
     expect($emails)
         ->toContain('teacher@example.com')
         ->toContain('student@example.com')
-        ->not->toContain('admin@example.com');
+        ->toContain('admin@example.com');
 });
 
-test('admin users list ignores role=admin filter', function () {
+test('admin users list applies role=admin filter', function () {
     $admin = User::factory()->create(['email' => 'admin2@example.com']);
     $admin->assignRole('admin');
+
+    $student = User::factory()->create(['email' => 'student3@example.com']);
+    $student->assignRole('student');
 
     $token = auth('api')->login($admin);
 
@@ -44,5 +47,5 @@ test('admin users list ignores role=admin filter', function () {
         ->getJson('/api/admin/users?role=admin')
         ->assertOk();
 
-    expect($response->json('data'))->toBeEmpty();
+    expect($response->json('data'))->not->toBeEmpty();
 });
