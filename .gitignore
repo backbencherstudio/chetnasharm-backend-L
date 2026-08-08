@@ -2,8 +2,6 @@
 node_modules/
 npm-debug.log
 yarn-error.log
-/.agents
-/.cursor
 
 # Laravel 4 specific
 bootstrap/compiled.php
@@ -34,3 +32,6 @@ Homestead.json
 .env.production
 .phpactor.json
 auth.json
+
+/.agents
+/.cursor

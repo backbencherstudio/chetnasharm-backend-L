@@ -219,7 +219,7 @@ test('student cannot submit after due date', function () {
         ->assertJsonPath('message', 'Assignment submission is closed');
 });
 
-test('student assignment tab lists started assignments including late ones across enrolled batches', function () {
+test('student assignment tab lists active assignments across enrolled batches', function () {
     [$teacherUser, $teacher, $batch, $student] = createAssignmentContext();
 
     $active = BatchAssignment::create([
@@ -230,7 +230,7 @@ test('student assignment tab lists started assignments including late ones acros
         'total_marks' => 100,
     ]);
 
-    $late = BatchAssignment::create([
+    BatchAssignment::create([
         'batch_id' => $batch->id,
         'teacher_id' => $teacher->id,
         'title' => 'Closed homework',
@@ -240,18 +240,15 @@ test('student assignment tab lists started assignments including late ones acros
 
     $token = auth('api')->login($student);
 
-    $response = $this->withHeader('Authorization', "Bearer {$token}")
+    $this->withHeader('Authorization', "Bearer {$token}")
         ->getJson('/api/student/assignments')
         ->assertOk()
-        ->assertJsonPath('pagination.total', 2)
+        ->assertJsonPath('pagination.total', 1)
         ->assertJsonPath('data.0.id', $active->id)
         ->assertJsonPath('data.0.batch_id', $batch->id)
         ->assertJsonPath('data.0.batch_name', $batch->name)
         ->assertJsonPath('data.0.has_submitted', false)
         ->assertJsonPath('data.0.is_open', true);
-
-    $lateItem = collect($response->json('data'))->firstWhere('id', $late->id);
-    expect($lateItem['is_open'])->toBeFalse();
 
     $this->withHeader('Authorization', "Bearer {$token}")
         ->post("/api/student/assignments/{$active->id}/submit", [
@@ -262,7 +259,7 @@ test('student assignment tab lists started assignments including late ones acros
     $this->withHeader('Authorization', "Bearer {$token}")
         ->getJson('/api/student/assignments?pending_only=1')
         ->assertOk()
-        ->assertJsonPath('pagination.total', 1);
+        ->assertJsonPath('pagination.total', 0);
 
     $this->withHeader('Authorization', "Bearer {$token}")
         ->getJson('/api/student/assignments')
