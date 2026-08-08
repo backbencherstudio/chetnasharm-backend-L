@@ -88,17 +88,12 @@ class UserService
         $search = $request->query('search');
         $role = $request->query('role');
 
-        $query = User::query()
-            ->whereDoesntHave('roles', function ($q) {
-                $q->where('name', 'admin');
-            });
+        $query = User::query();
 
-        if ($role && $role !== 'admin') {
+        if ($role) {
             $query->whereHas('roles', function ($q) use ($role) {
                 $q->where('name', $role);
             });
-        } else {
-            $query->whereHas('roles');
         }
 
         if ($search) {
