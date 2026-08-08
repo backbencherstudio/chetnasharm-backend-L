@@ -214,7 +214,7 @@ class BatchAssignmentService
         $search = $request->query('search');
 
         $query = BatchAssignment::query()
-            ->active()
+            ->started()
             ->whereIn('batch_id', $batchIds)
             ->with([
                 'batch:id,name,class_id',
@@ -252,7 +252,7 @@ class BatchAssignmentService
                     ...$this->formatAssignment($assignment),
                     'batch_name' => $assignment->batch?->name,
                     'class_title' => $assignment->batch?->class?->title,
-                    'is_open' => true,
+                    'is_open' => $assignment->isOpenForSubmission(),
                     'has_submitted' => $submission !== null,
                     'my_submission' => $this->formatMySubmission($submission),
                 ];
