@@ -502,7 +502,7 @@ class HeavyDataSeeder extends Seeder
             $enrollmentId = $before + $i + 1;
             $batch = $batchMap->get($enrollment['batch_id']);
             $status = $this->seedPick(['paid', 'paid', 'paid', 'pending', 'failed']);
-            $paymentId = 'H'.str_pad((string) $this->paymentSeq, 9, '0', STR_PAD_LEFT);
+            $paymentId = (string) Str::uuid();
             $this->paymentSeq++;
 
             $paymentRows[] = [

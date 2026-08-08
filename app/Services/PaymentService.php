@@ -12,6 +12,7 @@ use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Stripe\Checkout\Session;
 use Stripe\Stripe;
 use Stripe\Webhook;
@@ -571,12 +572,8 @@ class PaymentService
         });
     }
 
-    private function generatePaymentId(): int
+    private function generatePaymentId(): string
     {
-        do {
-            $paymentId = rand(100000, 999999);
-        } while (Payment::where('payment_id', $paymentId)->exists());
-
-        return $paymentId;
+        return (string) Str::uuid();
     }
 }
