@@ -197,6 +197,10 @@ class BatchAssignmentService
         $batchIds = Enrollment::query()
             ->where('user_id', $user->id)
             ->where('status', 'active')
+            ->whereHas('batch', function ($query) {
+                $query->where('active_status', 1)
+                    ->where('status', '!=', 'completed');
+            })
             ->pluck('batch_id');
 
         if ($batchIds->isEmpty()) {
