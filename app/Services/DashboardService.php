@@ -253,11 +253,11 @@ class DashboardService
      */
     public function studentDashboard(int $userId): array
     {
-        $today = now()->startOfDay();
+        $activeBatchStatuses = ['ongoing', 'upcoming'];
 
         $enrollments = Enrollment::with([
             'class:id,title,image,price',
-            'batch:id,name,start_date,end_date,total_seat,filled_seat',
+            'batch:id,name,start_date,end_date,total_seat,filled_seat,status',
         ])
             ->where('user_id', $userId)
             ->latest()
@@ -267,15 +267,11 @@ class DashboardService
 
         $activeEnrollments = $enrollments->filter(
             fn ($enrollment) => $enrollment->batch
-                && $enrollment->batch->end_date
-                && $enrollment->batch->end_date->copy()->startOfDay()->gte($today)
+                && in_array($enrollment->batch->status, $activeBatchStatuses, true)
         );
 
         $completedCourses = $enrollments
-            ->filter(
-                fn ($enrollment) => $enrollment->expiry_date
-                    && $enrollment->expiry_date->copy()->startOfDay()->lt($today)
-            )
+            ->filter(fn ($enrollment) => $enrollment->batch?->status === 'completed')
             ->count();
 
         $totalSpent = $enrollments->sum(
@@ -325,11 +321,7 @@ class DashboardService
             ->values();
 
         $completedCourseList = $enrollments
-            ->filter(
-                fn ($enrollment) => $enrollment->batch
-                    && $enrollment->batch->end_date
-                    && $enrollment->batch->end_date->copy()->startOfDay()->lt($today)
-            )
+            ->filter(fn ($enrollment) => $enrollment->batch?->status === 'completed')
             ->take(5)
             ->map(function ($enrollment) {
                 return [
