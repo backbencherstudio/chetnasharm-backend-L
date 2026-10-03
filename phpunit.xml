@@ -18,6 +18,7 @@
         </include>
     </source>
     <php>
+        <env name="JWT_SECRET" value="qpPWivHbmPI4cdjPoDqodgd2hVHMPGNG6ZTaT1Qe5P4FMzrXwMjDBX1iSKud6am2"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
