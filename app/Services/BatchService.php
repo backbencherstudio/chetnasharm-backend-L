@@ -128,7 +128,7 @@ class BatchService
 
     public function findForEdit(int $id): ?Batch
     {
-        return Batch::with('schedules')->find($id);
+        return Batch::with(['schedules', 'teacher:id,user_id,country,timezone', 'teacher.user:id,name'])->find($id);
     }
 
     public function find(int $id): ?Batch
@@ -207,16 +207,19 @@ class BatchService
         return ClassModel::where('is_active', 1)->select('id', 'title')->get();
     }
 
-    /** @return Collection<int, array{id: int, name: string}> */
+    /** @return Collection<int, array{id: int, name: string, country: ?string, timezone: ?string, expertise: ?string}> */
     public function teacherList(): Collection
     {
         return Teacher::query()
             ->active()
             ->with('user:id,name')
-            ->get(['id', 'user_id'])
+            ->get(['id', 'user_id', 'country', 'timezone', 'expertise'])
             ->map(fn (Teacher $teacher) => [
                 'id' => $teacher->id,
                 'name' => $teacher->name,
+                'country' => $teacher->country,
+                'timezone' => $teacher->timezone,
+                'expertise' => $teacher->expertise,
             ])
             ->values();
     }
@@ -377,7 +380,7 @@ class BatchService
     {
         return Batch::with([
             'class:id,title,description,image',
-            'teacher:id,user_id',
+            'teacher:id,user_id,country,timezone',
             'teacher.user:id,name',
             'schedules:id,batch_id,day_of_week,start_time,end_time',
         ])
