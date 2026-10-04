@@ -26,7 +26,7 @@ class UserSeeder extends Seeder
 
         $teachers = [
             'sarah' => [
-                'user' => ['name' => 'Sarah Rahman', 'email' => 'sarah@gmail.com', 'mobile' => '01710000001'],
+                'user' => ['name' => 'Sarah Rahman', 'email' => 'sarah@gmail.com', 'mobile' => '+8801710000001'],
                 'teacher' => [
                     'qualification' => 'M.A. in English Literature',
                     'expertise' => 'Spoken English & IELTS',
@@ -42,7 +42,7 @@ class UserSeeder extends Seeder
                 ],
             ],
             'david' => [
-                'user' => ['name' => 'David Hossain', 'email' => 'david@gmail.com', 'mobile' => '01710000002'],
+                'user' => ['name' => 'David Hossain', 'email' => 'david@gmail.com', 'mobile' => '+8801710000002'],
                 'teacher' => [
                     'qualification' => 'IELTS Certified Trainer',
                     'expertise' => 'IELTS Preparation',
@@ -216,8 +216,8 @@ class UserSeeder extends Seeder
         }
 
         $students = [
-            ['name' => 'Tanvir Ahmed', 'email' => 'tanvir@gmail.com', 'mobile' => '01720000001'],
-            ['name' => 'Mitu Akter', 'email' => 'mitu@gmail.com', 'mobile' => '01720000002'],
+            ['name' => 'Tanvir Ahmed', 'email' => 'tanvir@gmail.com', 'mobile' => '+8801720000001'],
+            ['name' => 'Mitu Akter', 'email' => 'mitu@gmail.com', 'mobile' => '+8801720000002'],
         ];
 
         foreach ($students as $student) {

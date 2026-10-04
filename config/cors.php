@@ -8,7 +8,8 @@ return [
 
     'allowed_origins' => [
         'https://listenactclasses.com',
-        'https://www.listenactclasses.com'
+        'https://www.listenactclasses.com',
+        'http://localhost:3000',
     ],
 
     'allowed_origins_patterns' => [],

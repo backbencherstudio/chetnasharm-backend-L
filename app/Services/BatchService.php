@@ -35,7 +35,7 @@ class BatchService
         ])
             ->with([
                 'class:id,title',
-                'teacher:id,user_id',
+                'teacher:id,user_id,country,timezone',
                 'teacher.user:id,name',
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ]);
@@ -252,7 +252,7 @@ class BatchService
         ])
             ->with([
                 'class:id,title',
-                'teacher:id,user_id',
+                'teacher:id,user_id,country,timezone',
                 'teacher.user:id,name,suspend_status',
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
@@ -326,7 +326,7 @@ class BatchService
         ])
             ->with([
                 'class:id,title,image',
-                'teacher:id,user_id',
+                'teacher:id,user_id,country,timezone',
                 'teacher.user:id,name,image',
                 'schedules:id,batch_id,day_of_week,start_time,end_time',
             ])
