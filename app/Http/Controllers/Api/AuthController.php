@@ -9,7 +9,7 @@ use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -115,19 +115,26 @@ class AuthController extends Controller
         }
     }
 
-    /** Redirect the user to Google OAuth. */
-    public function googleRedirect(): RedirectResponse
+    /** Authenticate a user with a Google token. */
+    public function googleLogin(Request $request): JsonResponse
     {
-        $result = $this->auth->googleRedirect();
+        $validated = $request->validate([
+            'access_token' => 'required_without:token|string|nullable',
+            'token' => 'required_without:access_token|string|nullable',
+        ]);
 
-        return redirect()->away($result['url']);
-    }
+        $token = $validated['access_token'] ?? $validated['token'];
 
-    /** Handle the Google OAuth callback. */
-    public function googleCallback(): RedirectResponse
-    {
-        $result = $this->auth->googleCallback();
+        $result = $this->auth->googleLogin((string) $token);
 
-        return redirect()->away($result['url']);
+        if ($result['type'] === 'suspended') {
+            return $this->forbidden('Your account has been suspended. Please contact admin.');
+        }
+
+        if ($result['type'] !== 'success') {
+            return $this->error($result['message'] ?? 'Google authentication failed.', 401);
+        }
+
+        return $this->respondWithToken($result['token'], $result['user']);
     }
 }

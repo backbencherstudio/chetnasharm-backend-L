@@ -3,6 +3,7 @@
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Socialite\Facades\Socialite;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function (): void {
@@ -123,4 +124,40 @@ test('guest can request otp, verify otp, and reset password', function (): void 
 
     $user->refresh();
     expect(Hash::check('NewPassword123!', $user->password))->toBeTrue();
+});
+
+test('user can login with google access token and receive token', function (): void {
+    Socialite::shouldReceive('driver->stateless->userFromToken')
+        ->once()
+        ->with('valid_google_token')
+        ->andReturn(
+            (new Laravel\Socialite\Two\User)->map([
+                'id' => 'google_987654',
+                'name' => 'Google Student',
+                'email' => 'googlestudent@example.com',
+                'avatar' => 'https://example.com/photo.jpg',
+            ])
+        );
+
+    $response = $this->postJson('/api/auth/google', [
+        'access_token' => 'valid_google_token',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonStructure(['token', 'user', 'data']);
+
+    $this->assertDatabaseHas('users', [
+        'email' => 'googlestudent@example.com',
+        'provider' => 'google',
+        'provider_id' => 'google_987654',
+    ]);
+});
+
+test('google login fails with invalid token', function (): void {
+    $response = $this->postJson('/api/auth/google', [
+        'access_token' => 'invalid_token_123',
+    ]);
+
+    $response->assertStatus(401);
 });

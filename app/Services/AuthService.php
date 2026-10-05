@@ -187,68 +187,75 @@ class AuthService
     }
 
     /**
-     * @return array{type: 'redirect', url: string}
+     * Authenticate or register a user using a Google OAuth token.
+     *
+     * @return array{type: 'success', token: string, user: User}|array{type: 'suspended'}|array{type: 'failed', message: string}
      */
-    public function googleRedirect(): array
-    {
-        $redirect = Socialite::driver('google')->stateless()
-            ->with(['prompt' => 'select_account'])
-            ->redirect();
-
-        return [
-            'type' => 'redirect',
-            'url' => $redirect->getTargetUrl(),
-        ];
-    }
-
-    /**
-     * @return array{type: 'redirect', url: string}
-     */
-    public function googleCallback(): array
+    public function googleLogin(string $token): array
     {
         try {
-            $googleUser = Socialite::driver('google')->stateless()->user();
+            $googleUser = Socialite::driver('google')->stateless()->userFromToken($token);
 
-            $user = User::where('email', $googleUser->email)->first();
+            $email = $googleUser->getEmail();
+            if (! $email) {
+                return [
+                    'type' => 'failed',
+                    'message' => 'Unable to retrieve email from Google account.',
+                ];
+            }
+
+            $user = User::withTrashed()->where('email', $email)->first();
+
+            if ($user && $user->trashed()) {
+                return [
+                    'type' => 'failed',
+                    'message' => 'Your account has been deactivated. Please contact support.',
+                ];
+            }
 
             if (! $user) {
                 $user = User::create([
-                    'name' => $googleUser->name,
-                    'email' => $googleUser->email,
+                    'name' => $googleUser->getName() ?: explode('@', $email)[0],
+                    'email' => $email,
                     'password' => null,
                     'department' => 'Student',
-                    'image' => $googleUser->avatar,
+                    'image' => $googleUser->getAvatar(),
                     'provider' => 'google',
-                    'provider_id' => $googleUser->id,
+                    'provider_id' => $googleUser->getId(),
                     'suspend_status' => 0,
                 ]);
 
                 if (Role::where('name', 'student')->exists()) {
                     $user->assignRole('student');
                 }
+            } else {
+                if (! $user->provider) {
+                    $user->update([
+                        'provider' => 'google',
+                        'provider_id' => $googleUser->getId(),
+                    ]);
+                }
             }
 
             if ($user->suspend_status == 1) {
-                return [
-                    'type' => 'redirect',
-                    'url' => config('app.frontend_url').'/login?error=account_suspended',
-                ];
+                return ['type' => 'suspended'];
             }
 
-            $token = auth('api')->login($user);
+            $jwtToken = auth('api')->login($user);
 
             return [
-                'type' => 'redirect',
-                'url' => config('app.frontend_url')."/auth/callback?token={$token}",
+                'type' => 'success',
+                'token' => $jwtToken,
+                'user' => $user->load('roles'),
             ];
         } catch (\Throwable $e) {
-            Log::error('Google login failed', [
+            Log::error('Google login verification failed', [
                 'error' => $e->getMessage(),
             ]);
 
             return [
-                'type' => 'redirect',
-                'url' => config('app.frontend_url').'/login?error=google_login_failed',
+                'type' => 'failed',
+                'message' => 'Invalid Google token: '.$e->getMessage(),
             ];
         }
     }

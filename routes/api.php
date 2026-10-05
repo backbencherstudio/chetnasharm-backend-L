@@ -38,9 +38,8 @@ Route::post('verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->middl
 Route::post('password-reset', [ForgotPasswordController::class, 'resetPassword'])->middleware('throttle:5,1');
 Route::post('register', [AuthController::class, 'register']);
 
-// google register
-Route::get('auth/google/redirect', [AuthController::class, 'googleRedirect']);
-Route::get('auth/google/callback', [AuthController::class, 'googleCallback']);
+// google auth
+Route::post('auth/google', [AuthController::class, 'googleLogin']);
 
 Route::post('refresh', [AuthController::class, 'refresh']);
 
