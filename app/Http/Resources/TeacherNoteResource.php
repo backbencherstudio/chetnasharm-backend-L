@@ -27,12 +27,12 @@ class TeacherNoteResource extends JsonResource
             'note_file' => $this->note_file,
             'note_file_url' => $this->note_file ? asset('storage/'.$this->note_file) : null,
             'note_link' => $this->note_link,
-            'teacher' => $this->whenLoaded('teacher', fn () => [
+            'teacher' => $this->whenLoaded('teacher', fn (): array => [
                 'id' => $this->teacher->id,
                 'name' => $this->teacher->name,
                 'email' => $this->teacher->email,
             ]),
-            'batch' => $this->whenLoaded('batch', fn () => [
+            'batch' => $this->whenLoaded('batch', fn (): array => [
                 'id' => $this->batch->id,
                 'name' => $this->batch->name,
             ]),

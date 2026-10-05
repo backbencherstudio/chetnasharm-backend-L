@@ -6,13 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Vocabulary\StoreVocabularyRequest;
 use App\Http\Requests\Vocabulary\UpdateVocabularyRequest;
 use App\Http\Resources\VocabularyResource;
+use App\Models\Vocabulary;
 use App\Services\VocabularyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class VocabularyController extends Controller
 {
-    public function __construct(private VocabularyService $vocabulary) {}
+    public function __construct(private readonly VocabularyService $vocabulary) {}
 
     /** List vocabularies with optional search filtering. */
     public function index(Request $request): JsonResponse
@@ -42,7 +43,7 @@ class VocabularyController extends Controller
     {
         $vocabulary = $this->vocabulary->find($id);
 
-        if (! $vocabulary) {
+        if (! $vocabulary instanceof Vocabulary) {
             return $this->notFound('Vocabulary not found');
         }
 

@@ -20,8 +20,8 @@ use Stripe\Webhook;
 class PaymentService
 {
     public function __construct(
-        private EnrollmentService $enrollmentService,
-        private IntegrationConfig $integrationConfig,
+        private readonly EnrollmentService $enrollmentService,
+        private readonly IntegrationConfig $integrationConfig,
     ) {}
 
     /**
@@ -256,7 +256,7 @@ class PaymentService
                 'message' => 'PayPal approval link not found',
                 'http_status' => 500,
             ];
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return [
                 'status' => false,
                 'message' => 'PayPal checkout failed',
@@ -363,7 +363,7 @@ class PaymentService
                     'type' => 'redirect',
                     'url' => config('app.frontend_success_url').'?payment_id='.$payment->id.'&status=success',
                 ];
-            } catch (\Throwable $e) {
+            } catch (\Throwable) {
                 DB::rollBack();
 
                 return [
@@ -371,7 +371,7 @@ class PaymentService
                     'url' => config('app.frontend_failed_url').'?reason=processing_failed',
                 ];
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return [
                 'type' => 'redirect',
                 'url' => config('app.frontend_failed_url').'?reason=api_error',

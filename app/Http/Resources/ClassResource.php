@@ -32,10 +32,10 @@ class ClassResource extends JsonResource
             'image_url' => $this->image_url,
             'is_class_recording' => $this->is_class_recording,
             'is_active' => $this->is_active,
-            'teachers_count' => $this->when(isset($this->teachers_count), fn () => (int) $this->teachers_count),
+            'teachers_count' => $this->when(isset($this->teachers_count), fn (): int => (int) $this->teachers_count),
             'batches_count' => $this->when(
                 isset($this->batches_count),
-                fn () => (int) $this->batches_count,
+                fn (): int => (int) $this->batches_count,
                 $this->whenCounted('batches')
             ),
             'teachers' => $this->when(isset($this->teachers), fn () => $this->teachers),

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('teacher_availabilities', function (Blueprint $table) {
+        Schema::create('teacher_availabilities', function (Blueprint $table): void {
             $table->id();
 
             $table->foreignId('teacher_id')

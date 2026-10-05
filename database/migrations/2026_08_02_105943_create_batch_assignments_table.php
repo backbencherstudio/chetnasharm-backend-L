@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('batch_assignments', function (Blueprint $table) {
+        Schema::create('batch_assignments', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('batch_id')->constrained('batches')->cascadeOnDelete();
             $table->foreignId('teacher_id')->constrained('teachers')->cascadeOnDelete();

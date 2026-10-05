@@ -10,7 +10,7 @@ use Illuminate\Http\JsonResponse;
 
 class TransactionController extends Controller
 {
-    public function __construct(private TransactionService $transaction) {}
+    public function __construct(private readonly TransactionService $transaction) {}
 
     /** List payments for the authenticated user or all payments for admins. */
     public function index(): JsonResponse

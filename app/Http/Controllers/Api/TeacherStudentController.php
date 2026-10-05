@@ -6,20 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\TeacherStudent\ListStudentNotesRequest;
 use App\Http\Requests\TeacherStudent\StoreStudentActivityNoteRequest;
 use App\Http\Requests\TeacherStudent\UpdateStudentActivityNoteRequest;
+use App\Models\Batch;
+use App\Models\StudentActivityNote;
+use App\Models\Teacher;
 use App\Services\TeacherStudentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TeacherStudentController extends Controller
 {
-    public function __construct(private TeacherStudentService $teacherStudents) {}
+    public function __construct(private readonly TeacherStudentService $teacherStudents) {}
 
     /** List all students from the teacher's running batches. */
     public function index(Request $request): JsonResponse
     {
         $teacher = $this->teacherStudents->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
@@ -37,7 +40,7 @@ class TeacherStudentController extends Controller
     {
         $teacher = $this->teacherStudents->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
@@ -45,7 +48,7 @@ class TeacherStudentController extends Controller
 
         $batch = $this->teacherStudents->teacherBatch($teacher->id, (int) $validated['batch_id']);
 
-        if (! $batch) {
+        if (! $batch instanceof Batch) {
             return $this->forbidden('Unauthorized: Invalid batch access');
         }
 
@@ -67,7 +70,7 @@ class TeacherStudentController extends Controller
     {
         $teacher = $this->teacherStudents->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
@@ -75,7 +78,7 @@ class TeacherStudentController extends Controller
 
         $batch = $this->teacherStudents->teacherBatch($teacher->id, (int) $validated['batch_id']);
 
-        if (! $batch) {
+        if (! $batch instanceof Batch) {
             return $this->forbidden('Unauthorized: Invalid batch access');
         }
 
@@ -96,13 +99,13 @@ class TeacherStudentController extends Controller
     {
         $teacher = $this->teacherStudents->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $note = $this->teacherStudents->findNoteForTeacher($teacher->id, $id);
 
-        if (! $note) {
+        if (! $note instanceof StudentActivityNote) {
             return $this->notFound('Note not found');
         }
 
@@ -119,13 +122,13 @@ class TeacherStudentController extends Controller
     {
         $teacher = $this->teacherStudents->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $note = $this->teacherStudents->findNoteForTeacher($teacher->id, $id);
 
-        if (! $note) {
+        if (! $note instanceof StudentActivityNote) {
             return $this->notFound('Note not found');
         }
 

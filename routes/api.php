@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AvailabilityController;
@@ -24,12 +26,10 @@ use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('login', function () {
-    return response()->json([
-        'success' => false,
-        'message' => 'Please login to continue',
-    ], 401);
-})->name('login');
+Route::get('login', fn () => response()->json([
+    'success' => false,
+    'message' => 'Please login to continue',
+], 401))->name('login');
 
 Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
@@ -59,7 +59,7 @@ Route::get('vocabularies', [VocabularyController::class, 'vocabularies']);
 Route::get('speaking-topics', [SpeakingTopicController::class, 'frontendList']);
 Route::get('basic-questions', [BasicQuestionController::class, 'frontendList']);
 
-Route::middleware('auth:api')->group(function () {
+Route::middleware('auth:api')->group(function (): void {
 
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('me', [AuthController::class, 'me']);
@@ -68,7 +68,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('profile-update', [UserController::class, 'profileUpdate']);
 });
 
-Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function () {
+Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (): void {
 
     // User Management
     Route::get('users', [UserController::class, 'data']);
@@ -151,7 +151,7 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::post('env-settings', [SettingController::class, 'updateEnvSettings']);
 });
 
-Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
+Route::middleware(['auth:api', 'role:admin|teacher'])->group(function (): void {
 
     Route::get('class-time', [SettingController::class, 'getClassTime']);
     Route::get('teacher-availability', [AvailabilityController::class, 'index']);
@@ -172,7 +172,7 @@ Route::middleware(['auth:api', 'role:admin|teacher'])->group(function () {
     Route::patch('update-zoom-link/{batchId}', [BatchController::class, 'updateZoomLink']);
 });
 
-Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function () {
+Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(function (): void {
 
     Route::get('timezone', [TeacherController::class, 'showTimezone']);
 
@@ -208,7 +208,7 @@ Route::prefix('teacher')->middleware(['auth:api', 'role:teacher'])->group(functi
     Route::get('dashboard', [DashboardController::class, 'teacherDashboard']);
 });
 
-Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(function () {
+Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(function (): void {
 
     Route::post('create-payment', [PaymentController::class, 'createPayment']);
 
@@ -229,7 +229,7 @@ Route::prefix('student')->middleware(['auth:api', 'role:student'])->group(functi
     Route::get('dashboard', [DashboardController::class, 'studentDashboard']);
 });
 
-Route::middleware(['auth:api', 'role:admin|student'])->group(function () {
+Route::middleware(['auth:api', 'role:admin|student'])->group(function (): void {
 
     Route::get('payments', [TransactionController::class, 'index']);
 });

@@ -30,7 +30,7 @@ class BatchResource extends JsonResource
             'status' => $this->status,
             'active_status' => $this->active_status,
             'zoom_link' => $this->zoom_link,
-            'class' => $this->whenLoaded('class', fn () => [
+            'class' => $this->whenLoaded('class', fn (): array => [
                 'id' => $this->class->id,
                 'title' => $this->class->title,
                 'description' => $this->class->description,
@@ -38,7 +38,7 @@ class BatchResource extends JsonResource
                 'image_url' => $this->class->image_url,
                 'price' => $this->class->price,
             ]),
-            'teacher' => $this->whenLoaded('teacher', fn () => [
+            'teacher' => $this->whenLoaded('teacher', fn (): array => [
                 'id' => $this->teacher->id,
                 'name' => $this->teacher->user?->name,
                 'user_id' => $this->teacher->user_id,
@@ -53,7 +53,7 @@ class BatchResource extends JsonResource
                     'suspend_status' => $this->teacher->user->suspend_status,
                 ] : null,
             ]),
-            'schedules' => $this->whenLoaded('schedules', fn () => $this->schedules->map(fn ($s) => [
+            'schedules' => $this->whenLoaded('schedules', fn () => $this->schedules->map(fn ($s): array => [
                 'id' => $s->id,
                 'batch_id' => $s->batch_id,
                 'day_of_week' => $s->day_of_week,
@@ -62,7 +62,7 @@ class BatchResource extends JsonResource
             ])),
             'active_assignments_count' => $this->when(
                 isset($this->active_assignments_count),
-                fn () => (int) $this->active_assignments_count
+                fn (): int => (int) $this->active_assignments_count
             ),
             'assignments_count' => $this->whenCounted('assignments'),
             'created_at' => $this->created_at?->toISOString(),

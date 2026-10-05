@@ -9,7 +9,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
@@ -71,7 +71,7 @@ function setupEnrollmentAndTransactionContext(): array
     return [$admin, $teacherUser, $teacher, $class, $batch1, $batch2, $student];
 }
 
-test('authorized users can view batch enrollments and admin can change student batch', function () {
+test('authorized users can view batch enrollments and admin can change student batch', function (): void {
     [$admin, $teacherUser, $teacher, $class, $batch1, $batch2, $student] = setupEnrollmentAndTransactionContext();
 
     $adminToken = auth('api')->login($admin);
@@ -96,7 +96,7 @@ test('authorized users can view batch enrollments and admin can change student b
     expect(Enrollment::where('user_id', $student->id)->where('batch_id', $batch2->id)->exists())->toBeTrue();
 });
 
-test('payments listing scopes to authenticated student and admin can mark as paid', function () {
+test('payments listing scopes to authenticated student and admin can mark as paid', function (): void {
     [$admin, $teacherUser, $teacher, $class, $batch1, $batch2, $student] = setupEnrollmentAndTransactionContext();
 
     $student2 = User::factory()->create(['name' => 'Student Two']);
@@ -140,7 +140,7 @@ test('payments listing scopes to authenticated student and admin can mark as pai
     expect(Enrollment::where('user_id', $student2->id)->where('batch_id', $batch2->id)->exists())->toBeTrue();
 });
 
-test('public and admin settings endpoints return proper responses', function () {
+test('public and admin settings endpoints return proper responses', function (): void {
     Setting::create([
         'class_time' => 45,
         'support_email' => 'support@example.com',

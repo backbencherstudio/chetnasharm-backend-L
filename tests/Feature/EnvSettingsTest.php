@@ -4,11 +4,11 @@ use App\Models\Setting;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Role::create(['name' => 'admin', 'guard_name' => 'api']);
 });
 
-test('admin can get integration settings from database', function () {
+test('admin can get integration settings from database', function (): void {
     Setting::create([
         'class_time' => 30,
         'class_notify_time' => 30,
@@ -48,7 +48,7 @@ test('admin can get integration settings from database', function () {
         ->assertJsonPath('whatsapp.token', '******secret');
 });
 
-test('admin can update integration settings in database without touching env', function () {
+test('admin can update integration settings in database without touching env', function (): void {
     $envBefore = file_get_contents(base_path('.env'));
 
     Setting::create([
@@ -94,7 +94,7 @@ test('admin can update integration settings in database without touching env', f
     expect(file_get_contents(base_path('.env')))->toBe($envBefore);
 });
 
-test('guest cannot access env settings', function () {
+test('guest cannot access env settings', function (): void {
     $this->getJson('/api/admin/env-settings')->assertUnauthorized();
     $this->postJson('/api/admin/env-settings', [])->assertUnauthorized();
 });

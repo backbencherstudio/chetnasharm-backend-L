@@ -15,7 +15,7 @@ use Throwable;
 
 class AuthController extends Controller
 {
-    public function __construct(private AuthService $auth) {}
+    public function __construct(private readonly AuthService $auth) {}
 
     /** Authenticate a user and return an access token. */
     public function login(LoginRequest $request): JsonResponse

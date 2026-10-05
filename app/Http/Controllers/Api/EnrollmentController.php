@@ -22,7 +22,7 @@ class EnrollmentController extends Controller
     {
         $user = auth('api')->user();
 
-        if (! $this->canManageBatch($user, (int) $batchId)) {
+        if (! $this->canManageBatch($user, $batchId)) {
             return $this->forbidden('Unauthorized');
         }
 

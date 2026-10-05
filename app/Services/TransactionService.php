@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class TransactionService
 {
-    public function __construct(private EnrollmentService $enrollmentService) {}
+    public function __construct(private readonly EnrollmentService $enrollmentService) {}
 
     /**
      * @return array{items: array<int, Payment>, pagination: array<string, int>}
@@ -31,12 +31,12 @@ class TransactionService
         if ($request->filled('search')) {
             $search = $request->search;
 
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search): void {
                 $q->where('payment_id', 'like', "%$search%")
                     ->orWhere('transaction_id', 'like', "%$search%")
                     ->orWhere('payment_method', 'like', "%$search%")
                     ->orWhere('status', 'like', "%$search%")
-                    ->orWhereHas('user', function ($q2) use ($search) {
+                    ->orWhereHas('user', function ($q2) use ($search): void {
                         $q2->where('name', 'like', "%$search%")
                             ->orWhere('email', 'like', "%$search%");
                     });
@@ -119,7 +119,7 @@ class TransactionService
 
             $enrollment = $this->enrollmentService->enrollFromPayment($payment, null, false);
 
-            if (! $enrollment) {
+            if (! $enrollment instanceof Enrollment) {
                 throw new \Exception('Enrollment could not be created');
             }
 

@@ -26,7 +26,7 @@ class EnrollmentResource extends JsonResource
             'status' => $this->status,
             'enrolled_at' => $this->enrolled_at?->toISOString(),
             'expiry_date' => $this->expiry_date?->toISOString(),
-            'user' => $this->whenLoaded('user', fn () => [
+            'user' => $this->whenLoaded('user', fn (): array => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
                 'email' => $this->user->email,
@@ -34,12 +34,12 @@ class EnrollmentResource extends JsonResource
                 'image' => $this->user->image,
                 'image_url' => $this->user->image_url,
             ]),
-            'batch' => $this->whenLoaded('batch', fn () => [
+            'batch' => $this->whenLoaded('batch', fn (): array => [
                 'id' => $this->batch->id,
                 'name' => $this->batch->name,
                 'teacher_id' => $this->batch->teacher_id,
             ]),
-            'class' => $this->whenLoaded('class', fn () => [
+            'class' => $this->whenLoaded('class', fn (): array => [
                 'id' => $this->class->id,
                 'title' => $this->class->title,
             ]),

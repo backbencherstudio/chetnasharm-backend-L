@@ -6,13 +6,13 @@ use App\Models\User;
 use App\Models\Vocabulary;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
 });
 
-test('public can view active vocabularies, speaking topics, and basic questions', function () {
+test('public can view active vocabularies, speaking topics, and basic questions', function (): void {
     Vocabulary::create([
         'word' => 'Eloquent',
         'meaning' => 'Fluent or persuasive in speaking or writing',
@@ -48,7 +48,7 @@ test('public can view active vocabularies, speaking topics, and basic questions'
         ->assertJsonPath('data.0.question', 'Where are you from?');
 });
 
-test('admin can perform CRUD on vocabulary', function () {
+test('admin can perform CRUD on vocabulary', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);
@@ -87,7 +87,7 @@ test('admin can perform CRUD on vocabulary', function () {
     $this->assertDatabaseMissing('vocabularies', ['id' => $vocabId]);
 });
 
-test('admin can perform CRUD on speaking topics', function () {
+test('admin can perform CRUD on speaking topics', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);
@@ -125,7 +125,7 @@ test('admin can perform CRUD on speaking topics', function () {
     $this->assertDatabaseMissing('speaking_topics', ['id' => $topicId]);
 });
 
-test('admin can perform CRUD on basic questions', function () {
+test('admin can perform CRUD on basic questions', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);

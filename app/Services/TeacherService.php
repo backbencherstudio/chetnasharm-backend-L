@@ -30,12 +30,12 @@ class TeacherService
         if ($request->filled('search')) {
             $search = $request->search;
 
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search): void {
                 $q->where('bio', 'like', "%{$search}%")
                     ->orWhere('expertise', 'like', "%{$search}%")
                     ->orWhere('qualification', 'like', "%{$search}%")
                     ->orWhere('about', 'like', "%{$search}%")
-                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                    ->orWhereHas('user', function ($userQuery) use ($search): void {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%")
                             ->orWhere('mobile', 'like', "%{$search}%");
@@ -56,8 +56,8 @@ class TeacherService
      */
     public function create(array $validated, ?Image $image = null, ?UploadedFile $introVideo = null): array
     {
-        return DB::transaction(function () use ($validated, $image, $introVideo) {
-            if ($image) {
+        return DB::transaction(function () use ($validated, $image, $introVideo): array {
+            if ($image instanceof Image) {
                 $validated['image'] = $image
                     ->orient()
                     ->cover(800, 800)
@@ -65,7 +65,7 @@ class TeacherService
                     ->store(path: 'teachers', disk: 'public');
             }
 
-            if ($introVideo) {
+            if ($introVideo instanceof UploadedFile) {
                 $validated['intro_video'] = $introVideo->store('teacher_videos', 'public');
             }
 
@@ -109,10 +109,10 @@ class TeacherService
      */
     public function update(Teacher $teacher, array $validated, ?Image $image = null, ?UploadedFile $introVideo = null): Teacher
     {
-        return DB::transaction(function () use ($teacher, $validated, $image, $introVideo) {
+        return DB::transaction(function () use ($teacher, $validated, $image, $introVideo): Teacher {
             $linkedUser = $teacher->user;
 
-            if ($image) {
+            if ($image instanceof Image) {
                 if ($linkedUser?->image && Storage::disk('public')->exists($linkedUser->image)) {
                     Storage::disk('public')->delete($linkedUser->image);
                 }
@@ -124,7 +124,7 @@ class TeacherService
                     ->store(path: 'teachers', disk: 'public');
             }
 
-            if ($introVideo) {
+            if ($introVideo instanceof UploadedFile) {
                 if ($teacher->intro_video && Storage::disk('public')->exists($teacher->intro_video)) {
                     Storage::disk('public')->delete($teacher->intro_video);
                 }
@@ -155,7 +155,7 @@ class TeacherService
      */
     public function toggleSuspend(int $id): ?array
     {
-        return DB::transaction(function () use ($id) {
+        return DB::transaction(function () use ($id): ?array {
             $teacher = Teacher::with('user')->findOrFail($id);
             $user = $teacher->user;
 
@@ -185,11 +185,11 @@ class TeacherService
         return Teacher::query()
             ->active()
             ->with('user:id,name,email,mobile,image,suspend_status')
-            ->when($isTop !== null, function ($query) use ($isTop) {
+            ->when($isTop !== null, function ($query) use ($isTop): void {
                 $query->where('is_top', (int) $isTop);
             })
-            ->when($search, function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
+            ->when($search, function ($query) use ($search): void {
+                $query->where(function ($q) use ($search): void {
                     $q->where('bio', 'LIKE', "%{$search}%")
                         ->orWhere('expertise', 'LIKE', "%{$search}%")
                         ->orWhere('qualification', 'LIKE', "%{$search}%")
@@ -279,35 +279,33 @@ class TeacherService
             6 => 'Saturday',
         ];
 
-        return $teacher->batches->map(function (Batch $batch) use ($dayNames) {
-            return [
-                'id' => $batch->id,
-                'name' => $batch->name,
-                'total_seat' => $batch->total_seat,
-                'filled_seat' => $batch->filled_seat,
-                'start_date' => optional($batch->start_date)->format('Y-m-d'),
-                'end_date' => optional($batch->end_date)->format('Y-m-d'),
-                'status' => $batch->status,
-                'class' => $batch->class ? [
-                    'id' => $batch->class->id,
-                    'title' => $batch->class->title,
-                    'description' => $batch->class->description,
-                    'short_description' => $batch->class->short_description,
-                    'price' => $batch->class->price,
-                    'duration_in_days' => $batch->class->duration_in_days,
-                    'total_classes' => $batch->class->total_classes,
-                    'image' => $batch->class->image,
-                    'image_url' => $batch->class->image_url,
-                ] : null,
-                'schedules' => $batch->schedules->map(fn ($schedule) => [
-                    'id' => $schedule->id,
-                    'day_of_week' => $schedule->day_of_week,
-                    'day' => $dayNames[$schedule->day_of_week] ?? 'Unknown',
-                    'start_time' => Carbon::parse($schedule->start_time)->format('H:i'),
-                    'end_time' => Carbon::parse($schedule->end_time)->format('H:i'),
-                ])->values(),
-            ];
-        })->values();
+        return $teacher->batches->map(fn (Batch $batch): array => [
+            'id' => $batch->id,
+            'name' => $batch->name,
+            'total_seat' => $batch->total_seat,
+            'filled_seat' => $batch->filled_seat,
+            'start_date' => optional($batch->start_date)->format('Y-m-d'),
+            'end_date' => optional($batch->end_date)->format('Y-m-d'),
+            'status' => $batch->status,
+            'class' => $batch->class ? [
+                'id' => $batch->class->id,
+                'title' => $batch->class->title,
+                'description' => $batch->class->description,
+                'short_description' => $batch->class->short_description,
+                'price' => $batch->class->price,
+                'duration_in_days' => $batch->class->duration_in_days,
+                'total_classes' => $batch->class->total_classes,
+                'image' => $batch->class->image,
+                'image_url' => $batch->class->image_url,
+            ] : null,
+            'schedules' => $batch->schedules->map(fn ($schedule): array => [
+                'id' => $schedule->id,
+                'day_of_week' => $schedule->day_of_week,
+                'day' => $dayNames[$schedule->day_of_week] ?? 'Unknown',
+                'start_time' => Carbon::parse($schedule->start_time)->format('H:i'),
+                'end_time' => Carbon::parse($schedule->end_time)->format('H:i'),
+            ])->values(),
+        ])->values();
     }
 
     public function toggleTopStatus(int $id): Teacher

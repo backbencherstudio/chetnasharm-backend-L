@@ -4,11 +4,11 @@ use App\Models\ClassModel;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Role::create(['name' => 'admin', 'guard_name' => 'api']);
 });
 
-test('admin can create class with structured curriculum', function () {
+test('admin can create class with structured curriculum', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);
@@ -45,7 +45,7 @@ test('admin can create class with structured curriculum', function () {
         ->and($class->curriculum)->toBe($curriculum);
 });
 
-test('admin can update class curriculum structure', function () {
+test('admin can update class curriculum structure', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);
@@ -83,7 +83,7 @@ test('admin can update class curriculum structure', function () {
         ->assertJsonPath('data.curriculum.0.keypoints.1', 'Point 2');
 });
 
-test('public class responses return structured curriculum', function () {
+test('public class responses return structured curriculum', function (): void {
     $class = ClassModel::create([
         'title' => 'Public Curriculum Class',
         'description' => 'Desc',
@@ -111,7 +111,7 @@ test('public class responses return structured curriculum', function () {
         ->assertJsonPath('data.curriculum.0.keypoints.1', 'Key 2');
 });
 
-test('curriculum validation requires title and keypoints', function () {
+test('curriculum validation requires title and keypoints', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);
@@ -137,7 +137,7 @@ test('curriculum validation requires title and keypoints', function () {
         ]);
 });
 
-test('curriculum validation uses clear messages for missing titles', function () {
+test('curriculum validation uses clear messages for missing titles', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);

@@ -20,9 +20,9 @@ class DashboardService
      */
     public function totalStudentMonthly(?int $year = null): array
     {
-        $year = $year ?? now()->year;
+        $year ??= now()->year;
 
-        $students = User::whereHas('roles', function ($query) {
+        $students = User::whereHas('roles', function ($query): void {
             $query->where('name', 'student');
         })
             ->whereYear('created_at', $year)
@@ -30,12 +30,10 @@ class DashboardService
             ->groupByRaw('MONTH(created_at)')
             ->pluck('count', 'month');
 
-        $monthlyData = collect(range(1, 12))->map(function ($month) use ($students) {
-            return [
-                'month' => $month,
-                'count' => $students[$month] ?? 0,
-            ];
-        });
+        $monthlyData = collect(range(1, 12))->map(fn ($month): array => [
+            'month' => $month,
+            'count' => $students[$month] ?? 0,
+        ]);
 
         return [
             'year' => (int) $year,
@@ -48,19 +46,17 @@ class DashboardService
      */
     public function totalEnrollmentMonthly(?int $year = null): array
     {
-        $year = $year ?? now()->year;
+        $year ??= now()->year;
 
         $enrollments = Enrollment::whereYear('created_at', $year)
             ->selectRaw('MONTH(created_at) as month, COUNT(*) as count')
             ->groupByRaw('MONTH(created_at)')
             ->pluck('count', 'month');
 
-        $monthlyData = collect(range(1, 12))->map(function ($month) use ($enrollments) {
-            return [
-                'month' => $month,
-                'count' => $enrollments[$month] ?? 0,
-            ];
-        });
+        $monthlyData = collect(range(1, 12))->map(fn ($month): array => [
+            'month' => $month,
+            'count' => $enrollments[$month] ?? 0,
+        ]);
 
         return [
             'year' => (int) $year,
@@ -104,15 +100,13 @@ class DashboardService
             ->orderByDesc('revenue')
             ->take(5)
             ->get()
-            ->map(function ($class) {
-                return [
-                    'id' => $class->id,
-                    'title' => $class->title,
-                    'revenue' => round($class->revenue, 2),
-                    'total_students' => (int) $class->total_students,
-                    'total_batches' => (int) $class->total_batches,
-                ];
-            });
+            ->map(fn ($class): array => [
+                'id' => $class->id,
+                'title' => $class->title,
+                'revenue' => round($class->revenue, 2),
+                'total_students' => (int) $class->total_students,
+                'total_batches' => (int) $class->total_batches,
+            ]);
 
         $topBatches = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
             ->leftJoin('teachers', 'batches.teacher_id', '=', 'teachers.id')
@@ -126,14 +120,12 @@ class DashboardService
             ->orderByDesc('revenue')
             ->take(5)
             ->get()
-            ->map(function ($batch) {
-                return [
-                    'id' => $batch->id,
-                    'name' => $batch->name,
-                    'teacher_name' => $batch->teacher_name,
-                    'revenue' => round($batch->revenue, 2),
-                ];
-            });
+            ->map(fn ($batch): array => [
+                'id' => $batch->id,
+                'name' => $batch->name,
+                'teacher_name' => $batch->teacher_name,
+                'revenue' => round($batch->revenue, 2),
+            ]);
 
         $totalSeats = (int) ($revenueAggregates->total_seats ?? 0);
         $filledSeats = (int) ($revenueAggregates->filled_seats ?? 0);
@@ -199,17 +191,15 @@ class DashboardService
             ->orderBy('start_date')
             ->take(5)
             ->get()
-            ->map(function ($batch) {
-                return [
-                    'id' => $batch->id,
-                    'batch_name' => $batch->name,
-                    'class_title' => optional($batch->class)->title,
-                    'start_date' => $batch->start_date,
-                    'end_date' => $batch->end_date,
-                    'filled_seat' => $batch->filled_seat,
-                    'total_seat' => $batch->total_seat,
-                ];
-            });
+            ->map(fn ($batch): array => [
+                'id' => $batch->id,
+                'batch_name' => $batch->name,
+                'class_title' => optional($batch->class)->title,
+                'start_date' => $batch->start_date,
+                'end_date' => $batch->end_date,
+                'filled_seat' => $batch->filled_seat,
+                'total_seat' => $batch->total_seat,
+            ]);
 
         $topBatches = Batch::join('classes', 'batches.class_id', '=', 'classes.id')
             ->where('batches.teacher_id', $teacher->id)
@@ -223,15 +213,13 @@ class DashboardService
             ->orderByDesc('revenue')
             ->take(5)
             ->get()
-            ->map(function ($batch) {
-                return [
-                    'id' => $batch->id,
-                    'name' => $batch->name,
-                    'filled_seat' => (int) $batch->filled_seat,
-                    'total_seat' => (int) $batch->total_seat,
-                    'revenue' => round($batch->revenue, 2),
-                ];
-            });
+            ->map(fn ($batch): array => [
+                'id' => $batch->id,
+                'name' => $batch->name,
+                'filled_seat' => (int) $batch->filled_seat,
+                'total_seat' => (int) $batch->total_seat,
+                'revenue' => round($batch->revenue, 2),
+            ]);
 
         return [
             'statistics' => [
@@ -266,20 +254,20 @@ class DashboardService
         $totalEnrollments = $enrollments->count();
 
         $activeEnrollments = $enrollments->filter(
-            fn ($enrollment) => $enrollment->batch
+            fn ($enrollment): bool => $enrollment->batch
                 && in_array($enrollment->batch->status, $activeBatchStatuses, true)
         );
 
         $completedCourses = $enrollments
-            ->filter(fn ($enrollment) => $enrollment->batch?->status === 'completed')
+            ->filter(fn ($enrollment): bool => $enrollment->batch?->status === 'completed')
             ->count();
 
         $totalSpent = $enrollments->sum(
-            fn ($enrollment) => (float) (optional($enrollment->class)->price ?? 0)
+            fn ($enrollment): float => (float) (optional($enrollment->class)->price ?? 0)
         );
 
         $activeCourseList = $activeEnrollments
-            ->map(function ($enrollment) {
+            ->map(function ($enrollment): array {
                 $batch = $enrollment->batch;
                 $progress = 0;
 
@@ -309,28 +297,24 @@ class DashboardService
 
         $recentEnrollments = $enrollments
             ->take(5)
-            ->map(function ($enrollment) {
-                return [
-                    'id' => $enrollment->id,
-                    'class_title' => optional($enrollment->class)->title,
-                    'batch_name' => optional($enrollment->batch)->name,
-                    'status' => $enrollment->status,
-                    'enrolled_at' => $enrollment->enrolled_at,
-                ];
-            })
+            ->map(fn ($enrollment): array => [
+                'id' => $enrollment->id,
+                'class_title' => optional($enrollment->class)->title,
+                'batch_name' => optional($enrollment->batch)->name,
+                'status' => $enrollment->status,
+                'enrolled_at' => $enrollment->enrolled_at,
+            ])
             ->values();
 
         $completedCourseList = $enrollments
-            ->filter(fn ($enrollment) => $enrollment->batch?->status === 'completed')
+            ->filter(fn ($enrollment): bool => $enrollment->batch?->status === 'completed')
             ->take(5)
-            ->map(function ($enrollment) {
-                return [
-                    'id' => $enrollment->id,
-                    'class_title' => optional($enrollment->class)->title,
-                    'batch_name' => optional($enrollment->batch)->name,
-                    'completed_at' => optional($enrollment->batch)->end_date,
-                ];
-            })
+            ->map(fn ($enrollment): array => [
+                'id' => $enrollment->id,
+                'class_title' => optional($enrollment->class)->title,
+                'batch_name' => optional($enrollment->batch)->name,
+                'completed_at' => optional($enrollment->batch)->end_date,
+            ])
             ->values();
 
         $activeBatchIds = $enrollments
@@ -346,7 +330,7 @@ class DashboardService
             $pendingAssignments = BatchAssignment::query()
                 ->active()
                 ->whereIn('batch_id', $activeBatchIds)
-                ->whereDoesntHave('submissions', function ($query) use ($userId) {
+                ->whereDoesntHave('submissions', function ($query) use ($userId): void {
                     $query->where('student_user_id', $userId);
                 })
                 ->count();
@@ -362,7 +346,7 @@ class DashboardService
             ->latest('graded_at')
             ->limit(5)
             ->get()
-            ->map(fn (AssignmentSubmission $submission) => [
+            ->map(fn (AssignmentSubmission $submission): array => [
                 'submission_id' => $submission->id,
                 'assignment_id' => $submission->assignment_id,
                 'title' => $submission->assignment?->title,
@@ -384,7 +368,7 @@ class DashboardService
             ->latest()
             ->limit(5)
             ->get()
-            ->map(fn (StudentActivityNote $note) => [
+            ->map(fn (StudentActivityNote $note): array => [
                 'id' => $note->id,
                 'status' => $note->status,
                 'comment' => $note->comment,

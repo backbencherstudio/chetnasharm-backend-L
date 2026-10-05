@@ -7,7 +7,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
@@ -57,7 +57,7 @@ function setupDashboardContext(): array
     return [$admin, $teacherUser, $student, $batch];
 }
 
-test('admin can access revenue stats and monthly totals', function () {
+test('admin can access revenue stats and monthly totals', function (): void {
     [$admin, $teacherUser, $student, $batch] = setupDashboardContext();
     $adminToken = auth('api')->login($admin);
 
@@ -80,7 +80,7 @@ test('admin can access revenue stats and monthly totals', function () {
         ->assertJsonPath('success', true);
 });
 
-test('teacher can access teacher dashboard', function () {
+test('teacher can access teacher dashboard', function (): void {
     [$admin, $teacherUser, $student, $batch] = setupDashboardContext();
     $teacherToken = auth('api')->login($teacherUser);
 
@@ -98,7 +98,7 @@ test('teacher can access teacher dashboard', function () {
         ]);
 });
 
-test('student can access student dashboard', function () {
+test('student can access student dashboard', function (): void {
     [$admin, $teacherUser, $student, $batch] = setupDashboardContext();
     $studentToken = auth('api')->login($student);
 

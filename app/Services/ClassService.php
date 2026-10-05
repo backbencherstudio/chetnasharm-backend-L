@@ -23,8 +23,8 @@ class ClassService
         $search = $request->search;
 
         $classes = ClassModel::query()
-            ->when($search, function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
+            ->when($search, function ($query) use ($search): void {
+                $query->where(function ($q) use ($search): void {
                     $q->where('title', 'like', "%{$search}%")
                         ->orWhere('description', 'like', "%{$search}%");
                 });
@@ -42,7 +42,7 @@ class ClassService
      */
     public function store(array $validated, ?UploadedFile $image = null): ClassModel
     {
-        if ($image) {
+        if ($image instanceof UploadedFile) {
             $validated['image'] = $image->store('classes', 'public');
         }
 
@@ -69,7 +69,7 @@ class ClassService
      */
     public function update(ClassModel $class, array $validated, ?UploadedFile $image = null): ClassModel
     {
-        if ($image) {
+        if ($image instanceof UploadedFile) {
             if ($class->image && Storage::disk('public')->exists($class->image)) {
                 Storage::disk('public')->delete($class->image);
             }
@@ -212,7 +212,7 @@ class ClassService
             return null;
         }
 
-        return $this->assignedTeachersForClass((int) $classId);
+        return $this->assignedTeachersForClass($classId);
     }
 
     public function singleClass(int $classId): ?ClassModel
@@ -267,7 +267,7 @@ class ClassService
 
             $teachers = $classBatches
                 ->groupBy('teacher_id')
-                ->map(function ($teacherBatches) {
+                ->map(function ($teacherBatches): ?array {
                     $teacher = $teacherBatches->first()?->teacher;
 
                     if (! $teacher) {
@@ -287,7 +287,7 @@ class ClassService
                         'country' => $teacher->country,
                         'timezone' => $teacher->timezone,
                         'batches_count' => $teacherBatches->count(),
-                        'batches' => $teacherBatches->map(fn (Batch $batch) => [
+                        'batches' => $teacherBatches->map(fn (Batch $batch): array => [
                             'id' => $batch->id,
                             'name' => $batch->name,
                             'status' => $batch->status,

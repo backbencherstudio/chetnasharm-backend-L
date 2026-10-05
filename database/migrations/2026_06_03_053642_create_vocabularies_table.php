@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('vocabularies', function (Blueprint $table) {
+        Schema::create('vocabularies', function (Blueprint $table): void {
             $table->id();
             $table->string('word')->unique();
             $table->text('meaning');

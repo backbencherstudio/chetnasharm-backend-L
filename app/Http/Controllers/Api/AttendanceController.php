@@ -22,7 +22,7 @@ class AttendanceController extends Controller
     {
         $user = auth('api')->user();
 
-        if (! $this->canManageBatch($user, (int) $batchId)) {
+        if (! $this->canManageBatch($user, $batchId)) {
             return $this->forbidden('Unauthorized');
         }
 
@@ -74,7 +74,7 @@ class AttendanceController extends Controller
     {
         $user = auth('api')->user();
 
-        if (! $this->canManageBatch($user, (int) $batchId)) {
+        if (! $this->canManageBatch($user, $batchId)) {
             return $this->forbidden('Unauthorized');
         }
 

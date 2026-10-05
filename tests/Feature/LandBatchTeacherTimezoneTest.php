@@ -6,11 +6,11 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Role::create(['name' => 'teacher', 'guard_name' => 'api']);
 });
 
-test('landing batches include teacher country and timezone', function () {
+test('landing batches include teacher country and timezone', function (): void {
     $user = User::factory()->create();
     $user->assignRole('teacher');
 
@@ -48,7 +48,7 @@ test('landing batches include teacher country and timezone', function () {
         ->assertJsonPath('data.0.teacher.timezone', 'Asia/Dhaka');
 });
 
-test('single batch includes teacher country and timezone', function () {
+test('single batch includes teacher country and timezone', function (): void {
     $user = User::factory()->create();
     $user->assignRole('teacher');
 

@@ -4,13 +4,13 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
 });
 
-test('admin can manage users CRUD and suspension', function () {
+test('admin can manage users CRUD and suspension', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);
@@ -63,7 +63,7 @@ test('admin can manage users CRUD and suspension', function () {
     expect(User::find($createdUserId))->toBeNull();
 });
 
-test('admin cannot delete own account or suspend super admin', function () {
+test('admin cannot delete own account or suspend super admin', function (): void {
     // ID 1 super admin
     $superAdmin = User::factory()->create(['id' => 1]);
     $superAdmin->assignRole('admin');
@@ -83,7 +83,7 @@ test('admin cannot delete own account or suspend super admin', function () {
         ->assertForbidden();
 });
 
-test('admin can store, update, suspend and toggle top status for teachers', function () {
+test('admin can store, update, suspend and toggle top status for teachers', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);

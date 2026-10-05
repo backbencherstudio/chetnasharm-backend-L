@@ -11,7 +11,7 @@ use Illuminate\Http\JsonResponse;
 
 class ForgotPasswordController extends Controller
 {
-    public function __construct(private AuthService $auth) {}
+    public function __construct(private readonly AuthService $auth) {}
 
     /** Send a password reset OTP to the user's email. */
     public function sendOtp(SendOtpRequest $request): JsonResponse

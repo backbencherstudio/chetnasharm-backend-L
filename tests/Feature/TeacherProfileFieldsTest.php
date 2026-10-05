@@ -4,13 +4,13 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
 });
 
-test('admin can create teacher with profile fields', function () {
+test('admin can create teacher with profile fields', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);
@@ -43,7 +43,7 @@ test('admin can create teacher with profile fields', function () {
     ]);
 });
 
-test('admin can update teacher profile fields', function () {
+test('admin can update teacher profile fields', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 
@@ -82,7 +82,7 @@ test('admin can update teacher profile fields', function () {
         ->assertJsonPath('data.interests.0', 'Debating');
 });
 
-test('admin teacher edit returns profile fields', function () {
+test('admin teacher edit returns profile fields', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 
@@ -113,7 +113,7 @@ test('admin teacher edit returns profile fields', function () {
         ->assertJsonPath('data.interests.0', 'Reading');
 });
 
-test('public teacher profile includes new profile fields', function () {
+test('public teacher profile includes new profile fields', function (): void {
     $teacherUser = User::factory()->create([
         'email' => 'public.profile@example.com',
         'department' => 'Teacher',

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\TeacherNote;
 
 use App\Http\Requests\TeacherNote\Concerns\RequiresNoteContent;

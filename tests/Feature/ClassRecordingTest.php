@@ -8,7 +8,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
@@ -58,7 +58,7 @@ function setupClassRecordingContext(): array
     return [$teacherUser, $teacher, $batch, $student];
 }
 
-test('teacher can create, show, update and delete class recording for assigned batch', function () {
+test('teacher can create, show, update and delete class recording for assigned batch', function (): void {
     [$teacherUser, $teacher, $batch, $student] = setupClassRecordingContext();
     $token = auth('api')->login($teacherUser);
 
@@ -106,7 +106,7 @@ test('teacher can create, show, update and delete class recording for assigned b
     expect(ClassRecording::find($recordingId))->toBeNull();
 });
 
-test('enrolled student can view recordings but non-enrolled student cannot', function () {
+test('enrolled student can view recordings but non-enrolled student cannot', function (): void {
     [$teacherUser, $teacher, $batch, $student] = setupClassRecordingContext();
 
     ClassRecording::create([
@@ -132,7 +132,7 @@ test('enrolled student can view recordings but non-enrolled student cannot', fun
         ->assertForbidden();
 });
 
-test('unassigned teacher cannot create recording for a batch', function () {
+test('unassigned teacher cannot create recording for a batch', function (): void {
     [$teacherUser, $teacher, $batch] = setupClassRecordingContext();
 
     $unassignedUser = User::factory()->create();

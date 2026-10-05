@@ -11,10 +11,11 @@ use App\Models\ClassModel;
 use App\Services\ClassService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class ClassController extends Controller
 {
-    public function __construct(private ClassService $classes) {}
+    public function __construct(private readonly ClassService $classes) {}
 
     /** Display a paginated listing of classes. */
     public function index(Request $request): JsonResponse
@@ -41,7 +42,7 @@ class ClassController extends Controller
     {
         $class = $this->classes->find($id);
 
-        if (! $class) {
+        if (! $class instanceof ClassModel) {
             return $this->notFound('Class not found');
         }
 
@@ -125,7 +126,7 @@ class ClassController extends Controller
     {
         $teachers = $this->classes->classTeachers($classId);
 
-        if ($teachers === null) {
+        if (! $teachers instanceof Collection) {
             return $this->notFound('Class not found');
         }
 
@@ -137,7 +138,7 @@ class ClassController extends Controller
     {
         $class = $this->classes->singleClass($classId);
 
-        if (! $class) {
+        if (! $class instanceof ClassModel) {
             return $this->notFound('Class not found');
         }
 

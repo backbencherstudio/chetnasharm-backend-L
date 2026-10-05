@@ -24,12 +24,12 @@ class AttendanceResource extends JsonResource
             'user_id' => $this->user_id,
             'class_date' => $this->class_date,
             'status' => $this->status,
-            'user' => $this->whenLoaded('user', fn () => [
+            'user' => $this->whenLoaded('user', fn (): array => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
                 'email' => $this->user->email,
             ]),
-            'batch' => $this->whenLoaded('batch', fn () => [
+            'batch' => $this->whenLoaded('batch', fn (): array => [
                 'id' => $this->batch->id,
                 'name' => $this->batch->name,
             ]),

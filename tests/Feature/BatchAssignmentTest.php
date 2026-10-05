@@ -11,7 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Storage::fake('public');
 
     foreach (['admin', 'teacher', 'student'] as $role) {
@@ -68,7 +68,7 @@ function createAssignmentContext(): array
     return [$teacherUser, $teacher, $batch, $student];
 }
 
-test('teacher can create and list assignments on own batch', function () {
+test('teacher can create and list assignments on own batch', function (): void {
     [$teacherUser, $teacher, $batch] = createAssignmentContext();
     $token = auth('api')->login($teacherUser);
 
@@ -105,7 +105,7 @@ test('teacher can create and list assignments on own batch', function () {
         ->assertJsonPath('pagination.total', 1);
 });
 
-test('other teacher cannot create assignment on foreign batch', function () {
+test('other teacher cannot create assignment on foreign batch', function (): void {
     [, , $batch] = createAssignmentContext();
 
     $otherTeacherUser = User::factory()->create();
@@ -125,7 +125,7 @@ test('other teacher cannot create assignment on foreign batch', function () {
         ->assertStatus(403);
 });
 
-test('enrolled student can list submit and replace assignment file', function () {
+test('enrolled student can list submit and replace assignment file', function (): void {
     [$teacherUser, $teacher, $batch, $student] = createAssignmentContext();
 
     $assignment = BatchAssignment::create([
@@ -177,7 +177,7 @@ test('enrolled student can list submit and replace assignment file', function ()
         ->assertJsonPath('data.0.student_user_id', $student->id);
 });
 
-test('non enrolled student cannot submit assignment', function () {
+test('non enrolled student cannot submit assignment', function (): void {
     [, $teacher, $batch] = createAssignmentContext();
 
     $assignment = BatchAssignment::create([
@@ -198,7 +198,7 @@ test('non enrolled student cannot submit assignment', function () {
         ->assertStatus(403);
 });
 
-test('student cannot submit after due date', function () {
+test('student cannot submit after due date', function (): void {
     [, $teacher, $batch, $student] = createAssignmentContext();
 
     $assignment = BatchAssignment::create([
@@ -219,7 +219,7 @@ test('student cannot submit after due date', function () {
         ->assertJsonPath('message', 'Assignment submission is closed');
 });
 
-test('student assignment tab lists started assignments including late ones across enrolled batches', function () {
+test('student assignment tab lists started assignments including late ones across enrolled batches', function (): void {
     [$teacherUser, $teacher, $batch, $student] = createAssignmentContext();
 
     $active = BatchAssignment::create([
@@ -270,7 +270,7 @@ test('student assignment tab lists started assignments including late ones acros
         ->assertJsonPath('data.0.has_submitted', true);
 });
 
-test('student assignment tab hides assignments from completed batches', function () {
+test('student assignment tab hides assignments from completed batches', function (): void {
     [$teacherUser, $teacher, $batch, $student] = createAssignmentContext();
 
     BatchAssignment::create([
@@ -291,7 +291,7 @@ test('student assignment tab hides assignments from completed batches', function
         ->assertJsonPath('pagination.total', 0);
 });
 
-test('teacher and student batch responses include active assignments count', function () {
+test('teacher and student batch responses include active assignments count', function (): void {
     [$teacherUser, $teacher, $batch, $student] = createAssignmentContext();
 
     BatchAssignment::create([
@@ -343,7 +343,7 @@ test('teacher and student batch responses include active assignments count', fun
         ->assertJsonPath('data.active_assignments_count', 2);
 });
 
-test('teacher can update and delete assignment', function () {
+test('teacher can update and delete assignment', function (): void {
     [$teacherUser, $teacher, $batch, $student] = createAssignmentContext();
 
     $assignment = BatchAssignment::create([

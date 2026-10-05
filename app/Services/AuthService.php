@@ -68,7 +68,7 @@ class AuthService
                 'image_url' => $user->image_url,
                 'role' => $user->roles->pluck('name')->implode(', '),
                 'teacher_id' => $user->teacher ? $user->teacher->id : null,
-                'has_password' => $user->password ? true : false,
+                'has_password' => (bool) $user->password,
             ],
         ];
     }
@@ -94,9 +94,9 @@ class AuthService
                 'token' => $token,
                 'user' => $user,
             ];
-        } catch (TokenExpiredException $e) {
+        } catch (TokenExpiredException) {
             return ['type' => 'token_expired'];
-        } catch (JWTException $e) {
+        } catch (JWTException) {
             return ['type' => 'token_invalid'];
         }
     }
@@ -127,7 +127,7 @@ class AuthService
     {
         $user = User::where('email', $email)->firstOrFail();
 
-        $otp = rand(1000, 9999);
+        $otp = random_int(1000, 9999);
 
         DB::table('password_otps')->updateOrInsert(
             ['user_id' => $user->id],

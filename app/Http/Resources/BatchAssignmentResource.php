@@ -29,11 +29,11 @@ class BatchAssignmentResource extends JsonResource
             'starts_at' => $this->starts_at?->toISOString(),
             'due_at' => $this->due_at?->toISOString(),
             'total_marks' => $this->total_marks,
-            'batch' => $this->whenLoaded('batch', fn () => [
+            'batch' => $this->whenLoaded('batch', fn (): array => [
                 'id' => $this->batch->id,
                 'name' => $this->batch->name,
             ]),
-            'teacher' => $this->whenLoaded('teacher', fn () => [
+            'teacher' => $this->whenLoaded('teacher', fn (): array => [
                 'id' => $this->teacher->id,
                 'name' => $this->teacher->name,
             ]),

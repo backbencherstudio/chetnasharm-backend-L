@@ -31,7 +31,7 @@ class VocabularyService
      */
     public function store(array $validated, ?UploadedFile $image = null): Vocabulary
     {
-        if ($image) {
+        if ($image instanceof UploadedFile) {
             $validated['image'] = $image->store('vocabulary', 'public');
         }
 
@@ -53,7 +53,7 @@ class VocabularyService
      */
     public function update(Vocabulary $vocabulary, array $validated, ?UploadedFile $image = null): Vocabulary
     {
-        if ($image) {
+        if ($image instanceof UploadedFile) {
             if ($vocabulary->image) {
                 Storage::disk('public')->delete($vocabulary->image);
             }

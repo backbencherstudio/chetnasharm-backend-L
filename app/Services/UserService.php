@@ -22,7 +22,7 @@ class UserService
     public function create(array $validated, ?UploadedFile $image = null): User
     {
         return DB::transaction(function () use ($validated, $image) {
-            if ($image) {
+            if ($image instanceof UploadedFile) {
                 $validated['image'] = $image->store('users', 'public');
             }
 
@@ -52,8 +52,8 @@ class UserService
      */
     public function update(User $user, array $validated, ?UploadedFile $image = null): User
     {
-        return DB::transaction(function () use ($user, $validated, $image) {
-            if ($image) {
+        return DB::transaction(function () use ($user, $validated, $image): User {
+            if ($image instanceof UploadedFile) {
                 if ($user->image && Storage::disk('public')->exists($user->image)) {
                     Storage::disk('public')->delete($user->image);
                 }
@@ -91,13 +91,13 @@ class UserService
         $query = User::query();
 
         if ($role) {
-            $query->whereHas('roles', function ($q) use ($role) {
+            $query->whereHas('roles', function ($q) use ($role): void {
                 $q->where('name', $role);
             });
         }
 
         if ($search) {
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search): void {
                 $q->where('name', 'LIKE', "%{$search}%")
                     ->orWhere('email', 'LIKE', "%{$search}%");
             });
@@ -136,7 +136,7 @@ class UserService
      */
     public function toggleSuspend(User $user): array
     {
-        return DB::transaction(function () use ($user) {
+        return DB::transaction(function () use ($user): array {
             $user->suspend_status = $user->suspend_status == 1 ? 0 : 1;
             $user->save();
 
@@ -169,7 +169,7 @@ class UserService
     {
         unset($validated['image']);
 
-        if ($image) {
+        if ($image instanceof Image) {
             if ($user->image && Storage::disk('public')->exists($user->image)) {
                 Storage::disk('public')->delete($user->image);
             }
@@ -200,7 +200,7 @@ class UserService
 
     public function delete(User $user): void
     {
-        DB::transaction(function () use ($user) {
+        DB::transaction(function () use ($user): void {
             if (
                 $user->image &&
                 ! filter_var($user->image, FILTER_VALIDATE_URL) &&

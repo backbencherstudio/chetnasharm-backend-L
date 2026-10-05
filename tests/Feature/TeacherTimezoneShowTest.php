@@ -4,13 +4,13 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
 });
 
-test('authenticated teacher can view own country and timezone', function () {
+test('authenticated teacher can view own country and timezone', function (): void {
     $user = User::factory()->create();
     $user->assignRole('teacher');
 
@@ -30,7 +30,7 @@ test('authenticated teacher can view own country and timezone', function () {
         ->assertJsonPath('data.timezone', 'Asia/Dhaka');
 });
 
-test('student cannot access teacher timezone endpoint', function () {
+test('student cannot access teacher timezone endpoint', function (): void {
     $student = User::factory()->create();
     $student->assignRole('student');
     $token = auth('api')->login($student);

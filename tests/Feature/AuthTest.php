@@ -5,13 +5,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
 });
 
-test('guest can register as a student', function () {
+test('guest can register as a student', function (): void {
     $payload = [
         'name' => 'John Doe',
         'email' => 'johndoe@example.com',
@@ -31,7 +31,7 @@ test('guest can register as a student', function () {
     expect($user->hasRole('student'))->toBeTrue();
 });
 
-test('user can login with valid credentials and receive token', function () {
+test('user can login with valid credentials and receive token', function (): void {
     $user = User::factory()->create([
         'email' => 'student@example.com',
         'password' => Hash::make('Secret123!'),
@@ -48,7 +48,7 @@ test('user can login with valid credentials and receive token', function () {
         ->assertJsonStructure(['token', 'user', 'data']);
 });
 
-test('login fails with invalid credentials', function () {
+test('login fails with invalid credentials', function (): void {
     $user = User::factory()->create([
         'email' => 'student@example.com',
         'password' => Hash::make('Secret123!'),
@@ -63,7 +63,7 @@ test('login fails with invalid credentials', function () {
         ->assertJsonPath('success', false);
 });
 
-test('suspended user cannot login', function () {
+test('suspended user cannot login', function (): void {
     $user = User::factory()->create([
         'email' => 'suspended@example.com',
         'password' => Hash::make('Secret123!'),
@@ -79,7 +79,7 @@ test('suspended user cannot login', function () {
         ->assertJsonPath('success', false);
 });
 
-test('authenticated user can access me and logout', function () {
+test('authenticated user can access me and logout', function (): void {
     $user = User::factory()->create();
     $user->assignRole('student');
     $token = auth('api')->login($user);
@@ -96,7 +96,7 @@ test('authenticated user can access me and logout', function () {
         ->assertJsonPath('success', true);
 });
 
-test('guest can request otp, verify otp, and reset password', function () {
+test('guest can request otp, verify otp, and reset password', function (): void {
     $user = User::factory()->create([
         'email' => 'resetme@example.com',
         'password' => Hash::make('OldPassword123!'),

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
@@ -99,7 +99,7 @@ function createReminderContext(): array
     return [$teacherUser, $batch, $schedule, $student];
 }
 
-test('whatsapp channel sends meta template payload from notification', function () {
+test('whatsapp channel sends meta template payload from notification', function (): void {
     [, $batch, $schedule, $student] = createReminderContext();
 
     Mail::fake();
@@ -109,7 +109,7 @@ test('whatsapp channel sends meta template payload from notification', function 
 
     $student->notifyNow(new ClassReminderNotification($batch, $schedule));
 
-    Http::assertSent(function ($request) use ($student, $batch, $schedule) {
+    Http::assertSent(function ($request) use ($student, $batch, $schedule): bool {
         $data = $request->data();
 
         return $request->url() === 'https://graph.facebook.com/v25.0/1112996207/messages'
@@ -125,7 +125,7 @@ test('whatsapp channel sends meta template payload from notification', function 
     expect(NotificationLog::query()->where('type', 'whatsapp')->where('status', 'sent')->exists())->toBeTrue();
 });
 
-test('whatsapp channel logs failure when credentials missing', function () {
+test('whatsapp channel logs failure when credentials missing', function (): void {
     [, $batch, $schedule, $student] = createReminderContext();
 
     Setting::query()->first()->update([
@@ -154,7 +154,7 @@ test('whatsapp channel logs failure when credentials missing', function () {
     )->toBeTrue();
 });
 
-test('reminder job queues notifications for teacher and students', function () {
+test('reminder job queues notifications for teacher and students', function (): void {
     [$teacherUser, $batch, $schedule, $student] = createReminderContext();
 
     Notification::fake();
@@ -167,7 +167,7 @@ test('reminder job queues notifications for teacher and students', function () {
     expect($schedule->fresh()->reminder_sent_date)->toBe(now()->toDateString());
 });
 
-test('class reminder skips whatsapp channel when mobile missing', function () {
+test('class reminder skips whatsapp channel when mobile missing', function (): void {
     [, $batch, $schedule, $student] = createReminderContext();
     $student->update(['mobile' => null]);
 

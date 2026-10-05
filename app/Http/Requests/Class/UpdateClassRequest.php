@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Class;
 
 use App\Http\Requests\Class\Concerns\NormalizesCurriculum;

@@ -32,20 +32,16 @@ class AvailabilityService
 
         $grouped = $slots->groupBy('day_of_week');
 
-        return collect(range(0, 6))->map(function ($day) use ($grouped) {
-            return [
-                'day_of_week' => $day,
-                'slots' => isset($grouped[$day])
-                    ? $grouped[$day]->map(function ($slot) {
-                        return [
-                            'id' => $slot->id,
-                            'start_time' => Carbon::parse($slot->start_time)->format('H:i'),
-                            'end_time' => Carbon::parse($slot->end_time)->format('H:i'),
-                        ];
-                    })->values()->all()
-                    : [],
-            ];
-        })->values()->all();
+        return collect(range(0, 6))->map(fn ($day): array => [
+            'day_of_week' => $day,
+            'slots' => isset($grouped[$day])
+                ? $grouped[$day]->map(fn ($slot): array => [
+                    'id' => $slot->id,
+                    'start_time' => Carbon::parse($slot->start_time)->format('H:i'),
+                    'end_time' => Carbon::parse($slot->end_time)->format('H:i'),
+                ])->values()->all()
+                : [],
+        ])->values()->all();
     }
 
     /**
@@ -80,7 +76,7 @@ class AvailabilityService
 
             $overlap = TeacherAvailability::where('teacher_id', $teacherId)
                 ->where('day_of_week', $validated['day_of_week'])
-                ->where(function ($q) use ($startTime, $endTime) {
+                ->where(function ($q) use ($startTime, $endTime): void {
                     $q->where('start_time', '<', $endTime->format('H:i:s'))
                         ->where('end_time', '>', $startTime->format('H:i:s'));
                 })
@@ -145,13 +141,13 @@ class AvailabilityService
             ->where('day_of_week', $validated['day_of_week'])
             ->get();
 
-        $existingMap = $existing->mapWithKeys(function ($slot) {
+        $existingMap = $existing->mapWithKeys(function ($slot): array {
             $key = Carbon::parse($slot->start_time)->format('H:i');
 
             return [$key => $slot];
         });
 
-        $newSlots = collect($validated['slots'])->mapWithKeys(function ($slot) use ($classTime) {
+        $newSlots = collect($validated['slots'])->mapWithKeys(function (array $slot) use ($classTime): array {
             $start = Carbon::createFromFormat('H:i', $slot['start_time']);
             $end = $start->copy()->addMinutes($classTime);
 
@@ -193,7 +189,7 @@ class AvailabilityService
 
             $overlap = TeacherAvailability::where('teacher_id', $teacherId)
                 ->where('day_of_week', $validated['day_of_week'])
-                ->where(function ($q) use ($startTime, $endTime) {
+                ->where(function ($q) use ($startTime, $endTime): void {
                     $q->where('start_time', '<', $endTime->format('H:i:s'))
                         ->where('end_time', '>', $startTime->format('H:i:s'));
                 })
@@ -273,7 +269,7 @@ class AvailabilityService
                     $startTime = $slotStart->format('H:i:s');
                     $endTime = $slotStart->copy()->addMinutes($classTime)->format('H:i:s');
 
-                    $conflict = $daySchedules->contains(function ($schedule) use ($startDate, $startTime, $endTime) {
+                    $conflict = $daySchedules->contains(function ($schedule) use ($startDate, $startTime, $endTime): bool {
                         $batch = $schedule->batch;
 
                         if (
@@ -434,11 +430,8 @@ class AvailabilityService
                     $startTime = $slotStart->format('H:i:s');
                     $endTime = $slotStart->copy()->addMinutes($classTime)->format('H:i:s');
 
-                    $isBusy = collect($busySlots)->contains(function ($busy) use ($startTime, $endTime) {
-                        return
-                            $busy['start_time'] < $endTime &&
-                            $busy['end_time'] > $startTime;
-                    });
+                    $isBusy = collect($busySlots)->contains(fn ($busy): bool => $busy['start_time'] < $endTime &&
+                    $busy['end_time'] > $startTime);
 
                     if (! $isBusy) {
                         $availableSlots[] = [
@@ -486,7 +479,7 @@ class AvailabilityService
     ): Collection {
         return BatchSchedule::with(['batch' => fn ($query) => $query->select($batchColumns)])
             ->where('teacher_id', $teacherId)
-            ->whereHas('batch', function ($query) use ($startDate, $endDate) {
+            ->whereHas('batch', function ($query) use ($startDate, $endDate): void {
                 $query->whereDate('start_date', '<=', $endDate->toDateString())
                     ->whereDate('end_date', '>=', $startDate->toDateString());
             })

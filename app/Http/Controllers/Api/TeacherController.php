@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 
 class TeacherController extends Controller
 {
-    public function __construct(private TeacherService $teachers) {}
+    public function __construct(private readonly TeacherService $teachers) {}
 
     /** Fetch the paginated teacher list for admin management. */
     public function data(Request $request): JsonResponse
@@ -136,7 +136,7 @@ class TeacherController extends Controller
     {
         $teacher = $this->teachers->findForPublicShow($id);
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->notFound('Teacher not found');
         }
 
@@ -162,7 +162,7 @@ class TeacherController extends Controller
         $user = auth('api')->user();
         $teacher = $this->teachers->findTimezoneForUser($user);
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 

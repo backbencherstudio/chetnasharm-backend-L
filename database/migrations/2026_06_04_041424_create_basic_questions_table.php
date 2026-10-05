@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('basic_questions', function (Blueprint $table) {
+        Schema::create('basic_questions', function (Blueprint $table): void {
             $table->id();
             $table->text('question');
             $table->string('level')->nullable(); // A1, A2, B1 etc.

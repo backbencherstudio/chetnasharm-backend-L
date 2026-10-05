@@ -10,7 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Storage::fake('public');
 
     foreach (['admin', 'teacher', 'student'] as $role) {
@@ -67,7 +67,7 @@ function createAssignmentWindowContext(): array
     return [$teacherUser, $teacher, $batch, $student];
 }
 
-test('teacher can set starts_at and due_at on assignment', function () {
+test('teacher can set starts_at and due_at on assignment', function (): void {
     [$teacherUser, $teacher, $batch] = createAssignmentWindowContext();
     $token = auth('api')->login($teacherUser);
 
@@ -98,7 +98,7 @@ test('teacher can set starts_at and due_at on assignment', function () {
         ->and($assignment->due_at)->not->toBeNull();
 });
 
-test('due_at must be after or equal to starts_at', function () {
+test('due_at must be after or equal to starts_at', function (): void {
     [$teacherUser, , $batch] = createAssignmentWindowContext();
     $token = auth('api')->login($teacherUser);
 
@@ -114,7 +114,7 @@ test('due_at must be after or equal to starts_at', function () {
         ->assertJsonValidationErrors(['due_at']);
 });
 
-test('student cannot submit before starts_at', function () {
+test('student cannot submit before starts_at', function (): void {
     [, $teacher, $batch, $student] = createAssignmentWindowContext();
 
     $assignment = BatchAssignment::create([
@@ -136,7 +136,7 @@ test('student cannot submit before starts_at', function () {
         ->assertJsonPath('message', 'Assignment submission is closed');
 });
 
-test('student can submit inside starts_at and due_at window', function () {
+test('student can submit inside starts_at and due_at window', function (): void {
     [, $teacher, $batch, $student] = createAssignmentWindowContext();
 
     $assignment = BatchAssignment::create([
@@ -158,7 +158,7 @@ test('student can submit inside starts_at and due_at window', function () {
         ->assertJsonPath('success', true);
 });
 
-test('active assignment list excludes assignments that have not started', function () {
+test('active assignment list excludes assignments that have not started', function (): void {
     [, $teacher, $batch, $student] = createAssignmentWindowContext();
 
     $open = BatchAssignment::create([
@@ -188,7 +188,7 @@ test('active assignment list excludes assignments that have not started', functi
         ->assertJsonPath('data.0.id', $open->id);
 });
 
-test('student batch assignment list hides assignments that have not started', function () {
+test('student batch assignment list hides assignments that have not started', function (): void {
     [, $teacher, $batch, $student] = createAssignmentWindowContext();
 
     $visible = BatchAssignment::create([

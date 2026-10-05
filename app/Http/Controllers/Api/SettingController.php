@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 
 class SettingController extends Controller
 {
-    public function __construct(private SettingService $settings) {}
+    public function __construct(private readonly SettingService $settings) {}
 
     /** Retrieve application settings. */
     public function show(): JsonResponse

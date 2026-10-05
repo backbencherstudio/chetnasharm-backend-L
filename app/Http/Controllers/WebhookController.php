@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class WebhookController extends BaseController
 {
-    public function __construct(private PaymentService $payment) {}
+    public function __construct(private readonly PaymentService $payment) {}
 
     /** Handle Stripe webhook events. */
     public function stripeWebhook(Request $request): JsonResponse

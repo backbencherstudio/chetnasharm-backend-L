@@ -7,11 +7,11 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Role::create(['name' => 'teacher', 'guard_name' => 'api']);
 });
 
-test('public teacher show returns batches with class and schedules', function () {
+test('public teacher show returns batches with class and schedules', function (): void {
     $user = User::factory()->create([
         'name' => 'Aisha Khan',
         'email' => 'teacher-show@example.com',
@@ -74,7 +74,7 @@ test('public teacher show returns batches with class and schedules', function ()
         ->assertJsonMissingPath('data.email');
 });
 
-test('public teacher show hides suspended teachers', function () {
+test('public teacher show hides suspended teachers', function (): void {
     $user = User::factory()->create([
         'email' => 'suspended-teacher@example.com',
         'suspend_status' => 1,

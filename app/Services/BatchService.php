@@ -41,7 +41,7 @@ class BatchService
             ]);
 
         if ($search) {
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search): void {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhereHas('class', fn ($q2) => $q2->where('title', 'like', "%{$search}%"))
                     ->orWhereHas('teacher.user', fn ($q3) => $q3->where('name', 'like', "%{$search}%"));
@@ -53,14 +53,14 @@ class BatchService
             ->when($status, fn ($q) => $q->where('status', $status));
 
         if ($request->start_date && $request->end_date) {
-            $query->where(function ($q) use ($request) {
+            $query->where(function ($q) use ($request): void {
                 $q->where('start_date', '<=', $request->end_date)
                     ->where('end_date', '>=', $request->start_date);
             });
         }
 
         if ($request->day_of_week !== null) {
-            $query->whereHas('schedules', function ($q) use ($request) {
+            $query->whereHas('schedules', function ($q) use ($request): void {
                 $q->where('day_of_week', $request->day_of_week);
             });
         }
@@ -206,7 +206,7 @@ class BatchService
             ->active()
             ->with('user:id,name')
             ->get(['id', 'user_id', 'country', 'timezone', 'expertise'])
-            ->map(fn (Teacher $teacher) => [
+            ->map(fn (Teacher $teacher): array => [
                 'id' => $teacher->id,
                 'name' => $teacher->name,
                 'country' => $teacher->country,
@@ -250,12 +250,12 @@ class BatchService
             ])
             ->withCount(['assignments as active_assignments_count' => fn ($q) => $q->active()])
             ->where('teacher_id', $teacher->id)
-            ->whereHas('teacher.user', function ($q) {
+            ->whereHas('teacher.user', function ($q): void {
                 $q->where('suspend_status', 0);
             });
 
         if ($search) {
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search): void {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhereHas('class', fn ($q2) => $q2->where('title', 'like', "%{$search}%"))
                     ->orWhereHas('teacher.user', fn ($q3) => $q3->where('name', 'like', "%{$search}%"));
@@ -267,14 +267,14 @@ class BatchService
         }
 
         if ($request->start_date && $request->end_date) {
-            $query->where(function ($q) use ($request) {
+            $query->where(function ($q) use ($request): void {
                 $q->where('start_date', '<=', $request->end_date)
                     ->where('end_date', '>=', $request->start_date);
             });
         }
 
         if ($request->day_of_week !== null) {
-            $query->whereHas('schedules', function ($q) use ($request) {
+            $query->whereHas('schedules', function ($q) use ($request): void {
                 $q->where('day_of_week', $request->day_of_week);
             });
         }
@@ -322,7 +322,7 @@ class BatchService
         $classId = $request->query('class_id');
 
         if ($search) {
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search): void {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhereHas('class', fn ($q2) => $q2->where('title', 'like', "%{$search}%"))
                     ->orWhereHas('teacher.user', fn ($q3) => $q3->where('name', 'like', "%{$search}%"));
@@ -377,7 +377,7 @@ class BatchService
     private function assertNoDuplicateSchedules(array $schedules): void
     {
         $duplicates = collect($schedules)
-            ->map(fn ($s) => $s['day_of_week'].'-'.$s['start_time'])
+            ->map(fn ($s): string => $s['day_of_week'].'-'.$s['start_time'])
             ->duplicates();
 
         if ($duplicates->isNotEmpty()) {
@@ -409,7 +409,7 @@ class BatchService
         $existingSchedules = BatchSchedule::query()
             ->where('teacher_id', $teacherId)
             ->when($excludeSelf, fn ($query) => $query->where('batch_id', '!=', $batch->id))
-            ->whereHas('batch', function ($query) use ($startDate, $endDate) {
+            ->whereHas('batch', function ($query) use ($startDate, $endDate): void {
                 $query->where('start_date', '<=', $endDate)
                     ->where('end_date', '>=', $startDate);
             })
@@ -428,10 +428,8 @@ class BatchService
             $dayOfWeek = (int) $schedule['day_of_week'];
 
             $isAvailable = ($availabilities[$dayOfWeek] ?? collect())->contains(
-                function ($availability) use ($startTimeStr, $endTimeStr) {
-                    return $availability->start_time <= $startTimeStr
-                        && $availability->end_time >= $endTimeStr;
-                }
+                fn ($availability): bool => $availability->start_time <= $startTimeStr
+                    && $availability->end_time >= $endTimeStr
             );
 
             if (! $isAvailable) {
@@ -441,11 +439,9 @@ class BatchService
             }
 
             $hasConflict = ($existingSchedules[$dayOfWeek] ?? collect())->contains(
-                function ($existing) use ($startTimeStr, $endTimeStr) {
-                    return ($existing->start_time >= $startTimeStr && $existing->start_time <= $endTimeStr)
-                        || ($existing->end_time >= $startTimeStr && $existing->end_time <= $endTimeStr)
-                        || ($existing->start_time <= $startTimeStr && $existing->end_time >= $endTimeStr);
-                }
+                fn ($existing): bool => ($existing->start_time >= $startTimeStr && $existing->start_time <= $endTimeStr)
+                    || ($existing->end_time >= $startTimeStr && $existing->end_time <= $endTimeStr)
+                    || ($existing->start_time <= $startTimeStr && $existing->end_time >= $endTimeStr)
             );
 
             if ($hasConflict) {

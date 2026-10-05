@@ -4,11 +4,11 @@ use App\Models\Setting;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Role::create(['name' => 'admin', 'guard_name' => 'api']);
 });
 
-test('public can get social links with defaults', function () {
+test('public can get social links with defaults', function (): void {
     Setting::create([
         'class_time' => 30,
         'class_notify_time' => 30,
@@ -25,7 +25,7 @@ test('public can get social links with defaults', function () {
         ->assertJsonMissingPath('data.phone');
 });
 
-test('admin can get social links', function () {
+test('admin can get social links', function (): void {
     Setting::create([
         'class_time' => 30,
         'class_notify_time' => 30,
@@ -51,7 +51,7 @@ test('admin can get social links', function () {
         ->assertJsonMissingPath('data.phone');
 });
 
-test('admin can update social link urls', function () {
+test('admin can update social link urls', function (): void {
     Setting::create([
         'class_time' => 30,
         'class_notify_time' => 30,
@@ -87,7 +87,7 @@ test('admin can update social link urls', function () {
         ->assertJsonPath('data.facebook', 'https://facebook.com/updated');
 });
 
-test('admin social links update rejects invalid urls', function () {
+test('admin social links update rejects invalid urls', function (): void {
     Setting::create([
         'class_time' => 30,
         'class_notify_time' => 30,
@@ -105,7 +105,7 @@ test('admin social links update rejects invalid urls', function () {
         ->assertJsonValidationErrors(['youtube']);
 });
 
-test('guest cannot update social links', function () {
+test('guest cannot update social links', function (): void {
     $this->putJson('/api/admin/social-links', [
         'youtube' => 'https://youtube.com/@test',
     ])->assertUnauthorized();

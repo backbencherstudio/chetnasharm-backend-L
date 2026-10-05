@@ -19,7 +19,7 @@ trait RequiresNoteContent
 
     public function withValidator(Validator $validator): void
     {
-        $validator->after(function (Validator $validator) {
+        $validator->after(function (Validator $validator): void {
             if (
                 ! $this->filled('note') &&
                 ! $this->filled('note_link') &&

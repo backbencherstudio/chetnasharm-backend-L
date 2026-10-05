@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('batch_schedules', function (Blueprint $table) {
+        Schema::create('batch_schedules', function (Blueprint $table): void {
             $table->id();
 
             $table->foreignId('batch_id')

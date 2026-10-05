@@ -8,6 +8,7 @@ use App\Http\Requests\Batch\StoreBatchRequest;
 use App\Http\Requests\Batch\UpdateBatchRequest;
 use App\Http\Requests\Batch\UpdateZoomLinkRequest;
 use App\Http\Resources\BatchResource;
+use App\Models\Batch;
 use App\Models\Teacher;
 use App\Services\BatchService;
 use Exception;
@@ -49,7 +50,7 @@ class BatchController extends Controller
     {
         $batch = $this->batches->findForEdit($id);
 
-        if (! $batch) {
+        if (! $batch instanceof Batch) {
             return $this->notFound('Batch not found');
         }
 
@@ -61,7 +62,7 @@ class BatchController extends Controller
     {
         $batch = $this->batches->find($id);
 
-        if (! $batch) {
+        if (! $batch instanceof Batch) {
             return $this->notFound('Batch not found');
         }
 
@@ -79,7 +80,7 @@ class BatchController extends Controller
     {
         $batch = $this->batches->find($id);
 
-        if (! $batch) {
+        if (! $batch instanceof Batch) {
             return $this->notFound('Batch not found');
         }
 
@@ -113,7 +114,7 @@ class BatchController extends Controller
     {
         $batch = $this->batches->find($id);
 
-        if (! $batch) {
+        if (! $batch instanceof Batch) {
             return $this->notFound('Batch not found');
         }
 
@@ -175,7 +176,7 @@ class BatchController extends Controller
 
         $batch = $this->batches->find($batchId);
 
-        if (! $batch) {
+        if (! $batch instanceof Batch) {
             return $this->notFound('Batch not found');
         }
 
@@ -217,7 +218,7 @@ class BatchController extends Controller
 
         $batch = $this->batches->singleBatch($batchId);
 
-        if (! $batch) {
+        if (! $batch instanceof Batch) {
             return $this->notFound('Batch not found');
         }
 

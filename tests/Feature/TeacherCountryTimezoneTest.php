@@ -4,13 +4,13 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
 });
 
-test('admin can create teacher with country and timezone', function () {
+test('admin can create teacher with country and timezone', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);
@@ -37,7 +37,7 @@ test('admin can create teacher with country and timezone', function () {
     ]);
 });
 
-test('admin can update teacher country and timezone', function () {
+test('admin can update teacher country and timezone', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 
@@ -74,7 +74,7 @@ test('admin can update teacher country and timezone', function () {
     ]);
 });
 
-test('admin teacher edit returns country and timezone', function () {
+test('admin teacher edit returns country and timezone', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 
@@ -99,7 +99,7 @@ test('admin teacher edit returns country and timezone', function () {
         ->assertJsonPath('data.timezone', 'America/Toronto');
 });
 
-test('teacher timezone must be a valid timezone identifier', function () {
+test('teacher timezone must be a valid timezone identifier', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);

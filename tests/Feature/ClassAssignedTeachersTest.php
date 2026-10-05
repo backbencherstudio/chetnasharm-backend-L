@@ -6,7 +6,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Role::create(['name' => 'teacher', 'guard_name' => 'api']);
 });
 
@@ -84,7 +84,7 @@ function createClassWithBatchTeachers(): array
     return [$class, $teacherOne, $teacherTwo, $morning, $evening, $weekend];
 }
 
-test('landing class list derives teachers and batch counts from batches', function () {
+test('landing class list derives teachers and batch counts from batches', function (): void {
     [$class, $teacherOne, $teacherTwo] = createClassWithBatchTeachers();
 
     $this->getJson('/api/classes')
@@ -100,7 +100,7 @@ test('landing class list derives teachers and batch counts from batches', functi
         ->assertJsonMissingPath('data.0.teacher_ids');
 });
 
-test('single class derives teachers and batches from batch assignments', function () {
+test('single class derives teachers and batches from batch assignments', function (): void {
     [$class, $teacherOne] = createClassWithBatchTeachers();
 
     $this->getJson("/api/single-class/{$class->id}")
@@ -112,7 +112,7 @@ test('single class derives teachers and batches from batch assignments', functio
         ->assertJsonMissingPath('data.teacher_ids');
 });
 
-test('class teachers endpoint returns teachers grouped by assigned batches', function () {
+test('class teachers endpoint returns teachers grouped by assigned batches', function (): void {
     [$class, $teacherOne, $teacherTwo] = createClassWithBatchTeachers();
 
     $this->getJson("/api/class-teachers/{$class->id}")
@@ -123,7 +123,7 @@ test('class teachers endpoint returns teachers grouped by assigned batches', fun
         ->assertJsonPath('data.1.batches_count', 1);
 });
 
-test('admin class create ignores teacher_ids and returns empty teachers until batches exist', function () {
+test('admin class create ignores teacher_ids and returns empty teachers until batches exist', function (): void {
     Role::create(['name' => 'admin', 'guard_name' => 'api']);
 
     $admin = User::factory()->create();

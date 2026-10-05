@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 class WhatsAppChannel
 {
     /** Create a new WhatsApp notification channel. */
-    public function __construct(private IntegrationConfig $integrationConfig) {}
+    public function __construct(private readonly IntegrationConfig $integrationConfig) {}
 
     /** Send a WhatsApp Cloud API template message. */
     public function send(object $notifiable, Notification $notification): void

@@ -4,13 +4,13 @@ use App\Models\ClassModel;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
 });
 
-test('public can view landing classes and single class', function () {
+test('public can view landing classes and single class', function (): void {
     $class = ClassModel::create([
         'title' => 'Spoken English Pro',
         'description' => 'Complete spoken english course',
@@ -31,7 +31,7 @@ test('public can view landing classes and single class', function () {
         ->assertJsonPath('data.title', 'Spoken English Pro');
 });
 
-test('admin can create, update, and toggle status of class', function () {
+test('admin can create, update, and toggle status of class', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
     $token = auth('api')->login($admin);
@@ -76,7 +76,7 @@ test('admin can create, update, and toggle status of class', function () {
     expect($class->is_active)->toBe(0);
 });
 
-test('student cannot create or manage classes', function () {
+test('student cannot create or manage classes', function (): void {
     $student = User::factory()->create();
     $student->assignRole('student');
     $token = auth('api')->login($student);

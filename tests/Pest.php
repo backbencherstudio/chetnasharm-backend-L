@@ -10,11 +10,9 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
-    ->beforeEach(function () {
+    ->beforeEach(function (): void {
         if (DB::connection()->getDriverName() === 'sqlite') {
-            DB::connection()->getPdo()->sqliteCreateFunction('MONTH', function ($date) {
-                return $date ? (int) date('m', strtotime((string) $date)) : null;
-            });
+            DB::connection()->getPdo()->sqliteCreateFunction('MONTH', fn ($date): ?int => $date ? (int) date('m', strtotime((string) $date)) : null);
         }
     })
     ->in('Feature');

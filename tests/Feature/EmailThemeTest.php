@@ -4,7 +4,7 @@ use App\Models\Batch;
 use App\Models\ClassModel;
 use App\Models\User;
 
-test('password otp email uses the brand theme', function () {
+test('password otp email uses the brand theme', function (): void {
     $html = view('emails.password_otp', ['otp' => '4321'])->render();
 
     expect($html)
@@ -14,7 +14,7 @@ test('password otp email uses the brand theme', function () {
         ->not->toContain('#111827;padding:18px 28px;text-align:center');
 });
 
-test('enrollment email uses the brand theme', function () {
+test('enrollment email uses the brand theme', function (): void {
     $user = User::factory()->make(['name' => 'Aisha']);
     $class = new ClassModel(['title' => 'Spoken English']);
     $batch = new Batch([

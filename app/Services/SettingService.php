@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 class SettingService
 {
-    public function __construct(private IntegrationConfig $integrationConfig) {}
+    public function __construct(private readonly IntegrationConfig $integrationConfig) {}
 
     public function show(): ?Setting
     {
@@ -192,19 +192,19 @@ class SettingService
                     'key' => data_get($validated, 'stripe.key'),
                     'secret' => data_get($validated, 'stripe.secret'),
                     'webhook_secret' => data_get($validated, 'stripe.webhook_secret'),
-                ], fn ($value) => filled($value)),
+                ], filled(...)),
                 'paypal' => array_filter([
                     'client_id' => data_get($validated, 'paypal.client_id'),
                     'client_secret' => data_get($validated, 'paypal.client_secret'),
                     'mode' => data_get($validated, 'paypal.mode'),
                     'base_url' => data_get($validated, 'paypal.base_url'),
-                ], fn ($value) => filled($value)),
+                ], filled(...)),
                 'whatsapp' => array_filter([
                     'token' => data_get($validated, 'whatsapp.token'),
                     'phone_number_id' => data_get($validated, 'whatsapp.phone_number_id'),
                     'url' => data_get($validated, 'whatsapp.url'),
-                ], fn ($value) => filled($value)),
-            ], fn ($group) => $group !== [])
+                ], filled(...)),
+            ], fn (array $group): bool => $group !== [])
         );
 
         $setting->update(['integrations' => $integrations]);

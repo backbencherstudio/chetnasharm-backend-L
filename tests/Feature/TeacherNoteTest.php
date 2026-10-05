@@ -8,7 +8,7 @@ use App\Models\TeacherNote;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
@@ -58,7 +58,7 @@ function setupTeacherNoteContext(): array
     return [$teacherUser, $teacher, $batch, $student];
 }
 
-test('teacher can create, show, update and delete note for assigned batch', function () {
+test('teacher can create, show, update and delete note for assigned batch', function (): void {
     [$teacherUser, $teacher, $batch, $student] = setupTeacherNoteContext();
     $token = auth('api')->login($teacherUser);
 
@@ -108,7 +108,7 @@ test('teacher can create, show, update and delete note for assigned batch', func
     expect(TeacherNote::find($noteId))->toBeNull();
 });
 
-test('enrolled student can view notes but non-enrolled cannot', function () {
+test('enrolled student can view notes but non-enrolled cannot', function (): void {
     [$teacherUser, $teacher, $batch, $student] = setupTeacherNoteContext();
 
     TeacherNote::create([
@@ -135,7 +135,7 @@ test('enrolled student can view notes but non-enrolled cannot', function () {
         ->assertForbidden();
 });
 
-test('unassigned teacher cannot access or create notes in other batch', function () {
+test('unassigned teacher cannot access or create notes in other batch', function (): void {
     [$teacherUser, $teacher, $batch] = setupTeacherNoteContext();
 
     $unassignedUser = User::factory()->create();

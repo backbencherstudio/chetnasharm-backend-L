@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Models\Waitlist;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
@@ -43,7 +43,7 @@ function createWaitlistContext(): array
     return [$teacher, $class, $batch];
 }
 
-test('student can join waitlist for a batch', function () {
+test('student can join waitlist for a batch', function (): void {
     [$teacher, $class, $batch] = createWaitlistContext();
 
     $student = User::factory()->create();
@@ -64,7 +64,7 @@ test('student can join waitlist for a batch', function () {
     ]);
 });
 
-test('student cannot duplicate waitlist for same batch', function () {
+test('student cannot duplicate waitlist for same batch', function (): void {
     [$teacher, $class, $batch] = createWaitlistContext();
 
     $student = User::factory()->create();
@@ -86,7 +86,7 @@ test('student cannot duplicate waitlist for same batch', function () {
         ->assertJsonPath('message', 'Already in waitlist');
 });
 
-test('student can get own waitlist', function () {
+test('student can get own waitlist', function (): void {
     [$teacher, $class, $batch] = createWaitlistContext();
 
     $student = User::factory()->create();
@@ -106,7 +106,7 @@ test('student can get own waitlist', function () {
     expect($studentRes->json('data'))->toHaveCount(1);
 });
 
-test('admin can list all waitlist with pagination', function () {
+test('admin can list all waitlist with pagination', function (): void {
     [$teacher, $class, $batch] = createWaitlistContext();
 
     $student = User::factory()->create();

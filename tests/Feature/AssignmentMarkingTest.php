@@ -12,7 +12,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Storage::fake('public');
 
     foreach (['admin', 'teacher', 'student'] as $role) {
@@ -78,7 +78,7 @@ function createMarkedAssignmentContext(): array
     return [$teacherUser, $teacher, $batch, $student, $assignment];
 }
 
-test('teacher can grade submission within total marks', function () {
+test('teacher can grade submission within total marks', function (): void {
     [$teacherUser, , , $student, $assignment] = createMarkedAssignmentContext();
 
     $submission = AssignmentSubmission::create([
@@ -107,7 +107,7 @@ test('teacher can grade submission within total marks', function () {
     ]);
 });
 
-test('teacher cannot grade above total marks', function () {
+test('teacher cannot grade above total marks', function (): void {
     [$teacherUser, , , $student, $assignment] = createMarkedAssignmentContext();
 
     $submission = AssignmentSubmission::create([
@@ -125,7 +125,7 @@ test('teacher cannot grade above total marks', function () {
         ->assertStatus(422);
 });
 
-test('student can see marks and activity notes on apis and dashboard', function () {
+test('student can see marks and activity notes on apis and dashboard', function (): void {
     [$teacherUser, $teacher, $batch, $student, $assignment] = createMarkedAssignmentContext();
 
     $submission = AssignmentSubmission::create([
@@ -181,7 +181,7 @@ test('student can see marks and activity notes on apis and dashboard', function 
         ->assertJsonPath('data.0.total_marks', '50.00');
 });
 
-test('student can upload assignment file for grading flow', function () {
+test('student can upload assignment file for grading flow', function (): void {
     [$teacherUser, , , $student, $assignment] = createMarkedAssignmentContext();
     $studentToken = auth('api')->login($student);
 

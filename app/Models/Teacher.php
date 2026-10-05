@@ -71,7 +71,7 @@ class Teacher extends Model
     /** Scope to teachers whose linked user is not suspended. */
     public function scopeActive(Builder $query): Builder
     {
-        return $query->whereHas('user', function (Builder $userQuery) {
+        return $query->whereHas('user', function (Builder $userQuery): void {
             $userQuery->where('suspend_status', 0);
         });
     }
@@ -112,7 +112,7 @@ class Teacher extends Model
     protected function suspendStatus(): Attribute
     {
         return Attribute::make(
-            get: fn () => (int) ($this->user?->suspend_status ?? 0),
+            get: fn (): int => (int) ($this->user?->suspend_status ?? 0),
         );
     }
 
@@ -140,7 +140,7 @@ class Teacher extends Model
     protected function introVideoUrl(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->intro_video ? asset('storage/'.$this->intro_video) : null,
+            get: fn (): ?string => $this->intro_video ? asset('storage/'.$this->intro_video) : null,
         );
     }
 }

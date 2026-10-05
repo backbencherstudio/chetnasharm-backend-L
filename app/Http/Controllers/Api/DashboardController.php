@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function __construct(private DashboardService $dashboard) {}
+    public function __construct(private readonly DashboardService $dashboard) {}
 
     /** Get monthly student registration totals for a year. */
     public function totalStudentMonthly(Request $request): JsonResponse

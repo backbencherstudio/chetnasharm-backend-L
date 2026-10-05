@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 
 class BasicQuestionController extends Controller
 {
-    public function __construct(private BasicQuestionService $basicQuestions) {}
+    public function __construct(private readonly BasicQuestionService $basicQuestions) {}
 
     /** List basic questions with optional search filtering. */
     public function index(Request $request): JsonResponse

@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 
 class TeacherNoteService
 {
-    private const FILE_DIRECTORY = 'teacher-notes';
+    private const string FILE_DIRECTORY = 'teacher-notes';
 
     public function findTeacherForUser(User $user): ?Teacher
     {
@@ -41,7 +41,7 @@ class TeacherNoteService
 
         return Pagination::format(
             $notes,
-            collect($notes->items())->map(fn ($note) => $this->formatListItem($note))
+            collect($notes->items())->map(fn (TeacherNote $note): array => $this->formatListItem($note))
         );
     }
 
@@ -49,7 +49,7 @@ class TeacherNoteService
     {
         $filePath = null;
 
-        if ($noteFile) {
+        if ($noteFile instanceof UploadedFile) {
             $filePath = $noteFile->store(self::FILE_DIRECTORY, 'public');
         }
 
@@ -84,7 +84,7 @@ class TeacherNoteService
     {
         $filePath = $note->note_file;
 
-        if ($noteFile) {
+        if ($noteFile instanceof UploadedFile) {
             if ($note->note_file && Storage::disk('public')->exists($note->note_file)) {
                 Storage::disk('public')->delete($note->note_file);
             }
@@ -128,7 +128,7 @@ class TeacherNoteService
 
         return Pagination::format(
             $notes,
-            collect($notes->items())->map(fn ($note) => $this->formatStudentListItem($note))
+            collect($notes->items())->map(fn (TeacherNote $note): array => $this->formatStudentListItem($note))
         );
     }
 

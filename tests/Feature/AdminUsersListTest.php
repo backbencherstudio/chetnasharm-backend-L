@@ -3,13 +3,13 @@
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
 });
 
-test('admin users list includes admin role users', function () {
+test('admin users list includes admin role users', function (): void {
     $admin = User::factory()->create(['email' => 'admin@example.com']);
     $admin->assignRole('admin');
 
@@ -34,7 +34,7 @@ test('admin users list includes admin role users', function () {
         ->toContain('admin@example.com');
 });
 
-test('admin users list applies role=admin filter', function () {
+test('admin users list applies role=admin filter', function (): void {
     $admin = User::factory()->create(['email' => 'admin2@example.com']);
     $admin->assignRole('admin');
 

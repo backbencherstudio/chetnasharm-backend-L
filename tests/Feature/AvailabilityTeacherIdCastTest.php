@@ -4,13 +4,13 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
 });
 
-test('admin can list availability with string teacher_id query param', function () {
+test('admin can list availability with string teacher_id query param', function (): void {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
 
@@ -27,7 +27,7 @@ test('admin can list availability with string teacher_id query param', function 
         ->assertJsonPath('message', 'Availability fetched successfully');
 });
 
-test('teacher can list own availability without teacher_id', function () {
+test('teacher can list own availability without teacher_id', function (): void {
     $teacherUser = User::factory()->create();
     $teacherUser->assignRole('teacher');
     Teacher::create(['user_id' => $teacherUser->id]);

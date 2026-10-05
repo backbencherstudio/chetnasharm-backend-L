@@ -20,9 +20,9 @@ class AttendanceService
             ->where('status', 'active');
 
         if ($search) {
-            $query->withWhereHas('user', function ($q) use ($search) {
+            $query->withWhereHas('user', function ($q) use ($search): void {
                 $q->select('id', 'name', 'email')
-                    ->where(function ($userQuery) use ($search) {
+                    ->where(function ($userQuery) use ($search): void {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
                     });
@@ -37,7 +37,7 @@ class AttendanceService
             ->whereDate('class_date', $date)
             ->pluck('status', 'user_id');
 
-        return $enrollments->map(function ($enrollment) use ($attendanceMap) {
+        return $enrollments->map(function ($enrollment) use ($attendanceMap): array {
             $user = $enrollment->user;
 
             return [

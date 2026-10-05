@@ -34,7 +34,7 @@ class TeacherStudentService
             ->where('teacher_id', $teacherId)
             ->where('active_status', 1)
             ->where('status', 'ongoing')
-            ->where(function ($query) {
+            ->where(function ($query): void {
                 $query->whereNull('end_date')
                     ->orWhereDate('end_date', '>=', now()->toDateString());
             })
@@ -85,7 +85,7 @@ class TeacherStudentService
             ->latest();
 
         if ($search) {
-            $query->whereHas('user', function ($userQuery) use ($search) {
+            $query->whereHas('user', function ($userQuery) use ($search): void {
                 $userQuery->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
             });
@@ -93,7 +93,7 @@ class TeacherStudentService
 
         $enrollments = $query->paginate($perPage);
 
-        $items = collect($enrollments->items())->map(function (Enrollment $enrollment) {
+        $items = collect($enrollments->items())->map(function (Enrollment $enrollment): array {
             $user = $enrollment->user;
 
             return [
@@ -125,7 +125,7 @@ class TeacherStudentService
             ->latest()
             ->paginate(Pagination::perPage($request));
 
-        $items = collect($notes->items())->map(fn (StudentActivityNote $note) => [
+        $items = collect($notes->items())->map(fn (StudentActivityNote $note): array => [
             'id' => $note->id,
             'batch_id' => $note->batch_id,
             'student_user_id' => $note->student_user_id,
@@ -190,7 +190,7 @@ class TeacherStudentService
             ->latest()
             ->paginate(Pagination::perPage($request));
 
-        $items = collect($notes->items())->map(fn (StudentActivityNote $note) => [
+        $items = collect($notes->items())->map(fn (StudentActivityNote $note): array => [
             'id' => $note->id,
             'batch_id' => $note->batch_id,
             'batch_name' => $note->batch?->name,

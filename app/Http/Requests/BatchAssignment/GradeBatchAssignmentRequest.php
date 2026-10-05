@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\BatchAssignment;
 
 use App\Models\AssignmentSubmission;
@@ -26,7 +28,7 @@ class GradeBatchAssignmentRequest extends FormRequest
 
     public function withValidator(Validator $validator): void
     {
-        $validator->after(function (Validator $validator) {
+        $validator->after(function (Validator $validator): void {
             $submission = AssignmentSubmission::query()
                 ->with('assignment')
                 ->where('id', $this->route('submissionId'))

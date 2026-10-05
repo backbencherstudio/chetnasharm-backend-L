@@ -15,9 +15,9 @@ use Illuminate\Support\Facades\Storage;
 
 class BatchAssignmentService
 {
-    private const FILE_DIRECTORY = 'assignments';
+    private const string FILE_DIRECTORY = 'assignments';
 
-    private const SUBMISSION_DIRECTORY = 'assignment-submissions';
+    private const string SUBMISSION_DIRECTORY = 'assignment-submissions';
 
     /** Get the authenticated teacher record. */
     public function currentTeacher(): ?Teacher
@@ -64,7 +64,7 @@ class BatchAssignmentService
             ->paginate(Pagination::perPage($request));
 
         $items = collect($assignments->items())
-            ->map(fn (BatchAssignment $assignment) => $this->formatAssignment($assignment))
+            ->map(fn (BatchAssignment $assignment): array => $this->formatAssignment($assignment))
             ->values()
             ->all();
 
@@ -78,7 +78,7 @@ class BatchAssignmentService
     {
         $attachmentPath = null;
 
-        if ($attachment) {
+        if ($attachment instanceof UploadedFile) {
             $attachmentPath = $attachment->store(self::FILE_DIRECTORY, 'public');
         }
 
@@ -118,7 +118,7 @@ class BatchAssignmentService
     {
         $attachmentPath = $assignment->attachment;
 
-        if ($attachment) {
+        if ($attachment instanceof UploadedFile) {
             if ($assignment->attachment && Storage::disk('public')->exists($assignment->attachment)) {
                 Storage::disk('public')->delete($assignment->attachment);
             }
@@ -166,7 +166,7 @@ class BatchAssignmentService
             ->latest()
             ->paginate(Pagination::perPage($request));
 
-        $items = collect($submissions->items())->map(fn (AssignmentSubmission $submission) => [
+        $items = collect($submissions->items())->map(fn (AssignmentSubmission $submission): array => [
             'id' => $submission->id,
             'assignment_id' => $submission->assignment_id,
             'student_user_id' => $submission->student_user_id,
@@ -194,7 +194,7 @@ class BatchAssignmentService
         $batchIds = Enrollment::query()
             ->where('user_id', $user->id)
             ->where('status', 'active')
-            ->whereHas('batch', function ($query) {
+            ->whereHas('batch', function ($query): void {
                 $query->where('active_status', 1)
                     ->where('status', '!=', 'completed');
             })
@@ -212,7 +212,7 @@ class BatchAssignmentService
             ->with([
                 'batch:id,name,class_id',
                 'batch.class:id,title',
-                'submissions' => function ($submissionQuery) use ($user) {
+                'submissions' => function ($submissionQuery) use ($user): void {
                     $submissionQuery->where('student_user_id', $user->id);
                 },
             ])
@@ -220,9 +220,9 @@ class BatchAssignmentService
             ->latest();
 
         if ($search) {
-            $query->where(function ($assignmentQuery) use ($search) {
+            $query->where(function ($assignmentQuery) use ($search): void {
                 $assignmentQuery->where('title', 'like', "%{$search}%")
-                    ->orWhereHas('batch', function ($batchQuery) use ($search) {
+                    ->orWhereHas('batch', function ($batchQuery) use ($search): void {
                         $batchQuery->where('name', 'like', "%{$search}%")
                             ->orWhereHas('class', fn ($classQuery) => $classQuery->where('title', 'like', "%{$search}%"));
                     });
@@ -230,14 +230,14 @@ class BatchAssignmentService
         }
 
         if ($request->boolean('pending_only')) {
-            $query->whereDoesntHave('submissions', function ($submissionQuery) use ($user) {
+            $query->whereDoesntHave('submissions', function ($submissionQuery) use ($user): void {
                 $submissionQuery->where('student_user_id', $user->id);
             });
         }
 
         $assignments = $query->paginate(Pagination::perPage($request));
 
-        $items = collect($assignments->items())->map(function (BatchAssignment $assignment) {
+        $items = collect($assignments->items())->map(function (BatchAssignment $assignment): array {
             $submission = $assignment->submissions->first();
 
             return [
@@ -261,13 +261,13 @@ class BatchAssignmentService
         $assignments = BatchAssignment::query()
             ->started()
             ->where('batch_id', $batchId)
-            ->with(['submissions' => function ($query) use ($user) {
+            ->with(['submissions' => function ($query) use ($user): void {
                 $query->where('student_user_id', $user->id);
             }])
             ->latest()
             ->paginate(Pagination::perPage($request));
 
-        $items = collect($assignments->items())->map(function (BatchAssignment $assignment) {
+        $items = collect($assignments->items())->map(function (BatchAssignment $assignment): array {
             $submission = $assignment->submissions->first();
 
             return [
@@ -368,7 +368,7 @@ class BatchAssignmentService
     /** Format the authenticated student's submission for API responses. */
     public function formatMySubmission(?AssignmentSubmission $submission): ?array
     {
-        if (! $submission) {
+        if (! $submission instanceof AssignmentSubmission) {
             return null;
         }
 

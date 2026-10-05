@@ -11,13 +11,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
 });
 
-test('pagination helper caps per page', function () {
+test('pagination helper caps per page', function (): void {
     $request = Request::create('/', 'GET', ['per_page' => 999]);
 
     expect(Pagination::perPage($request))->toBe(50)
@@ -25,7 +25,7 @@ test('pagination helper caps per page', function () {
         ->and(Pagination::perPage(Request::create('/', 'GET', ['limit' => 25])))->toBe(25);
 });
 
-test('otp endpoints are throttled', function () {
+test('otp endpoints are throttled', function (): void {
     Notification::fake();
 
     $user = User::factory()->create([
@@ -41,7 +41,7 @@ test('otp endpoints are throttled', function () {
         ->assertStatus(429);
 });
 
-test('enroll student from payment creates enrollment and increments seats', function () {
+test('enroll student from payment creates enrollment and increments seats', function (): void {
     Notification::fake();
 
     [$batch, $student] = createBatchWithStudent();
@@ -70,7 +70,7 @@ test('enroll student from payment creates enrollment and increments seats', func
     ]);
 });
 
-test('change batch updates seats atomically', function () {
+test('change batch updates seats atomically', function (): void {
     [$fromBatch, $student] = createBatchWithStudent(filledSeat: 1);
     $toBatch = Batch::create([
         'class_id' => $fromBatch->class_id,
@@ -118,7 +118,7 @@ test('change batch updates seats atomically', function () {
     ]);
 });
 
-test('teacher cannot view another teachers batch', function () {
+test('teacher cannot view another teachers batch', function (): void {
     [$batch] = createBatchWithStudent();
 
     $otherTeacherUser = User::factory()->create();
@@ -138,7 +138,7 @@ test('teacher cannot view another teachers batch', function () {
         ]);
 });
 
-test('student can view enrolled batch', function () {
+test('student can view enrolled batch', function (): void {
     [$batch, $student] = createBatchWithStudent();
 
     Enrollment::create([
@@ -161,7 +161,7 @@ test('student can view enrolled batch', function () {
         ]);
 });
 
-test('suspended user cannot refresh token', function () {
+test('suspended user cannot refresh token', function (): void {
     $user = User::factory()->create([
         'suspend_status' => 1,
         'password' => bcrypt('password'),
@@ -179,7 +179,7 @@ test('suspended user cannot refresh token', function () {
         ]);
 });
 
-test('mark as paid is idempotent when already paid', function () {
+test('mark as paid is idempotent when already paid', function (): void {
     Notification::fake();
 
     [$batch, $student] = createBatchWithStudent();
@@ -218,7 +218,7 @@ test('mark as paid is idempotent when already paid', function () {
     expect($payment->fresh()->enrollment_id)->not->toBeNull();
 });
 
-test('enroll rejects batch mismatch', function () {
+test('enroll rejects batch mismatch', function (): void {
     Notification::fake();
 
     [$batch, $student] = createBatchWithStudent();
@@ -249,7 +249,7 @@ test('enroll rejects batch mismatch', function () {
         ->toThrow(Exception::class, 'Batch mismatch');
 });
 
-test('change batch rejects when already in target', function () {
+test('change batch rejects when already in target', function (): void {
     [$fromBatch, $student] = createBatchWithStudent(filledSeat: 1);
     $toBatch = Batch::create([
         'class_id' => $fromBatch->class_id,
@@ -298,7 +298,7 @@ test('change batch rejects when already in target', function () {
         ]);
 });
 
-test('teacher cannot fetch other teacher enrollments', function () {
+test('teacher cannot fetch other teacher enrollments', function (): void {
     [$batch] = createBatchWithStudent();
 
     $otherTeacherUser = User::factory()->create();
@@ -318,7 +318,7 @@ test('teacher cannot fetch other teacher enrollments', function () {
         ]);
 });
 
-test('batch enrollments include user image fields', function () {
+test('batch enrollments include user image fields', function (): void {
     [$batch, $student] = createBatchWithStudent();
     $student->update(['image' => 'users/avatar.webp']);
 
@@ -346,7 +346,7 @@ test('batch enrollments include user image fields', function () {
         ->assertJsonPath('data.0.user.image_url', asset('storage/users/avatar.webp'));
 });
 
-test('login is throttled', function () {
+test('login is throttled', function (): void {
     for ($i = 0; $i < 5; $i++) {
         $this->postJson('/api/login', [
             'email' => 'missing@example.com',

@@ -4,7 +4,7 @@ use App\Models\User;
 use App\Notifications\PasswordOtpNotification;
 use Illuminate\Support\Facades\Notification;
 
-test('send otp dispatches password otp notification', function () {
+test('send otp dispatches password otp notification', function (): void {
     Notification::fake();
 
     $user = User::factory()->create([
@@ -15,7 +15,5 @@ test('send otp dispatches password otp notification', function () {
         ->assertOk()
         ->assertJsonPath('status', true);
 
-    Notification::assertSentTo($user, PasswordOtpNotification::class, function (PasswordOtpNotification $notification) {
-        return (string) $notification->otp !== '';
-    });
+    Notification::assertSentTo($user, PasswordOtpNotification::class, fn (PasswordOtpNotification $notification): bool => (string) $notification->otp !== '');
 });

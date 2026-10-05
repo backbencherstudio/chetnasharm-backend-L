@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 class WaitlistController extends Controller
 {
-    public function __construct(private WaitlistService $waitlist) {}
+    public function __construct(private readonly WaitlistService $waitlist) {}
 
     /** Add the authenticated user to a batch waitlist. */
     public function store(StoreWaitlistRequest $request): JsonResponse

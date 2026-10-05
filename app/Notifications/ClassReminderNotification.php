@@ -50,7 +50,7 @@ class ClassReminderNotification extends Notification implements ShouldQueue
                 ->line('Batch: '.$this->batch->name)
                 ->line('Time: '.$time)
                 ->action('Join Class', $this->batch->zoom_link ?? config('app.frontend_url'))
-                ->withSymfonyMessage(function () use ($notifiable, $messageText) {
+                ->withSymfonyMessage(function () use ($notifiable, $messageText): void {
                     NotificationLog::create([
                         'user_id' => $notifiable->id,
                         'batch_id' => $this->batch->id,

@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 
 class SpeakingTopicController extends Controller
 {
-    public function __construct(private SpeakingTopicService $speakingTopics) {}
+    public function __construct(private readonly SpeakingTopicService $speakingTopics) {}
 
     /** List speaking topics with optional search filtering. */
     public function index(Request $request): JsonResponse

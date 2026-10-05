@@ -24,9 +24,9 @@ class EnrollmentService
         $query = Enrollment::query()->where('batch_id', $batchId);
 
         if ($search) {
-            $query->withWhereHas('user', function ($q) use ($search) {
+            $query->withWhereHas('user', function ($q) use ($search): void {
                 $q->select('id', 'name', 'email', 'image')
-                    ->where(function ($userQuery) use ($search) {
+                    ->where(function ($userQuery) use ($search): void {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
                     });
@@ -50,7 +50,7 @@ class EnrollmentService
      */
     public function changeBatch(array $validated): void
     {
-        DB::transaction(function () use ($validated) {
+        DB::transaction(function () use ($validated): void {
             $fromBatch = Batch::lockForUpdate()->findOrFail($validated['from_batch_id']);
             $toBatch = Batch::lockForUpdate()->findOrFail($validated['to_batch_id']);
 
@@ -105,7 +105,7 @@ class EnrollmentService
 
             $resolvedBatchId = (int) $payment->batch_id;
 
-            if ($batchId !== null && (int) $batchId !== $resolvedBatchId) {
+            if ($batchId !== null && $batchId !== $resolvedBatchId) {
                 throw new \Exception('Batch mismatch');
             }
 
@@ -135,7 +135,7 @@ class EnrollmentService
                 'class_id' => $batch->class_id,
                 'status' => 'active',
                 'enrolled_at' => now(),
-                'expiry_date' => $batch->end_date ? $batch->end_date : null,
+                'expiry_date' => $batch->end_date ?: null,
             ]);
 
             $batch->increment('filled_seat');

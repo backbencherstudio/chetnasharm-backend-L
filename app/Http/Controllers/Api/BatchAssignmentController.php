@@ -7,26 +7,30 @@ use App\Http\Requests\BatchAssignment\GradeBatchAssignmentRequest;
 use App\Http\Requests\BatchAssignment\StoreBatchAssignmentRequest;
 use App\Http\Requests\BatchAssignment\SubmitBatchAssignmentRequest;
 use App\Http\Requests\BatchAssignment\UpdateBatchAssignmentRequest;
+use App\Models\AssignmentSubmission;
+use App\Models\Batch;
+use App\Models\BatchAssignment;
+use App\Models\Teacher;
 use App\Services\BatchAssignmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BatchAssignmentController extends Controller
 {
-    public function __construct(private BatchAssignmentService $assignments) {}
+    public function __construct(private readonly BatchAssignmentService $assignments) {}
 
     /** List assignments for a batch (teacher). */
     public function index(Request $request, int $batchId): JsonResponse
     {
         $teacher = $this->assignments->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $batch = $this->assignments->teacherBatch($teacher->id, $batchId);
 
-        if (! $batch) {
+        if (! $batch instanceof Batch) {
             return $this->forbidden('Unauthorized: Invalid batch access');
         }
 
@@ -44,7 +48,7 @@ class BatchAssignmentController extends Controller
     {
         $teacher = $this->assignments->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
@@ -52,7 +56,7 @@ class BatchAssignmentController extends Controller
 
         $batch = $this->assignments->teacherBatch($teacher->id, (int) $validated['batch_id']);
 
-        if (! $batch) {
+        if (! $batch instanceof Batch) {
             return $this->forbidden('Unauthorized: Invalid batch access');
         }
 
@@ -74,13 +78,13 @@ class BatchAssignmentController extends Controller
     {
         $teacher = $this->assignments->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $assignment = $this->assignments->findForTeacher($teacher->id, $id);
 
-        if (! $assignment) {
+        if (! $assignment instanceof BatchAssignment) {
             return $this->notFound('Assignment not found');
         }
 
@@ -95,13 +99,13 @@ class BatchAssignmentController extends Controller
     {
         $teacher = $this->assignments->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $assignment = $this->assignments->findOwnedByTeacher($teacher->id, $id);
 
-        if (! $assignment) {
+        if (! $assignment instanceof BatchAssignment) {
             return $this->notFound('Assignment not found');
         }
 
@@ -122,13 +126,13 @@ class BatchAssignmentController extends Controller
     {
         $teacher = $this->assignments->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $assignment = $this->assignments->findOwnedByTeacher($teacher->id, $id);
 
-        if (! $assignment) {
+        if (! $assignment instanceof BatchAssignment) {
             return $this->notFound('Assignment not found');
         }
 
@@ -142,13 +146,13 @@ class BatchAssignmentController extends Controller
     {
         $teacher = $this->assignments->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $assignment = $this->assignments->findOwnedByTeacher($teacher->id, $id);
 
-        if (! $assignment) {
+        if (! $assignment instanceof BatchAssignment) {
             return $this->notFound('Assignment not found');
         }
 
@@ -199,7 +203,7 @@ class BatchAssignmentController extends Controller
 
         $assignment = $this->assignments->findAssignment($assignmentId);
 
-        if (! $assignment) {
+        if (! $assignment instanceof BatchAssignment) {
             return $this->notFound('Assignment not found');
         }
 
@@ -224,13 +228,13 @@ class BatchAssignmentController extends Controller
     {
         $teacher = $this->assignments->currentTeacher();
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $submission = $this->assignments->findSubmission($submissionId);
 
-        if (! $submission || ! $submission->assignment || $submission->assignment->teacher_id !== $teacher->id) {
+        if (! $submission instanceof AssignmentSubmission || ! $submission->assignment || $submission->assignment->teacher_id !== $teacher->id) {
             return $this->notFound('Submission not found');
         }
 

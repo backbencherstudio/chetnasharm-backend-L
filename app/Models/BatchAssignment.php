@@ -70,7 +70,7 @@ class BatchAssignment extends Model
     /** Scope to assignments that have reached their start time. */
     public function scopeStarted(Builder $query): Builder
     {
-        return $query->where(function (Builder $builder) {
+        return $query->where(function (Builder $builder): void {
             $builder->whereNull('starts_at')
                 ->orWhere('starts_at', '<=', now());
         });
@@ -81,7 +81,7 @@ class BatchAssignment extends Model
     {
         return $query
             ->started()
-            ->where(function (Builder $builder) {
+            ->where(function (Builder $builder): void {
                 $builder->whereNull('due_at')
                     ->orWhere('due_at', '>=', now());
             });

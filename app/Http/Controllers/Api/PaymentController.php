@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
-    public function __construct(private PaymentService $payment) {}
+    public function __construct(private readonly PaymentService $payment) {}
 
     /** Create a payment session for a batch enrollment. */
     public function createPayment(CreatePaymentRequest $request): JsonResponse

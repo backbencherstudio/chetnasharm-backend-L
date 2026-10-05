@@ -6,13 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\TeacherNote\StoreTeacherNoteRequest;
 use App\Http\Requests\TeacherNote\UpdateTeacherNoteRequest;
 use App\Models\Batch;
+use App\Models\Teacher;
 use App\Services\TeacherNoteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TeacherNoteController extends Controller
 {
-    public function __construct(private TeacherNoteService $notes) {}
+    public function __construct(private readonly TeacherNoteService $notes) {}
 
     /** List teacher notes for a batch. */
     public function index(Request $request, int $batch_id): JsonResponse
@@ -21,13 +22,13 @@ class TeacherNoteController extends Controller
 
         $teacher = $this->notes->findTeacherForUser($user);
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $batch = $this->notes->teacherBatch($teacher->id, $batch_id);
 
-        if (! $batch) {
+        if (! $batch instanceof Batch) {
             return $this->forbidden('Unauthorized: Invalid batch access');
         }
 
@@ -47,7 +48,7 @@ class TeacherNoteController extends Controller
 
         $teacher = $this->notes->findTeacherForUser($user);
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
@@ -75,7 +76,7 @@ class TeacherNoteController extends Controller
 
         $teacher = $this->notes->findTeacherForUser($user);
 
-        if ($teacher) {
+        if ($teacher instanceof Teacher) {
             if ($note->batch->teacher_id != $teacher->id) {
                 return $this->forbidden('Unauthorized');
             }
@@ -98,7 +99,7 @@ class TeacherNoteController extends Controller
 
         $teacher = $this->notes->findTeacherForUser($user);
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized');
         }
 
@@ -123,7 +124,7 @@ class TeacherNoteController extends Controller
 
         $teacher = $this->notes->findTeacherForUser($user);
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized');
         }
 

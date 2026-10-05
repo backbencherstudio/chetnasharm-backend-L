@@ -9,12 +9,12 @@ use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\UserSeeder;
 
-beforeEach(function () {
+beforeEach(function (): void {
     $this->seed(RolePermissionSeeder::class);
     $this->seed(UserSeeder::class);
 });
 
-test('user seeder creates sarah with ielts batch and weekly schedules', function () {
+test('user seeder creates sarah with ielts batch and weekly schedules', function (): void {
     $sarahUser = User::where('email', 'sarah@gmail.com')->first();
     expect($sarahUser)->not->toBeNull();
 
@@ -37,7 +37,7 @@ test('user seeder creates sarah with ielts batch and weekly schedules', function
     expect($availabilities->count())->toBeGreaterThan(0);
 });
 
-test('landing batches endpoint for ielts returns batches with sarah and weekly schedules', function () {
+test('landing batches endpoint for ielts returns batches with sarah and weekly schedules', function (): void {
     $ieltsClass = ClassModel::where('title', 'IELTS Preparation Course')->first();
 
     $response = $this->getJson("/api/batches/{$ieltsClass->id}");
@@ -53,7 +53,7 @@ test('landing batches endpoint for ielts returns batches with sarah and weekly s
         ->and($sarahBatchItem['schedules'])->toHaveCount(3);
 });
 
-test('user seeder is idempotent and can be run multiple times', function () {
+test('user seeder is idempotent and can be run multiple times', function (): void {
     $this->seed(UserSeeder::class);
 
     expect(Batch::where('name', 'IELTS Preparation Course - Batch 2')->count())->toBe(1);

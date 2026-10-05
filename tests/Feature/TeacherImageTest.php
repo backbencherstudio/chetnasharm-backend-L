@@ -6,13 +6,13 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
 });
 
-test('teacher store saves a square optimized image', function () {
+test('teacher store saves a square optimized image', function (): void {
     Storage::fake('public');
 
     $admin = User::factory()->create();
@@ -40,7 +40,7 @@ test('teacher store saves a square optimized image', function () {
         ->and(Storage::disk('public')->exists($teacher->image))->toBeTrue();
 });
 
-test('teacher update replaces image with a square optimized image', function () {
+test('teacher update replaces image with a square optimized image', function (): void {
     Storage::fake('public');
 
     $admin = User::factory()->create();

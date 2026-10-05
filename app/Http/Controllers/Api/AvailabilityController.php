@@ -10,12 +10,13 @@ use App\Http\Requests\Availability\StoreAvailabilityRequest;
 use App\Http\Requests\Availability\TeacherBusySlotsRequest;
 use App\Http\Requests\Availability\TeacherScheduleRequest;
 use App\Http\Requests\Availability\UpdateAvailabilityRequest;
+use App\Models\TeacherAvailability;
 use App\Services\AvailabilityService;
 use Illuminate\Http\JsonResponse;
 
 class AvailabilityController extends Controller
 {
-    public function __construct(private AvailabilityService $availability) {}
+    public function __construct(private readonly AvailabilityService $availability) {}
 
     /** List teacher availability slots grouped by day of week. */
     public function index(IndexAvailabilityRequest $request): JsonResponse
@@ -101,7 +102,7 @@ class AvailabilityController extends Controller
 
         $availability = $this->availability->find($id);
 
-        if (! $availability) {
+        if (! $availability instanceof TeacherAvailability) {
             return $this->notFound('Availability not found');
         }
 

@@ -146,7 +146,7 @@ class UserSeeder extends Seeder
                 'filled_seat' => 0,
                 'start_date' => now()->addDays(7)->toDateString(),
                 'end_date' => now()->addDays(7 + (int) $classModels['spoken_english']->duration_in_days)->toDateString(),
-                'zoom_link' => 'https://zoom.us/j/'.rand(100000000, 999999999),
+                'zoom_link' => 'https://zoom.us/j/'.random_int(100000000, 999999999),
                 'status' => 'upcoming',
                 'active_status' => 1,
                 'schedules' => [
@@ -163,7 +163,7 @@ class UserSeeder extends Seeder
                 'filled_seat' => 0,
                 'start_date' => now()->addDays(7)->toDateString(),
                 'end_date' => now()->addDays(7 + (int) $classModels['ielts']->duration_in_days)->toDateString(),
-                'zoom_link' => 'https://zoom.us/j/'.rand(100000000, 999999999),
+                'zoom_link' => 'https://zoom.us/j/'.random_int(100000000, 999999999),
                 'status' => 'upcoming',
                 'active_status' => 1,
                 'schedules' => [
@@ -180,7 +180,7 @@ class UserSeeder extends Seeder
                 'filled_seat' => 0,
                 'start_date' => now()->addDays(14)->toDateString(),
                 'end_date' => now()->addDays(14 + (int) $classModels['ielts']->duration_in_days)->toDateString(),
-                'zoom_link' => 'https://zoom.us/j/'.rand(100000000, 999999999),
+                'zoom_link' => 'https://zoom.us/j/'.random_int(100000000, 999999999),
                 'status' => 'upcoming',
                 'active_status' => 1,
                 'schedules' => [

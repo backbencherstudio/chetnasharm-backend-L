@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('speaking_topics', function (Blueprint $table) {
+        Schema::create('speaking_topics', function (Blueprint $table): void {
             $table->id();
             $table->text('topic');
             $table->string('level')->nullable(); // A1, A2, B1 etc.

@@ -23,7 +23,7 @@ class ClassRecordingResource extends JsonResource
             'batch_id' => $this->batch_id,
             'class_date' => $this->class_date,
             'recording_url' => $this->recording_url,
-            'batch' => $this->whenLoaded('batch', fn () => [
+            'batch' => $this->whenLoaded('batch', fn (): array => [
                 'id' => $this->batch->id,
                 'name' => $this->batch->name,
             ]),

@@ -7,7 +7,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
@@ -64,7 +64,7 @@ function createTeacherStudentContext(array $batchOverrides = []): array
     return [$teacherUser, $teacher, $batch, $student, $class];
 }
 
-test('teacher can list students from running batches', function () {
+test('teacher can list students from running batches', function (): void {
     [$teacherUser, $teacher, $batch, $student] = createTeacherStudentContext();
 
     $token = auth('api')->login($teacherUser);
@@ -79,7 +79,7 @@ test('teacher can list students from running batches', function () {
         ->assertJsonMissingPath('data.0.latest_note');
 });
 
-test('teacher students list excludes non running batches and supports search', function () {
+test('teacher students list excludes non running batches and supports search', function (): void {
     [$teacherUser, $teacher, $endedBatch, $endedStudent, $class] = createTeacherStudentContext([
         'name' => 'Ended Batch',
         'status' => 'completed',
@@ -160,7 +160,7 @@ test('teacher students list excludes non running batches and supports search', f
         ->assertJsonPath('pagination.total', 0);
 });
 
-test('teacher can manage student activity notes', function () {
+test('teacher can manage student activity notes', function (): void {
     [$teacherUser, $teacher, $batch, $student] = createTeacherStudentContext();
     $token = auth('api')->login($teacherUser);
 
@@ -209,7 +209,7 @@ test('teacher can manage student activity notes', function () {
     ]);
 });
 
-test('teacher does not see other teachers students', function () {
+test('teacher does not see other teachers students', function (): void {
     [, , , $otherStudent] = createTeacherStudentContext();
     [$teacherUser] = createTeacherStudentContext([
         'name' => 'Own Batch',
@@ -227,7 +227,7 @@ test('teacher does not see other teachers students', function () {
     expect($userIds)->not->toContain($otherStudent->id);
 });
 
-test('teacher cannot create note for another teachers batch or non enrolled student', function () {
+test('teacher cannot create note for another teachers batch or non enrolled student', function (): void {
     [$teacherUser, , $batch, $student] = createTeacherStudentContext();
 
     $otherTeacherUser = User::factory()->create();

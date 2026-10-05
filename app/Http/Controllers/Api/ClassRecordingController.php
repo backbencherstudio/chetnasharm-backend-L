@@ -7,13 +7,14 @@ use App\Http\Requests\ClassRecording\StoreClassRecordingRequest;
 use App\Http\Requests\ClassRecording\UpdateClassRecordingRequest;
 use App\Http\Resources\ClassRecordingResource;
 use App\Models\Batch;
+use App\Models\Teacher;
 use App\Services\ClassRecordingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ClassRecordingController extends Controller
 {
-    public function __construct(private ClassRecordingService $recordings) {}
+    public function __construct(private readonly ClassRecordingService $recordings) {}
 
     /** List class recordings for a batch. */
     public function index(Request $request, int $batch_id): JsonResponse
@@ -35,7 +36,7 @@ class ClassRecordingController extends Controller
 
         $teacher = $this->recordings->findTeacherForUser($user);
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
@@ -63,7 +64,7 @@ class ClassRecordingController extends Controller
 
         $teacher = $this->recordings->findTeacherForUser($user);
 
-        if ($teacher) {
+        if ($teacher instanceof Teacher) {
             if ($recording->batch->teacher_id !== $teacher->id) {
                 return $this->forbidden('Unauthorized: You do not have permission to view this recording');
             }
@@ -88,7 +89,7 @@ class ClassRecordingController extends Controller
 
         $teacher = $this->recordings->findTeacherForUser($user);
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
@@ -126,7 +127,7 @@ class ClassRecordingController extends Controller
 
         $teacher = $this->recordings->findTeacherForUser($user);
 
-        if (! $teacher) {
+        if (! $teacher instanceof Teacher) {
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 

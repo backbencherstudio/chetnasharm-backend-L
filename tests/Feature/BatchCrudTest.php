@@ -8,7 +8,7 @@ use App\Models\TeacherAvailability;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
@@ -43,7 +43,7 @@ function setupBatchCrudContext(): array
     return [$teacher, $class, $teacherUser];
 }
 
-test('admin can create and list batches with schedule', function () {
+test('admin can create and list batches with schedule', function (): void {
     [$teacher, $class] = setupBatchCrudContext();
 
     $admin = User::factory()->create();
@@ -85,7 +85,7 @@ test('admin can create and list batches with schedule', function () {
         ->assertJsonPath('data.id', $batchId);
 });
 
-test('teacher can update zoom link of assigned batch', function () {
+test('teacher can update zoom link of assigned batch', function (): void {
     [$teacher, $class, $teacherUser] = setupBatchCrudContext();
 
     $batch = Batch::create([
@@ -115,7 +115,7 @@ test('teacher can update zoom link of assigned batch', function () {
     expect($batch->zoom_link)->toBe('https://zoom.us/new-link');
 });
 
-test('admin can toggle active status and delete batch', function () {
+test('admin can toggle active status and delete batch', function (): void {
     [$teacher, $class] = setupBatchCrudContext();
 
     $batch = Batch::create([

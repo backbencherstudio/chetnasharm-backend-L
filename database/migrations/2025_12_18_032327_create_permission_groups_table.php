@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('permission_groups', function (Blueprint $table) {
+        Schema::create('permission_groups', function (Blueprint $table): void {
             $table->id();
             $table->string('group_name')->unique();
             $table->timestamps();

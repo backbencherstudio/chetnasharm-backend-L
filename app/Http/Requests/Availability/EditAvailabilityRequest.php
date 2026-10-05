@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Availability;
 
 use App\Http\Requests\Availability\Concerns\ValidatesTeacherId;

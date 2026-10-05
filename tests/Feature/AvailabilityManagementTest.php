@@ -6,7 +6,7 @@ use App\Models\TeacherAvailability;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
@@ -28,7 +28,7 @@ function setupAvailabilityContext(): array
     return [$teacherUser, $teacher];
 }
 
-test('teacher can store, fetch, edit, update and delete availability slots', function () {
+test('teacher can store, fetch, edit, update and delete availability slots', function (): void {
     [$teacherUser, $teacher] = setupAvailabilityContext();
     $token = auth('api')->login($teacherUser);
 
@@ -81,7 +81,7 @@ test('teacher can store, fetch, edit, update and delete availability slots', fun
     expect(TeacherAvailability::find($slot->id))->toBeNull();
 });
 
-test('teacher can view schedule and cannot view another teachers schedule', function () {
+test('teacher can view schedule and cannot view another teachers schedule', function (): void {
     [$teacherUser, $teacher] = setupAvailabilityContext();
     $token = auth('api')->login($teacherUser);
 

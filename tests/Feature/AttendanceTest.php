@@ -7,7 +7,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     foreach (['admin', 'teacher', 'student'] as $role) {
         Role::create(['name' => $role, 'guard_name' => 'api']);
     }
@@ -57,7 +57,7 @@ function setupAttendanceContext(): array
     return [$teacherUser, $teacher, $batch, $student];
 }
 
-test('teacher can fetch attendance sheet and monthly attendance for assigned batch', function () {
+test('teacher can fetch attendance sheet and monthly attendance for assigned batch', function (): void {
     [$teacherUser, $teacher, $batch, $student] = setupAttendanceContext();
     $token = auth('api')->login($teacherUser);
 
@@ -75,7 +75,7 @@ test('teacher can fetch attendance sheet and monthly attendance for assigned bat
         ->assertJsonPath('success', true);
 });
 
-test('teacher can store and update single attendance', function () {
+test('teacher can store and update single attendance', function (): void {
     [$teacherUser, $teacher, $batch, $student] = setupAttendanceContext();
     $token = auth('api')->login($teacherUser);
 
@@ -109,7 +109,7 @@ test('teacher can store and update single attendance', function () {
         ->assertJsonPath('data.status', 'absent');
 });
 
-test('unauthorized teacher cannot access attendance of another batch', function () {
+test('unauthorized teacher cannot access attendance of another batch', function (): void {
     [$teacherUser, $teacher, $batch] = setupAttendanceContext();
 
     $otherUser = User::factory()->create();

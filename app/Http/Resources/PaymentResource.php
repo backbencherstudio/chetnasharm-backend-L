@@ -30,12 +30,12 @@ class PaymentResource extends JsonResource
             'transaction_id' => $this->transaction_id,
             'status' => $this->status,
             'paid_at' => $this->paid_at?->toISOString(),
-            'user' => $this->whenLoaded('user', fn () => [
+            'user' => $this->whenLoaded('user', fn (): array => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
                 'email' => $this->user->email,
             ]),
-            'batch' => $this->whenLoaded('batch', fn () => [
+            'batch' => $this->whenLoaded('batch', fn (): array => [
                 'id' => $this->batch->id,
                 'name' => $this->batch->name,
             ]),

@@ -42,13 +42,11 @@ class EnrollmentNotification extends Notification implements ShouldQueue
             6 => 'Saturday',
         ];
 
-        $schedules = $batch->schedules->map(function (object $schedule) use ($days): array {
-            return [
-                'day' => $days[$schedule->day_of_week] ?? 'Unknown',
-                'start' => Carbon::parse($schedule->start_time)->format('H:i'),
-                'end' => Carbon::parse($schedule->end_time)->format('H:i'),
-            ];
-        });
+        $schedules = $batch->schedules->map(fn (object $schedule): array => [
+            'day' => $days[$schedule->day_of_week] ?? 'Unknown',
+            'start' => Carbon::parse($schedule->start_time)->format('H:i'),
+            'end' => Carbon::parse($schedule->end_time)->format('H:i'),
+        ]);
 
         $messageText = "Enrollment confirmation sent for {$class->title} (Batch {$batch->id})";
 

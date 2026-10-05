@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
-    public function __construct(private UserService $users) {}
+    public function __construct(private readonly UserService $users) {}
 
     /** Create a new admin user. */
     public function store(StoreUserRequest $request): JsonResponse
@@ -90,7 +90,7 @@ class UserController extends Controller
             return $this->error('You cannot suspend your own account.', 400);
         }
 
-        if ($id == 1) {
+        if ($id === 1) {
             return $this->forbidden('You cannot suspend super admin account.');
         }
 
@@ -131,7 +131,7 @@ class UserController extends Controller
 
         try {
             $validated = $this->users->normalizeMobile($request->validated());
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return $this->validationError(['mobile' => ['Invalid phone number format.']], 'Invalid phone number format.');
         }
 
@@ -139,7 +139,7 @@ class UserController extends Controller
             $user = $this->users->updateProfile($user, $validated, $request->image('image'));
 
             return $this->success(new UserResource($user), 'Profile updated successfully.');
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return $this->validationError(['mobile' => ['Invalid phone number format.']], 'Invalid phone number format.');
         }
     }
@@ -157,7 +157,7 @@ class UserController extends Controller
                 message: 'WhatsApp number updated successfully',
                 extra: ['mobile' => $mobile]
             );
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return $this->validationError(['mobile' => ['Invalid phone number format']], 'Invalid phone number format');
         }
     }

@@ -20,7 +20,7 @@ class UserResource extends JsonResource
     {
         $roleName = null;
         if ($this->relationLoaded('roles')) {
-            $roleName = $this->roles->pluck('name')->map(fn ($r) => ucfirst($r))->implode(', ');
+            $roleName = $this->roles->pluck('name')->map(fn ($r): string => ucfirst($r))->implode(', ');
         } elseif (method_exists($this->resource, 'getRoleNames')) {
             $roleName = $this->getRoleNames()->first();
         }
@@ -37,7 +37,7 @@ class UserResource extends JsonResource
             'suspended' => $this->suspend_status,
             'role' => $roleName,
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')),
-            'teacher' => $this->whenLoaded('teacher', fn () => $this->teacher ? [
+            'teacher' => $this->whenLoaded('teacher', fn (): ?array => $this->teacher ? [
                 'id' => $this->teacher->id,
                 'country' => $this->teacher->country,
                 'timezone' => $this->teacher->timezone,

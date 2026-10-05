@@ -5,11 +5,11 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Role::create(['name' => 'student', 'guard_name' => 'api']);
 });
 
-test('profile update resizes and stores uploaded image', function () {
+test('profile update resizes and stores uploaded image', function (): void {
     Storage::fake('public');
 
     $user = User::factory()->create([
@@ -37,7 +37,7 @@ test('profile update resizes and stores uploaded image', function () {
         ->and($user->image)->toEndWith('.webp');
 });
 
-test('profile update rejects non image upload', function () {
+test('profile update rejects non image upload', function (): void {
     Storage::fake('public');
 
     $user = User::factory()->create([
@@ -57,7 +57,7 @@ test('profile update rejects non image upload', function () {
         ->assertJsonPath('status', false);
 });
 
-test('profile update rejects image larger than five mb', function () {
+test('profile update rejects image larger than five mb', function (): void {
     Storage::fake('public');
 
     $user = User::factory()->create([
@@ -77,7 +77,7 @@ test('profile update rejects image larger than five mb', function () {
         ->assertJsonValidationErrors(['image']);
 });
 
-test('profile update accepts webp image', function () {
+test('profile update accepts webp image', function (): void {
     Storage::fake('public');
 
     $user = User::factory()->create([
@@ -97,7 +97,7 @@ test('profile update accepts webp image', function () {
         ->assertJsonPath('status', true);
 });
 
-test('profile update ignores non file image value', function () {
+test('profile update ignores non file image value', function (): void {
     $user = User::factory()->create([
         'name' => 'Keep Name',
         'email' => 'profile4@example.com',
