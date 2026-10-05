@@ -77,6 +77,8 @@ Route::prefix('admin')->middleware(['auth:api', 'role:admin'])->group(function (
     Route::post('user-update/{id}', [UserController::class, 'update']);
     Route::patch('user-suspend/{id}', [UserController::class, 'suspend']);
     Route::delete('user/{id}', [UserController::class, 'destroy']);
+    Route::patch('user/{id}/restore', [UserController::class, 'restore']);
+    Route::get('users/trashed', [UserController::class, 'trashed']);
 
     // Teacher Management
     Route::get('teachers', [TeacherController::class, 'data']);

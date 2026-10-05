@@ -81,6 +81,18 @@ class UserController extends Controller
         );
     }
 
+    /** Fetch the paginated list of soft-deleted users for admin management. */
+    public function trashed(Request $request): JsonResponse
+    {
+        $users = $this->users->paginateTrashed($request);
+
+        return $this->paginate(
+            $users,
+            UserResource::collection($users->items()),
+            'Trashed users retrieved successfully',
+        );
+    }
+
     /** Toggle the suspend status of a user. */
     public function suspend(int $id): JsonResponse
     {
@@ -162,7 +174,7 @@ class UserController extends Controller
         }
     }
 
-    /** Delete the specified user. */
+    /** Soft-delete the specified user. */
     public function destroy(int $id): JsonResponse
     {
         $user = User::findOrFail($id);
@@ -171,20 +183,28 @@ class UserController extends Controller
             return $this->error('You cannot delete your own account.', 400);
         }
 
-        if ($user->teacher) {
-            return $this->error('Cannot delete user with associated teacher profile', 400);
-        }
-
-        if ($user->enrollments()->exists()) {
-            return $this->error('Cannot delete user with associated enrollments', 400);
-        }
-
         try {
             $this->users->delete($user);
 
             return $this->success(message: 'User deleted successfully.');
         } catch (\Throwable $e) {
             return $this->error('User deletion failed: '.$e->getMessage(), 500);
+        }
+    }
+
+    /** Restore a soft-deleted user. */
+    public function restore(int $id): JsonResponse
+    {
+        if ($id == auth('api')->id()) {
+            return $this->error('You cannot restore your own account.', 400);
+        }
+
+        try {
+            $user = $this->users->restore($id);
+
+            return $this->success(new UserResource($user), 'User restored successfully.');
+        } catch (\Throwable $e) {
+            return $this->error('User restore failed: '.$e->getMessage(), 500);
         }
     }
 }

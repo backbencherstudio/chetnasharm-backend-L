@@ -131,6 +131,28 @@ class UserService
         ];
     }
 
+    /** Paginate only soft-deleted users for the admin trashed users list. */
+    public function paginateTrashed(Request $request): LengthAwarePaginator
+    {
+        $perPage = Pagination::perPage($request);
+        $search = $request->query('search');
+
+        $query = User::onlyTrashed();
+
+        if ($search) {
+            $query->where(function ($q) use ($search): void {
+                $q->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('email', 'LIKE', "%{$search}%");
+            });
+        }
+
+        return $query
+            ->with(['roles:id,name'])
+            ->select('id', 'name', 'email', 'mobile', 'department', 'image', 'suspend_status', 'provider', 'deleted_at')
+            ->latest('deleted_at')
+            ->paginate(1);
+    }
+
     /**
      * @return array{user: User, message: string}
      */
@@ -200,18 +222,15 @@ class UserService
 
     public function delete(User $user): void
     {
-        DB::transaction(function () use ($user): void {
-            if (
-                $user->image &&
-                ! filter_var($user->image, FILTER_VALIDATE_URL) &&
-                Storage::disk('public')->exists($user->image)
-            ) {
-                Storage::disk('public')->delete($user->image);
-            }
+        $user->delete();
+    }
 
-            $user->syncRoles([]);
-            $user->delete();
-        });
+    public function restore(int $id): User
+    {
+        $user = User::withTrashed()->findOrFail($id);
+        $user->restore();
+
+        return $user;
     }
 
     /**

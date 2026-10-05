@@ -54,13 +54,29 @@ test('admin can manage users CRUD and suspension', function (): void {
         ->assertJsonPath('status', true)
         ->assertJsonPath('data.suspend_status', 1);
 
-    // 5. Delete User
+    // 5. Delete User (Soft Delete)
     $this->withHeader('Authorization', "Bearer {$token}")
         ->deleteJson("/api/admin/user/{$createdUserId}")
         ->assertOk()
         ->assertJsonPath('status', true);
 
     expect(User::find($createdUserId))->toBeNull();
+    expect(User::withTrashed()->find($createdUserId))->not->toBeNull();
+
+    // 6. View Trashed Users List
+    $this->withHeader('Authorization', "Bearer {$token}")
+        ->getJson('/api/admin/users/trashed')
+        ->assertOk()
+        ->assertJsonPath('status', true)
+        ->assertJsonFragment(['id' => $createdUserId]);
+
+    // 7. Restore User
+    $this->withHeader('Authorization', "Bearer {$token}")
+        ->patchJson("/api/admin/user/{$createdUserId}/restore")
+        ->assertOk()
+        ->assertJsonPath('status', true);
+
+    expect(User::find($createdUserId))->not->toBeNull();
 });
 
 test('admin cannot delete own account or suspend super admin', function (): void {
