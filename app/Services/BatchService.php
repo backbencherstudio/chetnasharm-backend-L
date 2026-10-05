@@ -67,15 +67,7 @@ class BatchService
 
         $batches = $query->latest()->paginate($perPage);
 
-        return [
-            'items' => $batches->items(),
-            'pagination' => [
-                'current_page' => $batches->currentPage(),
-                'per_page' => $batches->perPage(),
-                'total' => $batches->total(),
-                'last_page' => $batches->lastPage(),
-            ],
-        ];
+        return Pagination::format($batches);
     }
 
     /**
@@ -289,15 +281,7 @@ class BatchService
 
         $batches = $query->latest()->paginate($perPage);
 
-        return [
-            'items' => $batches->items(),
-            'pagination' => [
-                'current_page' => $batches->currentPage(),
-                'per_page' => $batches->perPage(),
-                'total' => $batches->total(),
-                'last_page' => $batches->lastPage(),
-            ],
-        ];
+        return Pagination::format($batches);
     }
 
     /** @return Collection<int, Batch> */
@@ -356,15 +340,7 @@ class BatchService
         $perPage = Pagination::perPage($request);
         $batches = $query->latest()->paginate($perPage);
 
-        return [
-            'items' => $batches->items(),
-            'pagination' => [
-                'current_page' => $batches->currentPage(),
-                'per_page' => $batches->perPage(),
-                'total' => $batches->total(),
-                'last_page' => $batches->lastPage(),
-            ],
-        ];
+        return Pagination::format($batches);
     }
 
     public function updateZoomLink(Batch $batch, string $zoomLink): Batch

@@ -34,15 +34,7 @@ class ClassService
 
         $this->withAssignedTeachers($classes);
 
-        return [
-            'items' => $classes->items(),
-            'pagination' => [
-                'current_page' => $classes->currentPage(),
-                'per_page' => $classes->perPage(),
-                'total' => $classes->total(),
-                'last_page' => $classes->lastPage(),
-            ],
-        ];
+        return Pagination::format($classes);
     }
 
     /**
@@ -133,15 +125,7 @@ class ClassService
 
         $this->withAssignedTeachers($classes);
 
-        return [
-            'items' => $classes->items(),
-            'pagination' => [
-                'current_page' => $classes->currentPage(),
-                'per_page' => $classes->perPage(),
-                'total' => $classes->total(),
-                'last_page' => $classes->lastPage(),
-            ],
-        ];
+        return Pagination::format($classes);
     }
 
     /**
@@ -174,15 +158,7 @@ class ClassService
             ->latest()
             ->paginate($perPage);
 
-        return [
-            'items' => $batches->items(),
-            'pagination' => [
-                'current_page' => $batches->currentPage(),
-                'per_page' => $batches->perPage(),
-                'total' => $batches->total(),
-                'last_page' => $batches->lastPage(),
-            ],
-        ];
+        return Pagination::format($batches);
     }
 
     /**

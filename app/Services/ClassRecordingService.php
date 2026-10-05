@@ -35,16 +35,7 @@ class ClassRecordingService
         $perPage = Pagination::perPage($request);
 
         if (! $this->canAccessBatch($user, $batchId)) {
-            return [
-                'accessible' => false,
-                'items' => [],
-                'pagination' => [
-                    'current_page' => 1,
-                    'per_page' => $perPage,
-                    'total' => 0,
-                    'last_page' => 1,
-                ],
-            ];
+            return Pagination::empty($perPage, ['accessible' => false]);
         }
 
         $recordings = ClassRecording::with('batch:id,name,teacher_id')
@@ -52,16 +43,7 @@ class ClassRecordingService
             ->latest()
             ->paginate($perPage);
 
-        return [
-            'accessible' => true,
-            'items' => $recordings->items(),
-            'pagination' => [
-                'current_page' => $recordings->currentPage(),
-                'per_page' => $recordings->perPage(),
-                'total' => $recordings->total(),
-                'last_page' => $recordings->lastPage(),
-            ],
-        ];
+        return Pagination::format($recordings, extra: ['accessible' => true]);
     }
 
     /**
@@ -124,14 +106,6 @@ class ClassRecordingService
             ->latest()
             ->paginate($perPage);
 
-        return [
-            'items' => $recordings->items(),
-            'pagination' => [
-                'current_page' => $recordings->currentPage(),
-                'per_page' => $recordings->perPage(),
-                'total' => $recordings->total(),
-                'last_page' => $recordings->lastPage(),
-            ],
-        ];
+        return Pagination::format($recordings);
     }
 }
