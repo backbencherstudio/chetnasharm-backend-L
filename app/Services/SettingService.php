@@ -88,15 +88,7 @@ class SettingService
             ->latest()
             ->paginate($perPage);
 
-        return [
-            'items' => $logs->items(),
-            'pagination' => [
-                'current_page' => $logs->currentPage(),
-                'per_page' => $logs->perPage(),
-                'total' => $logs->total(),
-                'last_page' => $logs->lastPage(),
-            ],
-        ];
+        return Pagination::format($logs);
     }
 
     /**

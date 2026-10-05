@@ -23,15 +23,7 @@ class SpeakingTopicService
             ->oldest()
             ->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => $speakingTopics->items(),
-            'pagination' => [
-                'current_page' => $speakingTopics->currentPage(),
-                'per_page' => $speakingTopics->perPage(),
-                'total' => $speakingTopics->total(),
-                'last_page' => $speakingTopics->lastPage(),
-            ],
-        ];
+        return Pagination::format($speakingTopics);
     }
 
     /**
@@ -79,14 +71,6 @@ class SpeakingTopicService
             ->oldest()
             ->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => $topics->items(),
-            'pagination' => [
-                'current_page' => $topics->currentPage(),
-                'per_page' => $topics->perPage(),
-                'total' => $topics->total(),
-                'last_page' => $topics->lastPage(),
-            ],
-        ];
+        return Pagination::format($topics);
     }
 }

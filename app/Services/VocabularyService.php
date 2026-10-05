@@ -23,15 +23,7 @@ class VocabularyService
 
         $vocabularies = $query->oldest()->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => $vocabularies->items(),
-            'pagination' => [
-                'current_page' => $vocabularies->currentPage(),
-                'per_page' => $vocabularies->perPage(),
-                'total' => $vocabularies->total(),
-                'last_page' => $vocabularies->lastPage(),
-            ],
-        ];
+        return Pagination::format($vocabularies);
     }
 
     /**
@@ -94,14 +86,6 @@ class VocabularyService
             ->oldest()
             ->paginate($perPage);
 
-        return [
-            'items' => $vocabularies->items(),
-            'pagination' => [
-                'current_page' => $vocabularies->currentPage(),
-                'per_page' => $vocabularies->perPage(),
-                'total' => $vocabularies->total(),
-                'last_page' => $vocabularies->lastPage(),
-            ],
-        ];
+        return Pagination::format($vocabularies);
     }
 }

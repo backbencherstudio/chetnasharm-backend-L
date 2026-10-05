@@ -23,15 +23,7 @@ class BasicQuestionService
             ->oldest()
             ->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => $basicQuestions->items(),
-            'pagination' => [
-                'current_page' => $basicQuestions->currentPage(),
-                'per_page' => $basicQuestions->perPage(),
-                'total' => $basicQuestions->total(),
-                'last_page' => $basicQuestions->lastPage(),
-            ],
-        ];
+        return Pagination::format($basicQuestions);
     }
 
     /**
@@ -79,14 +71,6 @@ class BasicQuestionService
             ->oldest()
             ->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => $topics->items(),
-            'pagination' => [
-                'current_page' => $topics->currentPage(),
-                'per_page' => $topics->perPage(),
-                'total' => $topics->total(),
-                'last_page' => $topics->lastPage(),
-            ],
-        ];
+        return Pagination::format($topics);
     }
 }
