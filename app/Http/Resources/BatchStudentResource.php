@@ -31,6 +31,7 @@ class BatchStudentResource extends JsonResource
             'class_title' => $this->class?->title,
             'enrollment_status' => $this->status,
             'enrolled_at' => $this->enrolled_at,
+            'user' => $this->whenLoaded('user'),
         ];
     }
 }

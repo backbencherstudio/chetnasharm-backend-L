@@ -152,7 +152,7 @@ class BatchAssignmentService
     {
         return AssignmentSubmission::query()
             ->where('assignment_id', $assignment->id)
-            ->with('student:id,name,email')
+            ->with(['student:id,name,email', 'assignment:id,total_marks'])
             ->latest()
             ->paginate(Pagination::perPage($request));
     }

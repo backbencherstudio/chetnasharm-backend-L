@@ -40,11 +40,13 @@ class BatchResource extends JsonResource
             ]),
             'teacher' => $this->whenLoaded('teacher', fn (): array => [
                 'id' => $this->teacher->id,
-                'name' => $this->teacher->user?->name,
+                'name' => $this->teacher->name ?? $this->teacher->user?->name,
                 'user_id' => $this->teacher->user_id,
                 'country' => $this->teacher->country,
                 'timezone' => $this->teacher->timezone,
                 'expertise' => $this->teacher->expertise,
+                'image' => $this->teacher->image ?? $this->teacher->user?->image,
+                'image_url' => $this->teacher->image_url ?? $this->teacher->user?->image_url,
                 'user' => $this->teacher->user ? [
                     'id' => $this->teacher->user->id,
                     'name' => $this->teacher->user->name,

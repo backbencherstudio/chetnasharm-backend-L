@@ -100,6 +100,7 @@ class TeacherStudentService
             ->where('teacher_id', $teacher->id)
             ->where('batch_id', $batchId)
             ->where('student_user_id', $userId)
+            ->with(['student:id,name', 'batch:id,name'])
             ->latest()
             ->paginate(Pagination::perPage($request));
     }

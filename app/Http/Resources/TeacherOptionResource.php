@@ -26,6 +26,8 @@ class TeacherOptionResource extends JsonResource
             'country' => $this->country,
             'timezone' => $this->timezone,
             'expertise' => $this->expertise,
+            'image' => $this->image,
+            'image_url' => $this->image_url,
         ];
     }
 }

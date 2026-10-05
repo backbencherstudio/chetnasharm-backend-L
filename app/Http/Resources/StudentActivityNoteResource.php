@@ -29,6 +29,7 @@ class StudentActivityNoteResource extends JsonResource
                 ? ($this->teacher?->user?->name ?? $this->teacher?->name)
                 : null,
             'student_user_id' => $this->student_user_id,
+            'student_name' => $this->relationLoaded('student') ? $this->student?->name : null,
             'comment' => $this->comment,
             'status' => $this->status,
             'created_at' => $this->created_at,
