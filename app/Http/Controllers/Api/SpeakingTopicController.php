@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SpeakingTopic\StoreSpeakingTopicRequest;
 use App\Http\Requests\SpeakingTopic\UpdateSpeakingTopicRequest;
+use App\Http\Resources\SpeakingTopicResource;
 use App\Services\SpeakingTopicService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,11 +19,11 @@ class SpeakingTopicController extends Controller
     {
         $result = $this->speakingTopics->index($request);
 
-        return response()->json([
-            'success' => true,
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            SpeakingTopicResource::collection($result['items']),
+            $result['pagination'],
+            'Speaking topics retrieved successfully'
+        );
     }
 
     /** Create a speaking topic. */
@@ -30,11 +31,10 @@ class SpeakingTopicController extends Controller
     {
         $topic = $this->speakingTopics->store($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Speaking topic created successfully.',
-            'data' => $topic,
-        ]);
+        return $this->created(
+            new SpeakingTopicResource($topic),
+            'Speaking topic created successfully.'
+        );
     }
 
     /** Show a single speaking topic. */
@@ -42,10 +42,10 @@ class SpeakingTopicController extends Controller
     {
         $topic = $this->speakingTopics->findOrFail($id);
 
-        return response()->json([
-            'success' => true,
-            'data' => $topic,
-        ]);
+        return $this->success(
+            new SpeakingTopicResource($topic),
+            'Speaking topic retrieved successfully'
+        );
     }
 
     /** Update a speaking topic. */
@@ -54,11 +54,10 @@ class SpeakingTopicController extends Controller
         $topic = $this->speakingTopics->findOrFail($id);
         $topic = $this->speakingTopics->update($topic, $request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Speaking topic updated successfully.',
-            'data' => $topic,
-        ]);
+        return $this->success(
+            new SpeakingTopicResource($topic),
+            'Speaking topic updated successfully.'
+        );
     }
 
     /** Delete a speaking topic. */
@@ -67,10 +66,7 @@ class SpeakingTopicController extends Controller
         $topic = $this->speakingTopics->findOrFail($id);
         $this->speakingTopics->destroy($topic);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Speaking topic deleted successfully.',
-        ]);
+        return $this->success(message: 'Speaking topic deleted successfully.');
     }
 
     /** List active speaking topics for the frontend. */
@@ -78,10 +74,10 @@ class SpeakingTopicController extends Controller
     {
         $result = $this->speakingTopics->frontendList($request);
 
-        return response()->json([
-            'success' => true,
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            SpeakingTopicResource::collection($result['items']),
+            $result['pagination'],
+            'Speaking topics retrieved successfully'
+        );
     }
 }

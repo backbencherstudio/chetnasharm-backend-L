@@ -20,29 +20,25 @@ class WebhookController extends BaseController
         );
 
         if ($result['type'] === 'invalid_webhook') {
-            return response()->json(['error' => 'Invalid webhook'], 400);
+            return $this->respond(['error' => 'Invalid webhook'], 400);
         }
 
         if ($result['type'] === 'invalid_metadata') {
-            return response()->json(['error' => 'Invalid metadata'], 400);
+            return $this->respond(['error' => 'Invalid metadata'], 400);
         }
 
         if ($result['type'] === 'payment_not_found') {
-            return response()->json(['error' => 'Payment not found'], 404);
+            return $this->respond(['error' => 'Payment not found'], 404);
         }
 
         if ($result['type'] === 'processing_failed') {
-            return response()->json(['error' => 'Processing failed'], 500);
+            return $this->respond(['error' => 'Processing failed'], 500);
         }
 
         if ($result['type'] === 'missing_metadata') {
-            return response()->json(['error' => 'Missing metadata'], 400);
+            return $this->respond(['error' => 'Missing metadata'], 400);
         }
 
-        if ($result['type'] === 'already_processed') {
-            return response()->json($result['payload']);
-        }
-
-        return response()->json($result['payload']);
+        return $this->respond($result['payload']);
     }
 }

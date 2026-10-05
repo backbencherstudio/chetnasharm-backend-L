@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BasicQuestion\StoreBasicQuestionRequest;
 use App\Http\Requests\BasicQuestion\UpdateBasicQuestionRequest;
+use App\Http\Resources\BasicQuestionResource;
 use App\Services\BasicQuestionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,11 +19,11 @@ class BasicQuestionController extends Controller
     {
         $result = $this->basicQuestions->index($request);
 
-        return response()->json([
-            'success' => true,
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            BasicQuestionResource::collection($result['items']),
+            $result['pagination'],
+            'Basic questions retrieved successfully'
+        );
     }
 
     /** Create a basic question. */
@@ -30,11 +31,10 @@ class BasicQuestionController extends Controller
     {
         $basicQuestion = $this->basicQuestions->store($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Basic question created successfully.',
-            'data' => $basicQuestion,
-        ]);
+        return $this->created(
+            new BasicQuestionResource($basicQuestion),
+            'Basic question created successfully.'
+        );
     }
 
     /** Show a single basic question. */
@@ -42,10 +42,10 @@ class BasicQuestionController extends Controller
     {
         $basicQuestion = $this->basicQuestions->findOrFail($id);
 
-        return response()->json([
-            'success' => true,
-            'data' => $basicQuestion,
-        ]);
+        return $this->success(
+            new BasicQuestionResource($basicQuestion),
+            'Basic question retrieved successfully'
+        );
     }
 
     /** Update a basic question. */
@@ -54,11 +54,10 @@ class BasicQuestionController extends Controller
         $basicQuestion = $this->basicQuestions->findOrFail($id);
         $basicQuestion = $this->basicQuestions->update($basicQuestion, $request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Basic question updated successfully.',
-            'data' => $basicQuestion,
-        ]);
+        return $this->success(
+            new BasicQuestionResource($basicQuestion),
+            'Basic question updated successfully.'
+        );
     }
 
     /** Delete a basic question. */
@@ -67,10 +66,7 @@ class BasicQuestionController extends Controller
         $basicQuestion = $this->basicQuestions->findOrFail($id);
         $this->basicQuestions->destroy($basicQuestion);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Basic question deleted successfully.',
-        ]);
+        return $this->success(message: 'Basic question deleted successfully.');
     }
 
     /** List active basic questions for the frontend. */
@@ -78,10 +74,10 @@ class BasicQuestionController extends Controller
     {
         $result = $this->basicQuestions->frontendList($request);
 
-        return response()->json([
-            'success' => true,
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            BasicQuestionResource::collection($result['items']),
+            $result['pagination'],
+            'Basic questions retrieved successfully'
+        );
     }
 }

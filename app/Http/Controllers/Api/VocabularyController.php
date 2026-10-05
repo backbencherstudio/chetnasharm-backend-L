@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vocabulary\StoreVocabularyRequest;
 use App\Http\Requests\Vocabulary\UpdateVocabularyRequest;
+use App\Http\Resources\VocabularyResource;
 use App\Services\VocabularyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,11 +19,11 @@ class VocabularyController extends Controller
     {
         $result = $this->vocabulary->index($request);
 
-        return response()->json([
-            'success' => true,
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            VocabularyResource::collection($result['items']),
+            $result['pagination'],
+            'Vocabularies retrieved successfully'
+        );
     }
 
     /** Create a vocabulary entry. */
@@ -30,11 +31,10 @@ class VocabularyController extends Controller
     {
         $vocabulary = $this->vocabulary->store($request->validated(), $request->file('image'));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Vocabulary created successfully',
-            'data' => $vocabulary,
-        ]);
+        return $this->created(
+            new VocabularyResource($vocabulary),
+            'Vocabulary created successfully'
+        );
     }
 
     /** Show a single vocabulary entry. */
@@ -43,16 +43,13 @@ class VocabularyController extends Controller
         $vocabulary = $this->vocabulary->find($id);
 
         if (! $vocabulary) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vocabulary not found',
-            ], 404);
+            return $this->notFound('Vocabulary not found');
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => $vocabulary,
-        ]);
+        return $this->success(
+            new VocabularyResource($vocabulary),
+            'Vocabulary retrieved successfully'
+        );
     }
 
     /** Update a vocabulary entry. */
@@ -61,11 +58,10 @@ class VocabularyController extends Controller
         $vocabulary = $this->vocabulary->findOrFail($id);
         $vocabulary = $this->vocabulary->update($vocabulary, $request->validated(), $request->file('image'));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Vocabulary updated successfully',
-            'data' => $vocabulary,
-        ]);
+        return $this->success(
+            new VocabularyResource($vocabulary),
+            'Vocabulary updated successfully'
+        );
     }
 
     /** Delete a vocabulary entry. */
@@ -74,10 +70,7 @@ class VocabularyController extends Controller
         $vocabulary = $this->vocabulary->findOrFail($id);
         $this->vocabulary->destroy($vocabulary);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Vocabulary deleted successfully',
-        ]);
+        return $this->success(message: 'Vocabulary deleted successfully');
     }
 
     /** List active vocabularies for the frontend. */
@@ -85,10 +78,10 @@ class VocabularyController extends Controller
     {
         $result = $this->vocabulary->vocabularies($request);
 
-        return response()->json([
-            'success' => true,
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            VocabularyResource::collection($result['items']),
+            $result['pagination'],
+            'Vocabularies retrieved successfully'
+        );
     }
 }

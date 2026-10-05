@@ -17,11 +17,10 @@ class SettingController extends Controller
     /** Retrieve application settings. */
     public function show(): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'Settings retrieved successfully',
-            'data' => $this->settings->show(),
-        ]);
+        return $this->success(
+            $this->settings->show(),
+            'Settings retrieved successfully'
+        );
     }
 
     /** Update application settings. */
@@ -29,11 +28,10 @@ class SettingController extends Controller
     {
         $setting = $this->settings->update($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Setting updated successfully',
-            'data' => $setting,
-        ]);
+        return $this->success(
+            $setting,
+            'Setting updated successfully'
+        );
     }
 
     /** Retrieve the configured class duration in minutes. */
@@ -42,17 +40,14 @@ class SettingController extends Controller
         $classTime = $this->settings->getClassTime();
 
         if ($classTime === null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Class time not set in settings',
-            ], 422);
+            return $this->error('Class time not set in settings', 422);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Time retrieved successfully',
-            'class_time' => $classTime,
-        ]);
+        return $this->success(
+            data: ['class_time' => $classTime],
+            message: 'Time retrieved successfully',
+            extra: ['class_time' => $classTime]
+        );
     }
 
     /** List paginated notification logs. */
@@ -60,12 +55,11 @@ class SettingController extends Controller
     {
         $result = $this->settings->logs($request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Notification logs fetched successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            $result['items'],
+            $result['pagination'],
+            'Notification logs fetched successfully'
+        );
     }
 
     /** Retrieve public support contact information. */
@@ -74,47 +68,40 @@ class SettingController extends Controller
         $support = $this->settings->support();
 
         if ($support === null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Settings not found',
-            ], 404);
+            return $this->notFound('Settings not found');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Support information retrieved successfully',
-            'data' => $support,
-        ]);
+        return $this->success(
+            $support,
+            'Support information retrieved successfully'
+        );
     }
 
     /** Get public social links. */
     public function socialLinks(): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'Social links retrieved successfully',
-            'data' => $this->settings->socialLinks(),
-        ]);
+        return $this->success(
+            $this->settings->socialLinks(),
+            'Social links retrieved successfully'
+        );
     }
 
     /** Get social links for admin. */
     public function getSocialLinks(): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'Social links retrieved successfully',
-            'data' => $this->settings->socialLinks(),
-        ]);
+        return $this->success(
+            $this->settings->socialLinks(),
+            'Social links retrieved successfully'
+        );
     }
 
     /** Update social links for fixed platform keys. */
     public function updateSocialLinks(UpdateSocialLinksRequest $request): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'Social links updated successfully',
-            'data' => $this->settings->updateSocialLinks($request->validated()),
-        ]);
+        return $this->success(
+            $this->settings->updateSocialLinks($request->validated()),
+            'Social links updated successfully'
+        );
     }
 
     /** Get masked integration settings for admin. */
@@ -122,15 +109,14 @@ class SettingController extends Controller
     {
         $envSettings = $this->settings->getEnvSettings();
 
-        return response()->json([
-            'success' => true,
-
-            'stripe' => $envSettings['stripe'],
-
-            'paypal' => $envSettings['paypal'],
-
-            'whatsapp' => $envSettings['whatsapp'],
-        ]);
+        return $this->success(
+            message: 'Success',
+            extra: [
+                'stripe' => $envSettings['stripe'],
+                'paypal' => $envSettings['paypal'],
+                'whatsapp' => $envSettings['whatsapp'],
+            ]
+        );
     }
 
     /** Update integration settings in the database. */
@@ -138,9 +124,8 @@ class SettingController extends Controller
     {
         $this->settings->updateEnvSettings($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Environment settings updated successfully.',
-        ]);
+        return $this->success(
+            message: 'Environment settings updated successfully.'
+        );
     }
 }
