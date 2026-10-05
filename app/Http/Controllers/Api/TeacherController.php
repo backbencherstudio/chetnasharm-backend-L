@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Teacher\StoreTeacherRequest;
 use App\Http\Requests\Teacher\UpdateTeacherRequest;
+use App\Http\Resources\PublicTeacherResource;
+use App\Http\Resources\TeacherResource;
 use App\Models\Teacher;
 use App\Services\TeacherService;
 use Illuminate\Http\JsonResponse;
@@ -19,40 +21,11 @@ class TeacherController extends Controller
     {
         $teachers = $this->teachers->paginateForAdmin($request);
 
-        return response()->json([
-            'status' => true,
-            'data' => collect($teachers->items())->map(function ($t) {
-                return [
-                    'id' => $t->id,
-                    'name' => $t->name,
-                    'email' => $t->email,
-                    'mobile' => $t->mobile,
-                    'country' => $t->country,
-                    'timezone' => $t->timezone,
-                    'bio' => $t->bio,
-                    'about' => $t->about,
-                    'specializations' => $t->specializations ?? [],
-                    'languages_spoken' => $t->languages_spoken ?? [],
-                    'courses_can_teach' => $t->courses_can_teach ?? [],
-                    'interests' => $t->interests ?? [],
-                    'expertise' => $t->expertise,
-                    'qualification' => $t->qualification,
-                    'years_of_exp' => $t->years_of_exp,
-                    'image' => $t->image,
-                    'image_url' => $t->image_url,
-                    'intro_video' => $t->intro_video,
-                    'intro_video_url' => $t->intro_video_url,
-                    'suspend_status' => $t->suspend_status,
-                    'is_top' => $t->is_top,
-                ];
-            }),
-            'pagination' => [
-                'current_page' => $teachers->currentPage(),
-                'per_page' => $teachers->perPage(),
-                'total' => $teachers->total(),
-                'last_page' => $teachers->lastPage(),
-            ],
-        ], 200);
+        return $this->paginate(
+            $teachers,
+            TeacherResource::collection($teachers->items()),
+            'Teacher list fetched successfully'
+        );
     }
 
     /** Create a new teacher with linked user account. */
@@ -61,10 +34,7 @@ class TeacherController extends Controller
         try {
             $validated = $this->teachers->normalizeMobile($request->validated());
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid phone number format.',
-            ], 422);
+            return $this->validationError(['mobile' => ['Invalid phone number format.']], 'Invalid phone number format.');
         }
 
         try {
@@ -78,33 +48,16 @@ class TeacherController extends Controller
             $user = $result['user'];
             $randomPassword = $result['password'];
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Teacher created successfully.',
-                'data' => [
-                    'id' => $teacher->id,
-                    'name' => $teacher->name,
-                    'email' => $teacher->email,
-                    'country' => $teacher->country,
-                    'timezone' => $teacher->timezone,
-                    'about' => $teacher->about,
-                    'specializations' => $teacher->specializations ?? [],
-                    'languages_spoken' => $teacher->languages_spoken ?? [],
-                    'courses_can_teach' => $teacher->courses_can_teach ?? [],
-                    'interests' => $teacher->interests ?? [],
-                    'user' => [
-                        'id' => $user->id,
-                        'email' => $user->email,
-                        'password' => $randomPassword,
-                    ],
-                ],
-            ], 201);
+            $data = (new TeacherResource($teacher))->toArray($request);
+            $data['user'] = [
+                'id' => $user->id,
+                'email' => $user->email,
+                'password' => $randomPassword,
+            ];
+
+            return $this->created($data, 'Teacher created successfully.');
         } catch (\Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to create teacher.',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->error('Failed to create teacher: '.$e->getMessage(), 500);
         }
     }
 
@@ -113,32 +66,11 @@ class TeacherController extends Controller
     {
         $teacher = $this->teachers->findForEdit($id);
 
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'id' => $teacher->id,
-                'name' => $teacher->name,
-                'email' => $teacher->email,
-                'mobile' => $teacher->mobile,
-                'country' => $teacher->country,
-                'timezone' => $teacher->timezone,
-                'bio' => $teacher->bio,
-                'about' => $teacher->about,
-                'specializations' => $teacher->specializations ?? [],
-                'languages_spoken' => $teacher->languages_spoken ?? [],
-                'courses_can_teach' => $teacher->courses_can_teach ?? [],
-                'interests' => $teacher->interests ?? [],
-                'expertise' => $teacher->expertise,
-                'years_of_exp' => $teacher->years_of_exp,
-                'qualification' => $teacher->qualification,
-                'intro_video' => $teacher->intro_video,
-                'intro_video_url' => $teacher->intro_video_url,
-                'image' => $teacher->image,
-                'image_url' => $teacher->image_url,
-                'suspend_status' => $teacher->suspend_status,
-                'user_id' => $teacher->user_id,
-            ],
-        ], 200);
+        if (! $teacher) {
+            return $this->notFound('Teacher not found');
+        }
+
+        return $this->success(new TeacherResource($teacher), 'Teacher retrieved successfully.');
     }
 
     /** Update the specified teacher. */
@@ -149,10 +81,7 @@ class TeacherController extends Controller
         try {
             $validated = $this->teachers->normalizeMobile($request->validated());
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid phone number format.',
-            ], 422);
+            return $this->validationError(['mobile' => ['Invalid phone number format.']], 'Invalid phone number format.');
         }
 
         try {
@@ -163,29 +92,9 @@ class TeacherController extends Controller
                 $request->file('intro_video'),
             );
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Teacher updated successfully.',
-                'data' => [
-                    'id' => $teacher->id,
-                    'name' => $teacher->name,
-                    'email' => $teacher->email,
-                    'country' => $teacher->country,
-                    'timezone' => $teacher->timezone,
-                    'about' => $teacher->about,
-                    'specializations' => $teacher->specializations ?? [],
-                    'languages_spoken' => $teacher->languages_spoken ?? [],
-                    'courses_can_teach' => $teacher->courses_can_teach ?? [],
-                    'interests' => $teacher->interests ?? [],
-                    'user_id' => $teacher->user_id,
-                ],
-            ], 200);
+            return $this->success(new TeacherResource($teacher), 'Teacher updated successfully.');
         } catch (\Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to update teacher.',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->error('Failed to update teacher: '.$e->getMessage(), 500);
         }
     }
 
@@ -196,28 +105,17 @@ class TeacherController extends Controller
             $result = $this->teachers->toggleSuspend($id);
 
             if ($result === null) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Linked user not found.',
-                ], 404);
+                return $this->notFound('Linked user not found.');
             }
 
             $teacher = $result['teacher'];
 
-            return response()->json([
-                'status' => true,
-                'message' => $result['message'],
-                'data' => [
-                    'teacher_id' => $teacher->id,
-                    'suspend_status' => $teacher->suspend_status,
-                ],
-            ], 200);
+            return $this->success([
+                'teacher_id' => $teacher->id,
+                'suspend_status' => $teacher->suspend_status,
+            ], $result['message']);
         } catch (\Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Operation failed.',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->error('Operation failed: '.$e->getMessage(), 500);
         }
     }
 
@@ -226,17 +124,11 @@ class TeacherController extends Controller
     {
         $teachers = $this->teachers->paginateForLanding($request);
 
-        return response()->json([
-            'status' => true,
-            'data' => $teachers->items(),
-
-            'pagination' => [
-                'current_page' => $teachers->currentPage(),
-                'per_page' => $teachers->perPage(),
-                'total' => $teachers->total(),
-                'last_page' => $teachers->lastPage(),
-            ],
-        ], 200);
+        return $this->paginate(
+            $teachers,
+            PublicTeacherResource::collection($teachers->items()),
+            'Teachers retrieved successfully'
+        );
     }
 
     /** Get a single teacher for the public landing page. */
@@ -245,38 +137,13 @@ class TeacherController extends Controller
         $teacher = $this->teachers->findForPublicShow($id);
 
         if (! $teacher) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Teacher not found',
-            ], 404);
+            return $this->notFound('Teacher not found');
         }
 
-        $batches = $this->teachers->formatPublicBatches($teacher);
+        $data = (new PublicTeacherResource($teacher))->toArray(request());
+        $data['batches'] = $this->teachers->formatPublicBatches($teacher);
 
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'id' => $teacher->id,
-                'name' => $teacher->name,
-                'bio' => $teacher->bio,
-                'about' => $teacher->about,
-                'specializations' => $teacher->specializations ?? [],
-                'languages_spoken' => $teacher->languages_spoken ?? [],
-                'courses_can_teach' => $teacher->courses_can_teach ?? [],
-                'interests' => $teacher->interests ?? [],
-                'expertise' => $teacher->expertise,
-                'qualification' => $teacher->qualification,
-                'years_of_exp' => $teacher->years_of_exp,
-                'image' => $teacher->image,
-                'image_url' => $teacher->image_url,
-                'intro_video' => $teacher->intro_video,
-                'intro_video_url' => $teacher->intro_video_url,
-                'country' => $teacher->country,
-                'timezone' => $teacher->timezone,
-                'is_top' => $teacher->is_top,
-                'batches' => $batches,
-            ],
-        ], 200);
+        return $this->success($data, 'Teacher retrieved successfully');
     }
 
     /** Toggle the teacher top status flag. */
@@ -284,10 +151,9 @@ class TeacherController extends Controller
     {
         $teacher = $this->teachers->toggleTopStatus($id);
 
-        return response()->json([
-            'message' => 'Teacher top status updated successfully',
+        return $this->success([
             'is_top' => $teacher->is_top,
-        ]);
+        ], 'Teacher top status updated successfully');
     }
 
     /** Show country and timezone for the authenticated teacher. */
@@ -297,19 +163,12 @@ class TeacherController extends Controller
         $teacher = $this->teachers->findTimezoneForUser($user);
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Teacher timezone fetched successfully',
-            'data' => [
-                'country' => $teacher->country,
-                'timezone' => $teacher->timezone,
-            ],
-        ]);
+        return $this->success([
+            'country' => $teacher->country,
+            'timezone' => $teacher->timezone,
+        ], 'Teacher timezone fetched successfully');
     }
 }

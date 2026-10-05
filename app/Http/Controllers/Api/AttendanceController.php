@@ -23,10 +23,7 @@ class AttendanceController extends Controller
         $user = auth('api')->user();
 
         if (! $this->canManageBatch($user, (int) $batchId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+            return $this->forbidden('Unauthorized');
         }
 
         $data = $this->attendance->getAttendanceSheet(
@@ -35,11 +32,7 @@ class AttendanceController extends Controller
             $request->query('search')
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Attendance sheet fetched',
-            'data' => $data,
-        ]);
+        return $this->success($data, 'Attendance sheet fetched');
     }
 
     /** Save attendance records for a batch class date. */
@@ -49,18 +42,12 @@ class AttendanceController extends Controller
         $validated = $request->validated();
 
         if (! $this->canManageBatch($user, (int) $validated['batch_id'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+            return $this->forbidden('Unauthorized');
         }
 
         $this->attendance->store($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Attendance saved successfully',
-        ]);
+        return $this->success(message: 'Attendance saved successfully');
     }
 
     /** Update a single student's attendance for a class date. */
@@ -70,26 +57,16 @@ class AttendanceController extends Controller
         $validated = $request->validated();
 
         if (! $this->canManageBatch($user, (int) $validated['batch_id'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+            return $this->forbidden('Unauthorized');
         }
 
         $result = $this->attendance->updateSingle($validated);
 
         if (isset($result['error'])) {
-            return response()->json([
-                'success' => false,
-                'message' => $result['error'],
-            ], 422);
+            return $this->error($result['error'], 422);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Attendance updated successfully',
-            'data' => $result['attendance'],
-        ]);
+        return $this->success($result['attendance'], 'Attendance updated successfully');
     }
 
     /** Get monthly attendance markers for a batch. */
@@ -98,18 +75,11 @@ class AttendanceController extends Controller
         $user = auth('api')->user();
 
         if (! $this->canManageBatch($user, (int) $batchId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+            return $this->forbidden('Unauthorized');
         }
 
         $data = $this->attendance->getMonthlyAttendance($batchId, $request->query('month'));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Monthly attendance fetched',
-            'data' => $data,
-        ]);
+        return $this->success($data, 'Monthly attendance fetched');
     }
 }

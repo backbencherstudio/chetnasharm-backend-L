@@ -27,11 +27,10 @@ class AvailabilityController extends Controller
 
         $result = $this->availability->index($teacherId, $dayOfWeek);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Availability fetched successfully',
-            'data' => $result,
-        ]);
+        return $this->success(
+            $result,
+            'Availability fetched successfully'
+        );
     }
 
     /** Create availability slots for a teacher on a given day. */
@@ -44,19 +43,17 @@ class AvailabilityController extends Controller
         $result = $this->availability->storeSlots($teacherId, $validated);
 
         if (isset($result['error'])) {
-            return response()->json([
-                'success' => false,
-                'message' => $result['error'],
-            ], 422);
+            return $this->error($result['error'], 422);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Slots processed successfully',
-            'created' => $result['created'],
-            'failed' => $result['failed'],
-            'summary' => $result['summary'],
-        ]);
+        return $this->success(
+            message: 'Slots processed successfully',
+            extra: [
+                'created' => $result['created'],
+                'failed' => $result['failed'],
+                'summary' => $result['summary'],
+            ]
+        );
     }
 
     /** Get availability slots for a teacher on a specific day. */
@@ -68,11 +65,10 @@ class AvailabilityController extends Controller
 
         $slots = $this->availability->editSlots($teacherId, $validated['day_of_week']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Availability slots retrieved successfully',
-            'data' => $slots,
-        ]);
+        return $this->success(
+            $slots,
+            'Availability slots retrieved successfully'
+        );
     }
 
     /** Sync availability slots for a teacher on a given day. */
@@ -85,19 +81,17 @@ class AvailabilityController extends Controller
         $result = $this->availability->syncSlots($teacherId, $validated);
 
         if (isset($result['error'])) {
-            return response()->json([
-                'success' => false,
-                'message' => $result['error'],
-            ], 422);
+            return $this->error($result['error'], 422);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Availability synced successfully',
-            'created' => $result['created'],
-            'deleted' => $result['deleted'],
-            'failed' => $result['failed'],
-        ]);
+        return $this->success(
+            message: 'Availability synced successfully',
+            extra: [
+                'created' => $result['created'],
+                'deleted' => $result['deleted'],
+                'failed' => $result['failed'],
+            ]
+        );
     }
 
     /** Delete a single availability slot. */
@@ -108,27 +102,18 @@ class AvailabilityController extends Controller
         $availability = $this->availability->find($id);
 
         if (! $availability) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Availability not found',
-            ], 404);
+            return $this->notFound('Availability not found');
         }
 
         if ($user->hasRole('teacher') &&
             $availability->teacher_id !== $user->teacher->id) {
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized action',
-            ], 403);
+            return $this->forbidden('Unauthorized action');
         }
 
         $this->availability->delete($availability);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Availability deleted successfully',
-        ]);
+        return $this->success(message: 'Availability deleted successfully');
     }
 
     /** Get available teacher slots for a date range. */
@@ -137,17 +122,13 @@ class AvailabilityController extends Controller
         $result = $this->availability->availabilityByDate($request->validated());
 
         if (isset($result['error'])) {
-            return response()->json([
-                'success' => false,
-                'message' => $result['error'],
-            ], 422);
+            return $this->error($result['error'], 422);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Teacher availability fetched successfully',
-            'data' => $result,
-        ]);
+        return $this->success(
+            $result,
+            'Teacher availability fetched successfully'
+        );
     }
 
     /** Get busy teacher slots for a date range. */
@@ -155,11 +136,10 @@ class AvailabilityController extends Controller
     {
         $result = $this->availability->teacherBusySlots($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Teacher busy schedule fetched successfully',
-            'data' => $result,
-        ]);
+        return $this->success(
+            $result,
+            'Teacher busy schedule fetched successfully'
+        );
     }
 
     /** Get busy and available slots for a teacher schedule. */
@@ -172,26 +152,19 @@ class AvailabilityController extends Controller
             $teacherId = $user->teacher->id ?? 0;
 
             if ((int) $teacherId !== (int) $validated['teacher_id']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 403);
+                return $this->forbidden('Unauthorized');
             }
         }
 
         $result = $this->availability->teacherSchedule($validated);
 
         if (isset($result['error'])) {
-            return response()->json([
-                'success' => false,
-                'message' => $result['error'],
-            ], 422);
+            return $this->error($result['error'], 422);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Teacher schedule fetched successfully',
-            'data' => $result,
-        ]);
+        return $this->success(
+            $result,
+            'Teacher schedule fetched successfully'
+        );
     }
 }

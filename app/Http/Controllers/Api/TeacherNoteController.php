@@ -22,29 +22,22 @@ class TeacherNoteController extends Controller
         $teacher = $this->notes->findTeacherForUser($user);
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $batch = $this->notes->teacherBatch($teacher->id, $batch_id);
 
         if (! $batch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: Invalid batch access',
-            ], 403);
+            return $this->forbidden('Unauthorized: Invalid batch access');
         }
 
         $result = $this->notes->index($batch->id, $request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Notes retrieved successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            $result['items'],
+            $result['pagination'],
+            'Notes retrieved successfully'
+        );
     }
 
     /** Create a teacher note for a batch. */
@@ -55,29 +48,22 @@ class TeacherNoteController extends Controller
         $teacher = $this->notes->findTeacherForUser($user);
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $validated = $request->validated();
         $batch = Batch::findOrFail($validated['batch_id']);
 
         if ($batch->teacher_id != $teacher->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not assigned to this batch',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not assigned to this batch');
         }
 
         $note = $this->notes->store($user, $batch, $validated, $request->file('note_file'));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Note created successfully',
-            'data' => $this->notes->formatCreatedNote($note),
-        ]);
+        return $this->created(
+            $this->notes->formatCreatedNote($note),
+            'Note created successfully'
+        );
     }
 
     /** Show a single teacher note. */
@@ -90,29 +76,19 @@ class TeacherNoteController extends Controller
         $teacher = $this->notes->findTeacherForUser($user);
 
         if ($teacher) {
-
             if ($note->batch->teacher_id != $teacher->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 403);
+                return $this->forbidden('Unauthorized');
             }
-
         } else {
-
             if (! $this->notes->isStudentEnrolled($user, $note->batch_id)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 403);
+                return $this->forbidden('Unauthorized');
             }
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Note retrieved successfully',
-            'data' => $this->notes->formatShowNote($note),
-        ]);
+        return $this->success(
+            $this->notes->formatShowNote($note),
+            'Note retrieved successfully'
+        );
     }
 
     /** Update a teacher note. */
@@ -123,28 +99,21 @@ class TeacherNoteController extends Controller
         $teacher = $this->notes->findTeacherForUser($user);
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+            return $this->forbidden('Unauthorized');
         }
 
         $note = $this->notes->findWithFullBatch($id);
 
         if ($note->batch->teacher_id != $teacher->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+            return $this->forbidden('Unauthorized');
         }
 
         $note = $this->notes->update($note, $request->validated(), $request->file('note_file'));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Note updated successfully',
-            'data' => $this->notes->formatUpdatedNote($note),
-        ]);
+        return $this->success(
+            $this->notes->formatUpdatedNote($note),
+            'Note updated successfully'
+        );
     }
 
     /** Delete a teacher note. */
@@ -155,27 +124,18 @@ class TeacherNoteController extends Controller
         $teacher = $this->notes->findTeacherForUser($user);
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+            return $this->forbidden('Unauthorized');
         }
 
         $note = $this->notes->findWithFullBatch($id);
 
         if ($note->batch->teacher_id != $teacher->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+            return $this->forbidden('Unauthorized');
         }
 
         $this->notes->destroy($note);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Note deleted successfully',
-        ]);
+        return $this->success(message: 'Note deleted successfully');
     }
 
     /** List teacher notes for an enrolled student in a batch. */
@@ -184,19 +144,15 @@ class TeacherNoteController extends Controller
         $user = auth('api')->user();
 
         if (! $this->notes->isStudentEnrolled($user, $batch_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+            return $this->forbidden('Unauthorized');
         }
 
         $result = $this->notes->forStudent($batch_id, $request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Notes retrieved successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            $result['items'],
+            $result['pagination'],
+            'Notes retrieved successfully'
+        );
     }
 }
