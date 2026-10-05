@@ -39,6 +39,7 @@ class PublicTeacherResource extends JsonResource
             'intro_video' => $this->intro_video,
             'intro_video_url' => $this->intro_video_url,
             'is_top' => $this->is_top,
+            'batches' => PublicBatchResource::collection($this->whenLoaded('batches')),
         ];
     }
 }

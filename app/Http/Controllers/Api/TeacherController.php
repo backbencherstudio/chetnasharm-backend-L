@@ -140,10 +140,10 @@ class TeacherController extends Controller
             return $this->notFound('Teacher not found');
         }
 
-        $data = (new PublicTeacherResource($teacher))->toArray(request());
-        $data['batches'] = $this->teachers->formatPublicBatches($teacher);
-
-        return $this->success($data, 'Teacher retrieved successfully');
+        return $this->success(
+            new PublicTeacherResource($teacher),
+            'Teacher retrieved successfully'
+        );
     }
 
     /** Toggle the teacher top status flag. */

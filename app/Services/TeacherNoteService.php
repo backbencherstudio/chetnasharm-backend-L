@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Common\Pagination;
@@ -8,9 +10,9 @@ use App\Models\Enrollment;
 use App\Models\Teacher;
 use App\Models\TeacherNote;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class TeacherNoteService
@@ -29,20 +31,12 @@ class TeacherNoteService
             ->first();
     }
 
-    /**
-     * @return array{items: Collection<int, array<string, mixed>>, pagination: array<string, int>}
-     */
-    public function index(int $batchId, Request $request): array
+    public function index(int $batchId, Request $request): LengthAwarePaginator
     {
-        $notes = TeacherNote::where('batch_id', $batchId)
+        return TeacherNote::where('batch_id', $batchId)
             ->with('batch:id,name,teacher_id')
             ->latest()
             ->paginate(Pagination::perPage($request));
-
-        return Pagination::format(
-            $notes,
-            collect($notes->items())->map(fn (TeacherNote $note): array => $this->formatListItem($note))
-        );
     }
 
     public function store(User $user, Batch $batch, array $validated, ?UploadedFile $noteFile): TeacherNote
@@ -114,104 +108,11 @@ class TeacherNoteService
         $note->delete();
     }
 
-    /**
-     * @return array{items: Collection<int, array<string, mixed>>, pagination: array<string, int>}
-     */
-    public function forStudent(int $batchId, Request $request): array
+    public function forStudent(int $batchId, Request $request): LengthAwarePaginator
     {
-        $perPage = Pagination::perPage($request);
-
-        $notes = TeacherNote::with('batch:id,name')
+        return TeacherNote::with('batch:id,name')
             ->where('batch_id', $batchId)
             ->latest()
-            ->paginate($perPage);
-
-        return Pagination::format(
-            $notes,
-            collect($notes->items())->map(fn (TeacherNote $note): array => $this->formatStudentListItem($note))
-        );
-    }
-
-    /** @return array<string, mixed> */
-    public function formatListItem(TeacherNote $note): array
-    {
-        return [
-            'id' => $note->id,
-            'title' => $note->title,
-            'batch_id' => $note->batch_id,
-            'note' => $note->note,
-            'note_link' => $note->note_link,
-            'note_file' => $note->note_file
-                ? asset('storage/'.$note->note_file)
-                : null,
-            'created_at' => $note->created_at,
-            'batch' => $note->batch,
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    public function formatStudentListItem(TeacherNote $note): array
-    {
-        return [
-            'id' => $note->id,
-            'title' => $note->title,
-            'batch_id' => $note->batch_id,
-            'note' => $note->note,
-            'note_link' => $note->note_link,
-            'note_file' => $note->note_file
-                ? asset('storage/'.$note->note_file)
-                : null,
-            'created_at' => $note->created_at,
-            'batch' => $note->batch,
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    public function formatCreatedNote(TeacherNote $note): array
-    {
-        return [
-            'id' => $note->id,
-            'title' => $note->title,
-            'batch_id' => $note->batch_id,
-            'note' => $note->note,
-            'note_link' => $note->note_link,
-            'note_file' => $note->note_file
-                ? asset('storage/'.$note->note_file)
-                : null,
-            'created_at' => $note->created_at,
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    public function formatShowNote(TeacherNote $note): array
-    {
-        return [
-            'id' => $note->id,
-            'title' => $note->title,
-            'user_id' => $note->user_id,
-            'batch_id' => $note->batch_id,
-            'note' => $note->note,
-            'note_link' => $note->note_link,
-            'note_file' => $note->note_file
-                ? asset('storage/'.$note->note_file)
-                : null,
-            'created_at' => $note->created_at,
-            'batch' => $note->batch,
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    public function formatUpdatedNote(TeacherNote $note): array
-    {
-        return [
-            'id' => $note->id,
-            'title' => $note->title,
-            'note' => $note->note,
-            'note_link' => $note->note_link,
-            'note_file' => $note->note_file
-                ? asset('storage/'.$note->note_file)
-                : null,
-            'updated_at' => $note->updated_at,
-        ];
+            ->paginate(Pagination::perPage($request));
     }
 }

@@ -11,7 +11,7 @@ use Illuminate\Support\Collection;
 class AttendanceService
 {
     /**
-     * @return Collection<int, array{user_id: int, name: string, email: string, status: string}>
+     * @return Collection<int, Enrollment>
      */
     public function getAttendanceSheet(int $batchId, string $date, ?string $search = null): Collection
     {
@@ -37,16 +37,14 @@ class AttendanceService
             ->whereDate('class_date', $date)
             ->pluck('status', 'user_id');
 
-        return $enrollments->map(function ($enrollment) use ($attendanceMap): array {
-            $user = $enrollment->user;
+        foreach ($enrollments as $enrollment) {
+            $enrollment->setAttribute(
+                'attendance_status',
+                $attendanceMap[$enrollment->user_id] ?? 'absent'
+            );
+        }
 
-            return [
-                'user_id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'status' => $attendanceMap[$user->id] ?? 'absent',
-            ];
-        });
+        return $enrollments;
     }
 
     /**

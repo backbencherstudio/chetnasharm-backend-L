@@ -8,6 +8,7 @@ use App\Http\Requests\Batch\StoreBatchRequest;
 use App\Http\Requests\Batch\UpdateBatchRequest;
 use App\Http\Requests\Batch\UpdateZoomLinkRequest;
 use App\Http\Resources\BatchResource;
+use App\Http\Resources\TeacherOptionResource;
 use App\Models\Batch;
 use App\Models\Teacher;
 use App\Services\BatchService;
@@ -106,7 +107,10 @@ class BatchController extends Controller
     {
         $teachers = $this->batches->teacherList();
 
-        return $this->success($teachers, 'Teacher list retrieved successfully');
+        return $this->success(
+            TeacherOptionResource::collection($teachers),
+            'Teacher list retrieved successfully'
+        );
     }
 
     /** Toggle the active status of a batch. */

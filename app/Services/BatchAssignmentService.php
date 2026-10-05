@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Common\Pagination;
@@ -9,6 +11,7 @@ use App\Models\BatchAssignment;
 use App\Models\Enrollment;
 use App\Models\Teacher;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -52,23 +55,13 @@ class BatchAssignmentService
             ->exists();
     }
 
-    /**
-     * @return array{items: array<int, array<string, mixed>>, pagination: array<string, int>}
-     */
-    public function indexForTeacher(int $batchId, Request $request): array
+    public function indexForTeacher(int $batchId, Request $request): LengthAwarePaginator
     {
-        $assignments = BatchAssignment::query()
+        return BatchAssignment::query()
             ->where('batch_id', $batchId)
             ->withCount('submissions')
             ->latest()
             ->paginate(Pagination::perPage($request));
-
-        $items = collect($assignments->items())
-            ->map(fn (BatchAssignment $assignment): array => $this->formatAssignment($assignment))
-            ->values()
-            ->all();
-
-        return Pagination::format($assignments, $items);
     }
 
     /**
@@ -155,41 +148,16 @@ class BatchAssignmentService
         $assignment->delete();
     }
 
-    /**
-     * @return array{items: array<int, array<string, mixed>>, pagination: array<string, int>}
-     */
-    public function submissions(BatchAssignment $assignment, Request $request): array
+    public function submissions(BatchAssignment $assignment, Request $request): LengthAwarePaginator
     {
-        $submissions = AssignmentSubmission::query()
+        return AssignmentSubmission::query()
             ->where('assignment_id', $assignment->id)
             ->with('student:id,name,email')
             ->latest()
             ->paginate(Pagination::perPage($request));
-
-        $items = collect($submissions->items())->map(fn (AssignmentSubmission $submission): array => [
-            'id' => $submission->id,
-            'assignment_id' => $submission->assignment_id,
-            'student_user_id' => $submission->student_user_id,
-            'student_name' => $submission->student?->name,
-            'student_email' => $submission->student?->email,
-            'file_url' => $submission->file_path
-                ? asset('storage/'.$submission->file_path)
-                : null,
-            'total_marks' => $assignment->total_marks,
-            'obtained_marks' => $submission->obtained_marks,
-            'feedback' => $submission->feedback,
-            'graded_at' => $submission->graded_at,
-            'submitted_at' => $submission->updated_at,
-            'created_at' => $submission->created_at,
-        ])->values()->all();
-
-        return Pagination::format($submissions, $items);
     }
 
-    /**
-     * @return array{items: array<int, array<string, mixed>>, pagination: array<string, int>}
-     */
-    public function activeForStudent(User $user, Request $request): array
+    public function activeForStudent(User $user, Request $request): ?LengthAwarePaginator
     {
         $batchIds = Enrollment::query()
             ->where('user_id', $user->id)
@@ -201,7 +169,7 @@ class BatchAssignmentService
             ->pluck('batch_id');
 
         if ($batchIds->isEmpty()) {
-            return Pagination::empty(Pagination::perPage($request));
+            return null;
         }
 
         $search = $request->query('search');
@@ -235,30 +203,12 @@ class BatchAssignmentService
             });
         }
 
-        $assignments = $query->paginate(Pagination::perPage($request));
-
-        $items = collect($assignments->items())->map(function (BatchAssignment $assignment): array {
-            $submission = $assignment->submissions->first();
-
-            return [
-                ...$this->formatAssignment($assignment),
-                'batch_name' => $assignment->batch?->name,
-                'class_title' => $assignment->batch?->class?->title,
-                'is_open' => $assignment->isOpenForSubmission(),
-                'has_submitted' => $submission !== null,
-                'my_submission' => $this->formatMySubmission($submission),
-            ];
-        })->values()->all();
-
-        return Pagination::format($assignments, $items);
+        return $query->paginate(Pagination::perPage($request));
     }
 
-    /**
-     * @return array{items: array<int, array<string, mixed>>, pagination: array<string, int>}
-     */
-    public function forStudent(User $user, int $batchId, Request $request): array
+    public function forStudent(User $user, int $batchId, Request $request): LengthAwarePaginator
     {
-        $assignments = BatchAssignment::query()
+        return BatchAssignment::query()
             ->started()
             ->where('batch_id', $batchId)
             ->with(['submissions' => function ($query) use ($user): void {
@@ -266,18 +216,6 @@ class BatchAssignmentService
             }])
             ->latest()
             ->paginate(Pagination::perPage($request));
-
-        $items = collect($assignments->items())->map(function (BatchAssignment $assignment): array {
-            $submission = $assignment->submissions->first();
-
-            return [
-                ...$this->formatAssignment($assignment),
-                'is_open' => $assignment->isOpenForSubmission(),
-                'my_submission' => $this->formatMySubmission($submission),
-            ];
-        })->values()->all();
-
-        return Pagination::format($assignments, $items);
     }
 
     public function findAssignment(int $assignmentId): ?BatchAssignment
@@ -342,73 +280,5 @@ class BatchAssignmentService
         ]);
 
         return $submission;
-    }
-
-    /** Format an assignment for API responses. */
-    public function formatAssignment(BatchAssignment $assignment): array
-    {
-        return [
-            'id' => $assignment->id,
-            'batch_id' => $assignment->batch_id,
-            'teacher_id' => $assignment->teacher_id,
-            'title' => $assignment->title,
-            'description' => $assignment->description,
-            'attachment_url' => $assignment->attachment
-                ? asset('storage/'.$assignment->attachment)
-                : null,
-            'starts_at' => $assignment->starts_at,
-            'due_at' => $assignment->due_at,
-            'total_marks' => $assignment->total_marks,
-            'submissions_count' => $assignment->submissions_count ?? null,
-            'created_at' => $assignment->created_at,
-            'updated_at' => $assignment->updated_at,
-        ];
-    }
-
-    /** Format the authenticated student's submission for API responses. */
-    public function formatMySubmission(?AssignmentSubmission $submission): ?array
-    {
-        if (! $submission instanceof AssignmentSubmission) {
-            return null;
-        }
-
-        return [
-            'id' => $submission->id,
-            'file_url' => asset('storage/'.$submission->file_path),
-            'obtained_marks' => $submission->obtained_marks,
-            'feedback' => $submission->feedback,
-            'graded_at' => $submission->graded_at,
-            'submitted_at' => $submission->updated_at,
-        ];
-    }
-
-    /** Format a student submission response after submit. */
-    public function formatSubmitResponse(AssignmentSubmission $submission, BatchAssignment $assignment): array
-    {
-        return [
-            'id' => $submission->id,
-            'assignment_id' => $submission->assignment_id,
-            'student_user_id' => $submission->student_user_id,
-            'file_url' => asset('storage/'.$submission->file_path),
-            'total_marks' => $assignment->total_marks,
-            'obtained_marks' => $submission->obtained_marks,
-            'feedback' => $submission->feedback,
-            'graded_at' => $submission->graded_at,
-            'submitted_at' => $submission->updated_at,
-        ];
-    }
-
-    /** Format a graded submission response. */
-    public function formatGradeResponse(AssignmentSubmission $submission): array
-    {
-        return [
-            'id' => $submission->id,
-            'assignment_id' => $submission->assignment_id,
-            'student_user_id' => $submission->student_user_id,
-            'total_marks' => $submission->assignment->total_marks,
-            'obtained_marks' => $submission->obtained_marks,
-            'feedback' => $submission->feedback,
-            'graded_at' => $submission->graded_at,
-        ];
     }
 }

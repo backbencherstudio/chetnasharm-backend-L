@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Common\Pagination;
@@ -8,6 +10,7 @@ use App\Models\Enrollment;
 use App\Models\StudentActivityNote;
 use App\Models\Teacher;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -60,16 +63,13 @@ class TeacherStudentService
             ->exists();
     }
 
-    /**
-     * @return array{items: array<int, array<string, mixed>>, pagination: array<string, int>}
-     */
-    public function index(Teacher $teacher, Request $request): array
+    public function index(Teacher $teacher, Request $request): ?LengthAwarePaginator
     {
         $perPage = Pagination::perPage($request);
         $runningBatchIds = $this->runningBatchIds($teacher->id);
 
         if ($runningBatchIds->isEmpty()) {
-            return Pagination::empty($perPage);
+            return null;
         }
 
         $search = $request->query('search');
@@ -91,51 +91,17 @@ class TeacherStudentService
             });
         }
 
-        $enrollments = $query->paginate($perPage);
-
-        $items = collect($enrollments->items())->map(function (Enrollment $enrollment): array {
-            $user = $enrollment->user;
-
-            return [
-                'user_id' => $user?->id,
-                'name' => $user?->name,
-                'email' => $user?->email,
-                'image' => $user?->image,
-                'image_url' => $user?->image_url,
-                'batch_id' => $enrollment->batch_id,
-                'batch_name' => $enrollment->batch?->name,
-                'class_title' => $enrollment->class?->title,
-                'enrollment_status' => $enrollment->status,
-                'enrolled_at' => $enrollment->enrolled_at,
-            ];
-        })->values()->all();
-
-        return Pagination::format($enrollments, $items);
+        return $query->paginate($perPage);
     }
 
-    /**
-     * @return array{items: array<int, array<string, mixed>>, pagination: array<string, int>}
-     */
-    public function notes(Teacher $teacher, int $userId, int $batchId, Request $request): array
+    public function notes(Teacher $teacher, int $userId, int $batchId, Request $request): LengthAwarePaginator
     {
-        $notes = StudentActivityNote::query()
+        return StudentActivityNote::query()
             ->where('teacher_id', $teacher->id)
             ->where('batch_id', $batchId)
             ->where('student_user_id', $userId)
             ->latest()
             ->paginate(Pagination::perPage($request));
-
-        $items = collect($notes->items())->map(fn (StudentActivityNote $note): array => [
-            'id' => $note->id,
-            'batch_id' => $note->batch_id,
-            'student_user_id' => $note->student_user_id,
-            'comment' => $note->comment,
-            'status' => $note->status,
-            'created_at' => $note->created_at,
-            'updated_at' => $note->updated_at,
-        ])->values()->all();
-
-        return Pagination::format($notes, $items);
     }
 
     /**
@@ -175,12 +141,9 @@ class TeacherStudentService
         $note->delete();
     }
 
-    /**
-     * @return array{items: array<int, array<string, mixed>>, pagination: array<string, int>}
-     */
-    public function forStudent(User $user, Request $request): array
+    public function forStudent(User $user, Request $request): LengthAwarePaginator
     {
-        $notes = StudentActivityNote::query()
+        return StudentActivityNote::query()
             ->where('student_user_id', $user->id)
             ->with([
                 'batch:id,name',
@@ -189,45 +152,5 @@ class TeacherStudentService
             ])
             ->latest()
             ->paginate(Pagination::perPage($request));
-
-        $items = collect($notes->items())->map(fn (StudentActivityNote $note): array => [
-            'id' => $note->id,
-            'batch_id' => $note->batch_id,
-            'batch_name' => $note->batch?->name,
-            'teacher_id' => $note->teacher_id,
-            'teacher_name' => $note->teacher?->name,
-            'comment' => $note->comment,
-            'status' => $note->status,
-            'created_at' => $note->created_at,
-            'updated_at' => $note->updated_at,
-        ])->values()->all();
-
-        return Pagination::format($notes, $items);
-    }
-
-    /** Format a created note for API response. */
-    public function formatCreatedNote(StudentActivityNote $note): array
-    {
-        return [
-            'id' => $note->id,
-            'batch_id' => $note->batch_id,
-            'student_user_id' => $note->student_user_id,
-            'comment' => $note->comment,
-            'status' => $note->status,
-            'created_at' => $note->created_at,
-        ];
-    }
-
-    /** Format an updated note for API response. */
-    public function formatUpdatedNote(StudentActivityNote $note): array
-    {
-        return [
-            'id' => $note->id,
-            'batch_id' => $note->batch_id,
-            'student_user_id' => $note->student_user_id,
-            'comment' => $note->comment,
-            'status' => $note->status,
-            'updated_at' => $note->updated_at,
-        ];
     }
 }

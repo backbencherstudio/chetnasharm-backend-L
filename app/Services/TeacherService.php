@@ -4,16 +4,13 @@ namespace App\Services;
 
 use App\Common\Pagination;
 use App\Common\PhoneNormalizer;
-use App\Models\Batch;
 use App\Models\Teacher;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Image\Image;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -262,50 +259,6 @@ class TeacherService
                     ->latest(),
             ])
             ->first();
-    }
-
-    /**
-     * @return Collection<int, array<string, mixed>>
-     */
-    public function formatPublicBatches(Teacher $teacher): Collection
-    {
-        $dayNames = [
-            0 => 'Sunday',
-            1 => 'Monday',
-            2 => 'Tuesday',
-            3 => 'Wednesday',
-            4 => 'Thursday',
-            5 => 'Friday',
-            6 => 'Saturday',
-        ];
-
-        return $teacher->batches->map(fn (Batch $batch): array => [
-            'id' => $batch->id,
-            'name' => $batch->name,
-            'total_seat' => $batch->total_seat,
-            'filled_seat' => $batch->filled_seat,
-            'start_date' => optional($batch->start_date)->format('Y-m-d'),
-            'end_date' => optional($batch->end_date)->format('Y-m-d'),
-            'status' => $batch->status,
-            'class' => $batch->class ? [
-                'id' => $batch->class->id,
-                'title' => $batch->class->title,
-                'description' => $batch->class->description,
-                'short_description' => $batch->class->short_description,
-                'price' => $batch->class->price,
-                'duration_in_days' => $batch->class->duration_in_days,
-                'total_classes' => $batch->class->total_classes,
-                'image' => $batch->class->image,
-                'image_url' => $batch->class->image_url,
-            ] : null,
-            'schedules' => $batch->schedules->map(fn ($schedule): array => [
-                'id' => $schedule->id,
-                'day_of_week' => $schedule->day_of_week,
-                'day' => $dayNames[$schedule->day_of_week] ?? 'Unknown',
-                'start_time' => Carbon::parse($schedule->start_time)->format('H:i'),
-                'end_time' => Carbon::parse($schedule->end_time)->format('H:i'),
-            ])->values(),
-        ])->values();
     }
 
     public function toggleTopStatus(int $id): Teacher

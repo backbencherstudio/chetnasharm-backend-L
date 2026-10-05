@@ -1,12 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
+use App\Common\Pagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BatchAssignment\GradeBatchAssignmentRequest;
 use App\Http\Requests\BatchAssignment\StoreBatchAssignmentRequest;
 use App\Http\Requests\BatchAssignment\SubmitBatchAssignmentRequest;
 use App\Http\Requests\BatchAssignment\UpdateBatchAssignmentRequest;
+use App\Http\Resources\AssignmentSubmissionResource;
+use App\Http\Resources\BatchAssignmentResource;
 use App\Models\AssignmentSubmission;
 use App\Models\Batch;
 use App\Models\BatchAssignment;
@@ -34,11 +39,11 @@ class BatchAssignmentController extends Controller
             return $this->forbidden('Unauthorized: Invalid batch access');
         }
 
-        $result = $this->assignments->indexForTeacher($batch->id, $request);
+        $assignments = $this->assignments->indexForTeacher($batch->id, $request);
 
-        return $this->paginated(
-            $result['items'],
-            $result['pagination'],
+        return $this->paginate(
+            $assignments,
+            BatchAssignmentResource::collection($assignments->items()),
             'Assignments fetched successfully'
         );
     }
@@ -68,7 +73,7 @@ class BatchAssignmentController extends Controller
         );
 
         return $this->created(
-            $this->assignments->formatAssignment($assignment),
+            new BatchAssignmentResource($assignment),
             'Assignment created successfully'
         );
     }
@@ -89,7 +94,7 @@ class BatchAssignmentController extends Controller
         }
 
         return $this->success(
-            $this->assignments->formatAssignment($assignment),
+            new BatchAssignmentResource($assignment),
             'Assignment fetched successfully'
         );
     }
@@ -116,7 +121,7 @@ class BatchAssignmentController extends Controller
         );
 
         return $this->success(
-            $this->assignments->formatAssignment($assignment),
+            new BatchAssignmentResource($assignment),
             'Assignment updated successfully'
         );
     }
@@ -156,11 +161,11 @@ class BatchAssignmentController extends Controller
             return $this->notFound('Assignment not found');
         }
 
-        $result = $this->assignments->submissions($assignment, $request);
+        $submissions = $this->assignments->submissions($assignment, $request);
 
-        return $this->paginated(
-            $result['items'],
-            $result['pagination'],
+        return $this->paginate(
+            $submissions,
+            AssignmentSubmissionResource::collection($submissions->items()),
             'Submissions fetched successfully'
         );
     }
@@ -169,11 +174,19 @@ class BatchAssignmentController extends Controller
     public function activeForStudent(Request $request): JsonResponse
     {
         $user = auth('api')->user();
-        $result = $this->assignments->activeForStudent($user, $request);
+        $assignments = $this->assignments->activeForStudent($user, $request);
 
-        return $this->paginated(
-            $result['items'],
-            $result['pagination'],
+        if (! $assignments) {
+            return $this->paginated(
+                [],
+                Pagination::empty(Pagination::perPage($request))['pagination'],
+                'Active assignments fetched successfully'
+            );
+        }
+
+        return $this->paginate(
+            $assignments,
+            BatchAssignmentResource::collection($assignments->items()),
             'Active assignments fetched successfully'
         );
     }
@@ -187,11 +200,11 @@ class BatchAssignmentController extends Controller
             return $this->forbidden('Unauthorized: You are not enrolled in this batch');
         }
 
-        $result = $this->assignments->forStudent($user, $batchId, $request);
+        $assignments = $this->assignments->forStudent($user, $batchId, $request);
 
-        return $this->paginated(
-            $result['items'],
-            $result['pagination'],
+        return $this->paginate(
+            $assignments,
+            BatchAssignmentResource::collection($assignments->items()),
             'Assignments fetched successfully'
         );
     }
@@ -216,9 +229,10 @@ class BatchAssignmentController extends Controller
         }
 
         $result = $this->assignments->submit($user, $assignment, $request->file('file'));
+        $result['submission']->loadMissing('assignment');
 
         return $this->success(
-            $this->assignments->formatSubmitResponse($result['submission'], $result['assignment']),
+            new AssignmentSubmissionResource($result['submission']),
             'Assignment submitted successfully'
         );
     }
@@ -239,9 +253,10 @@ class BatchAssignmentController extends Controller
         }
 
         $submission = $this->assignments->grade($submission, $request->validated());
+        $submission->loadMissing('assignment');
 
         return $this->success(
-            $this->assignments->formatGradeResponse($submission),
+            new AssignmentSubmissionResource($submission),
             'Submission graded successfully'
         );
     }

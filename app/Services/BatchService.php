@@ -199,21 +199,13 @@ class BatchService
         return ClassModel::where('is_active', 1)->select('id', 'title')->get();
     }
 
-    /** @return Collection<int, array{id: int, name: string, country: ?string, timezone: ?string, expertise: ?string}> */
+    /** @return Collection<int, Teacher> */
     public function teacherList(): Collection
     {
         return Teacher::query()
             ->active()
             ->with('user:id,name')
-            ->get(['id', 'user_id', 'country', 'timezone', 'expertise'])
-            ->map(fn (Teacher $teacher): array => [
-                'id' => $teacher->id,
-                'name' => $teacher->name,
-                'country' => $teacher->country,
-                'timezone' => $teacher->timezone,
-                'expertise' => $teacher->expertise,
-            ])
-            ->values();
+            ->get(['id', 'user_id', 'country', 'timezone', 'expertise']);
     }
 
     /** @return array{id: int, active_status: int} */

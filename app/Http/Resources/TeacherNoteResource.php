@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
 use App\Models\TeacherNote;
@@ -24,20 +26,11 @@ class TeacherNoteResource extends JsonResource
             'user_id' => $this->user_id,
             'batch_id' => $this->batch_id,
             'note' => $this->note,
-            'note_file' => $this->note_file,
-            'note_file_url' => $this->note_file ? asset('storage/'.$this->note_file) : null,
             'note_link' => $this->note_link,
-            'teacher' => $this->whenLoaded('teacher', fn (): array => [
-                'id' => $this->teacher->id,
-                'name' => $this->teacher->name,
-                'email' => $this->teacher->email,
-            ]),
-            'batch' => $this->whenLoaded('batch', fn (): array => [
-                'id' => $this->batch->id,
-                'name' => $this->batch->name,
-            ]),
-            'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
+            'note_file' => $this->note_file ? asset('storage/'.$this->note_file) : null,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+            'batch' => $this->whenLoaded('batch'),
         ];
     }
 }

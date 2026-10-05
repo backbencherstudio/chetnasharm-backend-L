@@ -1,11 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
+use App\Common\Pagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TeacherStudent\ListStudentNotesRequest;
 use App\Http\Requests\TeacherStudent\StoreStudentActivityNoteRequest;
 use App\Http\Requests\TeacherStudent\UpdateStudentActivityNoteRequest;
+use App\Http\Resources\BatchStudentResource;
+use App\Http\Resources\StudentActivityNoteResource;
 use App\Models\Batch;
 use App\Models\StudentActivityNote;
 use App\Models\Teacher;
@@ -26,11 +31,19 @@ class TeacherStudentController extends Controller
             return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
-        $result = $this->teacherStudents->index($teacher, $request);
+        $enrollments = $this->teacherStudents->index($teacher, $request);
 
-        return $this->paginated(
-            $result['items'],
-            $result['pagination'],
+        if (! $enrollments) {
+            return $this->paginated(
+                [],
+                Pagination::empty(Pagination::perPage($request))['pagination'],
+                'Students fetched successfully'
+            );
+        }
+
+        return $this->paginate(
+            $enrollments,
+            BatchStudentResource::collection($enrollments->items()),
             'Students fetched successfully'
         );
     }
@@ -56,11 +69,11 @@ class TeacherStudentController extends Controller
             return $this->error('Student is not enrolled in this batch', 422);
         }
 
-        $result = $this->teacherStudents->notes($teacher, $userId, $batch->id, $request);
+        $notes = $this->teacherStudents->notes($teacher, $userId, $batch->id, $request);
 
-        return $this->paginated(
-            $result['items'],
-            $result['pagination'],
+        return $this->paginate(
+            $notes,
+            StudentActivityNoteResource::collection($notes->items()),
             'Student notes fetched successfully'
         );
     }
@@ -89,7 +102,7 @@ class TeacherStudentController extends Controller
         $note = $this->teacherStudents->storeNote($teacher, $batch, $validated);
 
         return $this->created(
-            $this->teacherStudents->formatCreatedNote($note),
+            new StudentActivityNoteResource($note),
             'Student note created successfully'
         );
     }
@@ -112,7 +125,7 @@ class TeacherStudentController extends Controller
         $note = $this->teacherStudents->updateNote($note, $request->validated());
 
         return $this->success(
-            $this->teacherStudents->formatUpdatedNote($note),
+            new StudentActivityNoteResource($note),
             'Student note updated successfully'
         );
     }
@@ -141,11 +154,11 @@ class TeacherStudentController extends Controller
     public function forStudent(Request $request): JsonResponse
     {
         $user = auth('api')->user();
-        $result = $this->teacherStudents->forStudent($user, $request);
+        $notes = $this->teacherStudents->forStudent($user, $request);
 
-        return $this->paginated(
-            $result['items'],
-            $result['pagination'],
+        return $this->paginate(
+            $notes,
+            StudentActivityNoteResource::collection($notes->items()),
             'Activity notes fetched successfully'
         );
     }

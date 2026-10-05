@@ -8,6 +8,7 @@ use App\Http\Requests\Attendance\GetAttendanceSheetRequest;
 use App\Http\Requests\Attendance\GetMonthlyAttendanceRequest;
 use App\Http\Requests\Attendance\StoreAttendanceRequest;
 use App\Http\Requests\Attendance\UpdateSingleAttendanceRequest;
+use App\Http\Resources\AttendanceSheetResource;
 use App\Services\AttendanceService;
 use Illuminate\Http\JsonResponse;
 
@@ -26,13 +27,16 @@ class AttendanceController extends Controller
             return $this->forbidden('Unauthorized');
         }
 
-        $data = $this->attendance->getAttendanceSheet(
+        $enrollments = $this->attendance->getAttendanceSheet(
             $batchId,
             $request->query('date'),
             $request->query('search')
         );
 
-        return $this->success($data, 'Attendance sheet fetched');
+        return $this->success(
+            AttendanceSheetResource::collection($enrollments),
+            'Attendance sheet fetched'
+        );
     }
 
     /** Save attendance records for a batch class date. */

@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TeacherNote\StoreTeacherNoteRequest;
 use App\Http\Requests\TeacherNote\UpdateTeacherNoteRequest;
+use App\Http\Resources\TeacherNoteResource;
 use App\Models\Batch;
 use App\Models\Teacher;
 use App\Services\TeacherNoteService;
@@ -32,11 +35,11 @@ class TeacherNoteController extends Controller
             return $this->forbidden('Unauthorized: Invalid batch access');
         }
 
-        $result = $this->notes->index($batch->id, $request);
+        $notes = $this->notes->index($batch->id, $request);
 
-        return $this->paginated(
-            $result['items'],
-            $result['pagination'],
+        return $this->paginate(
+            $notes,
+            TeacherNoteResource::collection($notes->items()),
             'Notes retrieved successfully'
         );
     }
@@ -62,7 +65,7 @@ class TeacherNoteController extends Controller
         $note = $this->notes->store($user, $batch, $validated, $request->file('note_file'));
 
         return $this->created(
-            $this->notes->formatCreatedNote($note),
+            new TeacherNoteResource($note),
             'Note created successfully'
         );
     }
@@ -87,7 +90,7 @@ class TeacherNoteController extends Controller
         }
 
         return $this->success(
-            $this->notes->formatShowNote($note),
+            new TeacherNoteResource($note),
             'Note retrieved successfully'
         );
     }
@@ -112,7 +115,7 @@ class TeacherNoteController extends Controller
         $note = $this->notes->update($note, $request->validated(), $request->file('note_file'));
 
         return $this->success(
-            $this->notes->formatUpdatedNote($note),
+            new TeacherNoteResource($note),
             'Note updated successfully'
         );
     }
@@ -148,11 +151,11 @@ class TeacherNoteController extends Controller
             return $this->forbidden('Unauthorized');
         }
 
-        $result = $this->notes->forStudent($batch_id, $request);
+        $notes = $this->notes->forStudent($batch_id, $request);
 
-        return $this->paginated(
-            $result['items'],
-            $result['pagination'],
+        return $this->paginate(
+            $notes,
+            TeacherNoteResource::collection($notes->items()),
             'Notes retrieved successfully'
         );
     }

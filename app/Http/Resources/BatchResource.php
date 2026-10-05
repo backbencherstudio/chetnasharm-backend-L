@@ -53,13 +53,7 @@ class BatchResource extends JsonResource
                     'suspend_status' => $this->teacher->user->suspend_status,
                 ] : null,
             ]),
-            'schedules' => $this->whenLoaded('schedules', fn () => $this->schedules->map(fn ($s): array => [
-                'id' => $s->id,
-                'batch_id' => $s->batch_id,
-                'day_of_week' => $s->day_of_week,
-                'start_time' => $s->start_time,
-                'end_time' => $s->end_time,
-            ])),
+            'schedules' => BatchScheduleResource::collection($this->whenLoaded('schedules')),
             'active_assignments_count' => $this->when(
                 isset($this->active_assignments_count),
                 fn (): int => (int) $this->active_assignments_count
