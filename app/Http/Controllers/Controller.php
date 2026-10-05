@@ -2,4 +2,9 @@
 
 namespace App\Http\Controllers;
 
-abstract class Controller {}
+use App\Common\ApiResponse;
+
+abstract class Controller
+{
+    use ApiResponse;
+}
