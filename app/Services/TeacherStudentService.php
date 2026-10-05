@@ -69,15 +69,7 @@ class TeacherStudentService
         $runningBatchIds = $this->runningBatchIds($teacher->id);
 
         if ($runningBatchIds->isEmpty()) {
-            return [
-                'items' => [],
-                'pagination' => [
-                    'current_page' => 1,
-                    'per_page' => $perPage,
-                    'total' => 0,
-                    'last_page' => 1,
-                ],
-            ];
+            return Pagination::empty($perPage);
         }
 
         $search = $request->query('search');
@@ -118,15 +110,7 @@ class TeacherStudentService
             ];
         })->values()->all();
 
-        return [
-            'items' => $items,
-            'pagination' => [
-                'current_page' => $enrollments->currentPage(),
-                'per_page' => $enrollments->perPage(),
-                'total' => $enrollments->total(),
-                'last_page' => $enrollments->lastPage(),
-            ],
-        ];
+        return Pagination::format($enrollments, $items);
     }
 
     /**
@@ -141,23 +125,17 @@ class TeacherStudentService
             ->latest()
             ->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => collect($notes->items())->map(fn (StudentActivityNote $note) => [
-                'id' => $note->id,
-                'batch_id' => $note->batch_id,
-                'student_user_id' => $note->student_user_id,
-                'comment' => $note->comment,
-                'status' => $note->status,
-                'created_at' => $note->created_at,
-                'updated_at' => $note->updated_at,
-            ])->values()->all(),
-            'pagination' => [
-                'current_page' => $notes->currentPage(),
-                'per_page' => $notes->perPage(),
-                'total' => $notes->total(),
-                'last_page' => $notes->lastPage(),
-            ],
-        ];
+        $items = collect($notes->items())->map(fn (StudentActivityNote $note) => [
+            'id' => $note->id,
+            'batch_id' => $note->batch_id,
+            'student_user_id' => $note->student_user_id,
+            'comment' => $note->comment,
+            'status' => $note->status,
+            'created_at' => $note->created_at,
+            'updated_at' => $note->updated_at,
+        ])->values()->all();
+
+        return Pagination::format($notes, $items);
     }
 
     /**
@@ -212,25 +190,19 @@ class TeacherStudentService
             ->latest()
             ->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => collect($notes->items())->map(fn (StudentActivityNote $note) => [
-                'id' => $note->id,
-                'batch_id' => $note->batch_id,
-                'batch_name' => $note->batch?->name,
-                'teacher_id' => $note->teacher_id,
-                'teacher_name' => $note->teacher?->name,
-                'comment' => $note->comment,
-                'status' => $note->status,
-                'created_at' => $note->created_at,
-                'updated_at' => $note->updated_at,
-            ])->values()->all(),
-            'pagination' => [
-                'current_page' => $notes->currentPage(),
-                'per_page' => $notes->perPage(),
-                'total' => $notes->total(),
-                'last_page' => $notes->lastPage(),
-            ],
-        ];
+        $items = collect($notes->items())->map(fn (StudentActivityNote $note) => [
+            'id' => $note->id,
+            'batch_id' => $note->batch_id,
+            'batch_name' => $note->batch?->name,
+            'teacher_id' => $note->teacher_id,
+            'teacher_name' => $note->teacher?->name,
+            'comment' => $note->comment,
+            'status' => $note->status,
+            'created_at' => $note->created_at,
+            'updated_at' => $note->updated_at,
+        ])->values()->all();
+
+        return Pagination::format($notes, $items);
     }
 
     /** Format a created note for API response. */

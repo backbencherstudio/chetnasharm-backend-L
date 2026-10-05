@@ -9,7 +9,6 @@ use App\Models\BatchAssignment;
 use App\Models\Enrollment;
 use App\Models\Teacher;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -64,13 +63,12 @@ class BatchAssignmentService
             ->latest()
             ->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => collect($assignments->items())
-                ->map(fn (BatchAssignment $assignment) => $this->formatAssignment($assignment))
-                ->values()
-                ->all(),
-            'pagination' => $this->paginationMeta($assignments),
-        ];
+        $items = collect($assignments->items())
+            ->map(fn (BatchAssignment $assignment) => $this->formatAssignment($assignment))
+            ->values()
+            ->all();
+
+        return Pagination::format($assignments, $items);
     }
 
     /**
@@ -168,25 +166,24 @@ class BatchAssignmentService
             ->latest()
             ->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => collect($submissions->items())->map(fn (AssignmentSubmission $submission) => [
-                'id' => $submission->id,
-                'assignment_id' => $submission->assignment_id,
-                'student_user_id' => $submission->student_user_id,
-                'student_name' => $submission->student?->name,
-                'student_email' => $submission->student?->email,
-                'file_url' => $submission->file_path
-                    ? asset('storage/'.$submission->file_path)
-                    : null,
-                'total_marks' => $assignment->total_marks,
-                'obtained_marks' => $submission->obtained_marks,
-                'feedback' => $submission->feedback,
-                'graded_at' => $submission->graded_at,
-                'submitted_at' => $submission->updated_at,
-                'created_at' => $submission->created_at,
-            ])->values()->all(),
-            'pagination' => $this->paginationMeta($submissions),
-        ];
+        $items = collect($submissions->items())->map(fn (AssignmentSubmission $submission) => [
+            'id' => $submission->id,
+            'assignment_id' => $submission->assignment_id,
+            'student_user_id' => $submission->student_user_id,
+            'student_name' => $submission->student?->name,
+            'student_email' => $submission->student?->email,
+            'file_url' => $submission->file_path
+                ? asset('storage/'.$submission->file_path)
+                : null,
+            'total_marks' => $assignment->total_marks,
+            'obtained_marks' => $submission->obtained_marks,
+            'feedback' => $submission->feedback,
+            'graded_at' => $submission->graded_at,
+            'submitted_at' => $submission->updated_at,
+            'created_at' => $submission->created_at,
+        ])->values()->all();
+
+        return Pagination::format($submissions, $items);
     }
 
     /**
@@ -204,15 +201,7 @@ class BatchAssignmentService
             ->pluck('batch_id');
 
         if ($batchIds->isEmpty()) {
-            return [
-                'items' => [],
-                'pagination' => [
-                    'current_page' => 1,
-                    'per_page' => Pagination::perPage($request),
-                    'total' => 0,
-                    'last_page' => 1,
-                ],
-            ];
+            return Pagination::empty(Pagination::perPage($request));
         }
 
         $search = $request->query('search');
@@ -248,21 +237,20 @@ class BatchAssignmentService
 
         $assignments = $query->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => collect($assignments->items())->map(function (BatchAssignment $assignment) {
-                $submission = $assignment->submissions->first();
+        $items = collect($assignments->items())->map(function (BatchAssignment $assignment) {
+            $submission = $assignment->submissions->first();
 
-                return [
-                    ...$this->formatAssignment($assignment),
-                    'batch_name' => $assignment->batch?->name,
-                    'class_title' => $assignment->batch?->class?->title,
-                    'is_open' => $assignment->isOpenForSubmission(),
-                    'has_submitted' => $submission !== null,
-                    'my_submission' => $this->formatMySubmission($submission),
-                ];
-            })->values()->all(),
-            'pagination' => $this->paginationMeta($assignments),
-        ];
+            return [
+                ...$this->formatAssignment($assignment),
+                'batch_name' => $assignment->batch?->name,
+                'class_title' => $assignment->batch?->class?->title,
+                'is_open' => $assignment->isOpenForSubmission(),
+                'has_submitted' => $submission !== null,
+                'my_submission' => $this->formatMySubmission($submission),
+            ];
+        })->values()->all();
+
+        return Pagination::format($assignments, $items);
     }
 
     /**
@@ -279,18 +267,17 @@ class BatchAssignmentService
             ->latest()
             ->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => collect($assignments->items())->map(function (BatchAssignment $assignment) {
-                $submission = $assignment->submissions->first();
+        $items = collect($assignments->items())->map(function (BatchAssignment $assignment) {
+            $submission = $assignment->submissions->first();
 
-                return [
-                    ...$this->formatAssignment($assignment),
-                    'is_open' => $assignment->isOpenForSubmission(),
-                    'my_submission' => $this->formatMySubmission($submission),
-                ];
-            })->values()->all(),
-            'pagination' => $this->paginationMeta($assignments),
-        ];
+            return [
+                ...$this->formatAssignment($assignment),
+                'is_open' => $assignment->isOpenForSubmission(),
+                'my_submission' => $this->formatMySubmission($submission),
+            ];
+        })->values()->all();
+
+        return Pagination::format($assignments, $items);
     }
 
     public function findAssignment(int $assignmentId): ?BatchAssignment
@@ -422,20 +409,6 @@ class BatchAssignmentService
             'obtained_marks' => $submission->obtained_marks,
             'feedback' => $submission->feedback,
             'graded_at' => $submission->graded_at,
-        ];
-    }
-
-    /**
-     * @param  LengthAwarePaginator<mixed>  $paginator
-     * @return array<string, int>
-     */
-    private function paginationMeta($paginator): array
-    {
-        return [
-            'current_page' => $paginator->currentPage(),
-            'per_page' => $paginator->perPage(),
-            'total' => $paginator->total(),
-            'last_page' => $paginator->lastPage(),
         ];
     }
 }

@@ -39,15 +39,10 @@ class TeacherNoteService
             ->latest()
             ->paginate(Pagination::perPage($request));
 
-        return [
-            'items' => collect($notes->items())->map(fn ($note) => $this->formatListItem($note)),
-            'pagination' => [
-                'current_page' => $notes->currentPage(),
-                'per_page' => $notes->perPage(),
-                'total' => $notes->total(),
-                'last_page' => $notes->lastPage(),
-            ],
-        ];
+        return Pagination::format(
+            $notes,
+            collect($notes->items())->map(fn ($note) => $this->formatListItem($note))
+        );
     }
 
     public function store(User $user, Batch $batch, array $validated, ?UploadedFile $noteFile): TeacherNote
@@ -131,15 +126,10 @@ class TeacherNoteService
             ->latest()
             ->paginate($perPage);
 
-        return [
-            'items' => collect($notes->items())->map(fn ($note) => $this->formatStudentListItem($note)),
-            'pagination' => [
-                'current_page' => $notes->currentPage(),
-                'per_page' => $notes->perPage(),
-                'total' => $notes->total(),
-                'last_page' => $notes->lastPage(),
-            ],
-        ];
+        return Pagination::format(
+            $notes,
+            collect($notes->items())->map(fn ($note) => $this->formatStudentListItem($note))
+        );
     }
 
     /** @return array<string, mixed> */
