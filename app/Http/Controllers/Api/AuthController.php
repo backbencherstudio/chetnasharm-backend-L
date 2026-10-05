@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -21,17 +23,11 @@ class AuthController extends Controller
         $result = $this->auth->login($request->validated());
 
         if ($result['type'] === 'invalid_credentials') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid credentials',
-            ], 401);
+            return $this->unauthorized('Invalid credentials');
         }
 
         if ($result['type'] === 'suspended') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Your account has been suspended. Please contact admin.',
-            ], 403);
+            return $this->forbidden('Your account has been suspended. Please contact admin.');
         }
 
         return $this->respondWithToken($result['token'], $result['user']);
@@ -43,17 +39,14 @@ class AuthController extends Controller
         $result = $this->auth->me(auth('api')->user());
 
         if ($result['type'] === 'suspended') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Your account has been suspended. Please contact admin.',
-            ], 403);
+            return $this->forbidden('Your account has been suspended. Please contact admin.');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'User fetched successfully',
-            'user' => $result['user'],
-        ]);
+        return $this->success(
+            data: $result['user'],
+            message: 'User fetched successfully',
+            extra: ['user' => $result['user']]
+        );
     }
 
     /** Invalidate the current access token. */
@@ -61,10 +54,7 @@ class AuthController extends Controller
     {
         auth('api')->logout();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Successfully logged out',
-        ]);
+        return $this->success(message: 'Successfully logged out');
     }
 
     /** Refresh the authentication token. */
@@ -73,24 +63,15 @@ class AuthController extends Controller
         $result = $this->auth->refresh();
 
         if ($result['type'] === 'suspended') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Your account has been suspended. Please contact admin.',
-            ], 403);
+            return $this->forbidden('Your account has been suspended. Please contact admin.');
         }
 
         if ($result['type'] === 'token_expired') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Refresh token expired. Please login again.',
-            ], 401);
+            return $this->unauthorized('Refresh token expired. Please login again.');
         }
 
         if ($result['type'] === 'token_invalid') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token invalid or not provided',
-            ], 401);
+            return $this->unauthorized('Token invalid or not provided');
         }
 
         return $this->respondWithToken($result['token'], $result['user']);
@@ -99,13 +80,20 @@ class AuthController extends Controller
     /** Build the token response payload. */
     protected function respondWithToken(string $token, User $user): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'user' => $user,
+        $userResource = new UserResource($user);
+
+        $payload = [
+            'user' => $userResource,
             'token' => $token,
             'token_type' => 'bearer',
             'expires_in' => $this->auth->getTokenTtlSeconds(),
-        ]);
+        ];
+
+        return $this->success(
+            data: $payload,
+            message: 'Success',
+            extra: $payload
+        );
     }
 
     /** Register a new student user. */
@@ -114,21 +102,16 @@ class AuthController extends Controller
         try {
             $user = $this->auth->register($request->validated());
 
-            return response()->json([
-                'status' => true,
-                'message' => 'User registered successfully.',
-                'data' => $user,
-            ], 201);
-        } catch (\Throwable $e) {
+            return $this->created(
+                new UserResource($user),
+                'User registered successfully.'
+            );
+        } catch (Throwable $e) {
             Log::error('Registration failed', [
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'status' => false,
-                'message' => 'User registration failed.',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->error('User registration failed.', 500, ['error' => $e->getMessage()]);
         }
     }
 

@@ -8,6 +8,7 @@ use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdatePasswordRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Requests\User\UpdateWhatsappRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
@@ -24,35 +25,15 @@ class UserController extends Controller
         try {
             $validated = $this->users->normalizeMobile($request->validated());
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid phone number format.',
-            ], 422);
+            return $this->validationError(['mobile' => ['Invalid phone number format.']], 'Invalid phone number format.');
         }
 
         try {
             $user = $this->users->create($validated, $request->file('image'));
 
-            return response()->json([
-                'status' => true,
-                'message' => 'User created successfully.',
-                'data' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'department' => $user->department,
-                    'mobile' => $user->mobile,
-                    'image' => $user->image,
-                    'image_url' => $user->image_url,
-                    'role' => $user->getRoleNames()->first(),
-                ],
-            ], 200);
+            return $this->success(new UserResource($user), 'User created successfully.');
         } catch (\Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'User creation failed.',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->error('User creation failed: '.$e->getMessage(), 500);
         }
     }
 
@@ -61,20 +42,8 @@ class UserController extends Controller
     {
         $user = $this->users->findForEdit($id);
 
-        return response()->json([
-            'status' => true,
-            'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'mobile' => $user->mobile,
-                    'department' => $user->department,
-                    'image' => $user->image,
-                    'image_url' => $user->image_url,
-                    'role' => $user->getRoleNames()->first(),
-                ],
-            ],
+        return $this->success([
+            'user' => new UserResource($user),
         ]);
     }
 
@@ -86,35 +55,15 @@ class UserController extends Controller
         try {
             $validated = $this->users->normalizeMobile($request->validated());
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid phone number format.',
-            ], 422);
+            return $this->validationError(['mobile' => ['Invalid phone number format.']], 'Invalid phone number format.');
         }
 
         try {
             $user = $this->users->update($user, $validated, $request->file('image'));
 
-            return response()->json([
-                'status' => true,
-                'message' => 'User updated successfully.',
-                'data' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'department' => $user->department,
-                    'mobile' => $user->mobile,
-                    'image' => $user->image,
-                    'image_url' => $user->image_url,
-                    'role' => $user->getRoleNames()->first(),
-                ],
-            ], 200);
+            return $this->success(new UserResource($user), 'User updated successfully.');
         } catch (\Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'User update failed.',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->error('User update failed: '.$e->getMessage(), 500);
         }
     }
 
@@ -124,19 +73,12 @@ class UserController extends Controller
         $result = $this->users->paginateForAdmin($request);
         $users = $result['users'];
 
-        return response()->json([
-            'status' => true,
-            'data' => $users->items(),
-
-            'pagination' => [
-                'current_page' => $users->currentPage(),
-                'per_page' => $users->perPage(),
-                'total' => $users->total(),
-                'last_page' => $users->lastPage(),
-            ],
-
-            'counts' => $result['counts'],
-        ]);
+        return $this->paginate(
+            $users,
+            UserResource::collection($users->items()),
+            'Users retrieved successfully',
+            ['counts' => $result['counts']]
+        );
     }
 
     /** Toggle the suspend status of a user. */
@@ -145,36 +87,22 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         if ($id == auth('api')->id()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'You cannot suspend your own account.',
-            ], 400);
+            return $this->error('You cannot suspend your own account.', 400);
         }
 
         if ($id == 1) {
-            return response()->json([
-                'status' => false,
-                'message' => 'You cannot suspend super admin account.',
-            ], 403);
+            return $this->forbidden('You cannot suspend super admin account.');
         }
 
         try {
             $result = $this->users->toggleSuspend($user);
 
-            return response()->json([
-                'status' => true,
-                'message' => $result['message'],
-                'data' => [
-                    'user_id' => $result['user']->id,
-                    'suspend_status' => $result['user']->suspend_status,
-                ],
-            ], 200);
+            return $this->success([
+                'user_id' => $result['user']->id,
+                'suspend_status' => $result['user']->suspend_status,
+            ], $result['message']);
         } catch (\Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Operation failed.',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->error('Operation failed: '.$e->getMessage(), 500);
         }
     }
 
@@ -190,16 +118,10 @@ class UserController extends Controller
         );
 
         if ($error) {
-            return response()->json([
-                'status' => false,
-                'message' => $error,
-            ], 422);
+            return $this->validationError(['current_password' => [$error]], $error);
         }
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Password updated successfully.',
-        ], 200);
+        return $this->success(message: 'Password updated successfully.');
     }
 
     /** Update the authenticated user profile. */
@@ -210,33 +132,15 @@ class UserController extends Controller
         try {
             $validated = $this->users->normalizeMobile($request->validated());
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid phone number format.',
-            ], 422);
+            return $this->validationError(['mobile' => ['Invalid phone number format.']], 'Invalid phone number format.');
         }
 
         try {
             $user = $this->users->updateProfile($user, $validated, $request->image('image'));
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Profile updated successfully.',
-                'data' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'mobile' => $user->mobile,
-                    'department' => $user->department,
-                    'image' => $user->image,
-                    'image_url' => $user->image_url,
-                ],
-            ], 200);
+            return $this->success(new UserResource($user), 'Profile updated successfully.');
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid phone number format.',
-            ], 422);
+            return $this->validationError(['mobile' => ['Invalid phone number format.']], 'Invalid phone number format.');
         }
     }
 
@@ -249,17 +153,12 @@ class UserController extends Controller
                 $request->input('mobile'),
             );
 
-            return response()->json([
-                'success' => true,
-                'message' => 'WhatsApp number updated successfully',
-                'mobile' => $mobile,
-            ]);
+            return $this->success(
+                message: 'WhatsApp number updated successfully',
+                extra: ['mobile' => $mobile]
+            );
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid phone number format',
-                'error' => $e->getMessage(),
-            ], 422);
+            return $this->validationError(['mobile' => ['Invalid phone number format']], 'Invalid phone number format');
         }
     }
 
@@ -269,39 +168,23 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         if ($id == auth('api')->id()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'You cannot delete your own account.',
-            ], 400);
+            return $this->error('You cannot delete your own account.', 400);
         }
 
         if ($user->teacher) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Cannot delete user with associated teacher profile',
-            ], 400);
+            return $this->error('Cannot delete user with associated teacher profile', 400);
         }
 
         if ($user->enrollments()->exists()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Cannot delete user with associated enrollments',
-            ], 400);
+            return $this->error('Cannot delete user with associated enrollments', 400);
         }
 
         try {
             $this->users->delete($user);
 
-            return response()->json([
-                'status' => true,
-                'message' => 'User deleted successfully.',
-            ], 200);
+            return $this->success(message: 'User deleted successfully.');
         } catch (\Throwable $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'User deletion failed.',
-                'error' => $e->getMessage(),
-            ], 500);
+            return $this->error('User deletion failed: '.$e->getMessage(), 500);
         }
     }
 }

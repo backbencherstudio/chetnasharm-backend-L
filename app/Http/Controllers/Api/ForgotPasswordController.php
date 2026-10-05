@@ -18,10 +18,7 @@ class ForgotPasswordController extends Controller
     {
         $this->auth->sendOtp($request->validated('email'));
 
-        return response()->json([
-            'status' => true,
-            'message' => 'OTP sent to your email',
-        ]);
+        return $this->success(message: 'OTP sent to your email');
     }
 
     /** Verify a password reset OTP. */
@@ -31,23 +28,14 @@ class ForgotPasswordController extends Controller
         $result = $this->auth->verifyOtp($validated['email'], $validated['otp']);
 
         if ($result['type'] === 'invalid_otp') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid OTP',
-            ], 400);
+            return $this->error('Invalid OTP', 400);
         }
 
         if ($result['type'] === 'expired_otp') {
-            return response()->json([
-                'status' => false,
-                'message' => 'OTP expired',
-            ], 400);
+            return $this->error('OTP expired', 400);
         }
 
-        return response()->json([
-            'status' => true,
-            'message' => 'OTP verified successfully',
-        ]);
+        return $this->success(message: 'OTP verified successfully');
     }
 
     /** Reset the user password using a valid OTP. */
@@ -61,15 +49,9 @@ class ForgotPasswordController extends Controller
         );
 
         if ($result['type'] === 'invalid_or_expired_otp') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid or expired OTP',
-            ], 400);
+            return $this->error('Invalid or expired OTP', 400);
         }
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Password reset successfully',
-        ]);
+        return $this->success(message: 'Password reset successfully');
     }
 }
