@@ -5,10 +5,18 @@ use App\Models\ClassModel;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
+    ->beforeEach(function () {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            DB::connection()->getPdo()->sqliteCreateFunction('MONTH', function ($date) {
+                return $date ? (int) date('m', strtotime((string) $date)) : null;
+            });
+        }
+    })
     ->in('Feature');
 
 /**
