@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Class\StoreClassRequest;
 use App\Http\Requests\Class\UpdateClassRequest;
+use App\Http\Resources\BatchResource;
+use App\Http\Resources\ClassResource;
 use App\Models\ClassModel;
 use App\Services\ClassService;
 use Illuminate\Http\JsonResponse;
@@ -19,12 +21,11 @@ class ClassController extends Controller
     {
         $result = $this->classes->index($request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Classes retrieved successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            ClassResource::collection($result['items']),
+            $result['pagination'],
+            'Classes retrieved successfully'
+        );
     }
 
     /** Store a newly created class. */
@@ -32,11 +33,7 @@ class ClassController extends Controller
     {
         $class = $this->classes->store($request->validated(), $request->file('image'));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Class created successfully',
-            'data' => $class,
-        ], 201);
+        return $this->created(new ClassResource($class), 'Class created successfully');
     }
 
     /** Get a class for editing. */
@@ -45,17 +42,10 @@ class ClassController extends Controller
         $class = $this->classes->find($id);
 
         if (! $class) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Class not found',
-            ], 404);
+            return $this->notFound('Class not found');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Class retrieved successfully',
-            'data' => $class,
-        ]);
+        return $this->success(new ClassResource($class), 'Class retrieved successfully');
     }
 
     /** Update the specified class. */
@@ -64,19 +54,12 @@ class ClassController extends Controller
         $class = ClassModel::find($id);
 
         if (! $class) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Class not found',
-            ], 404);
+            return $this->notFound('Class not found');
         }
 
         $class = $this->classes->update($class, $request->validated(), $request->file('image'));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Class updated successfully',
-            'data' => $class,
-        ]);
+        return $this->success(new ClassResource($class), 'Class updated successfully');
     }
 
     /** Toggle the active status of a class. */
@@ -85,19 +68,15 @@ class ClassController extends Controller
         $class = ClassModel::find($id);
 
         if (! $class) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Class not found',
-            ], 404);
+            return $this->notFound('Class not found');
         }
 
         $class = $this->classes->toggleStatus($class);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Class status updated successfully',
-            'status' => $class->is_active,
-        ]);
+        return $this->success(
+            message: 'Class status updated successfully',
+            extra: ['status' => $class->is_active]
+        );
     }
 
     /** List classes for the public landing page. */
@@ -105,14 +84,11 @@ class ClassController extends Controller
     {
         $result = $this->classes->landClasses($request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Classes fetched successfully',
-
-            'data' => $result['items'],
-
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            ClassResource::collection($result['items']),
+            $result['pagination'],
+            'Classes fetched successfully'
+        );
     }
 
     /** List batches for a class on the landing page. */
@@ -120,14 +96,11 @@ class ClassController extends Controller
     {
         $result = $this->classes->landBatches($request, $classId);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batches fetched successfully',
-
-            'data' => $result['items'],
-
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            BatchResource::collection($result['items']),
+            $result['pagination'],
+            'Batches fetched successfully'
+        );
     }
 
     /** Get details for a single batch on the landing page. */
@@ -137,18 +110,14 @@ class ClassController extends Controller
         $result = $this->classes->singleBatch($batchId, $user?->id);
 
         if (! $result) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Batch not found',
-            ], 404);
+            return $this->notFound('Batch not found');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batch fetched successfully',
-            'data' => $result['batch'],
-            'enrolled_status' => $result['enrolled'],
-        ]);
+        return $this->success(
+            data: new BatchResource($result['batch']),
+            message: 'Batch fetched successfully',
+            extra: ['enrolled_status' => $result['enrolled']]
+        );
     }
 
     /** List teachers linked to a class. */
@@ -157,17 +126,10 @@ class ClassController extends Controller
         $teachers = $this->classes->classTeachers($classId);
 
         if ($teachers === null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Class not found',
-            ], 404);
+            return $this->notFound('Class not found');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Class teachers retrieved successfully',
-            'data' => $teachers,
-        ]);
+        return $this->success($teachers, 'Class teachers retrieved successfully');
     }
 
     /** Get public details for a class. */
@@ -176,16 +138,9 @@ class ClassController extends Controller
         $class = $this->classes->singleClass($classId);
 
         if (! $class) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Class not found',
-            ], 404);
+            return $this->notFound('Class not found');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Class fetched successfully',
-            'data' => $class,
-        ]);
+        return $this->success(new ClassResource($class), 'Class fetched successfully');
     }
 }

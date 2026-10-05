@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ClassRecording\StoreClassRecordingRequest;
 use App\Http\Requests\ClassRecording\UpdateClassRecordingRequest;
+use App\Http\Resources\ClassRecordingResource;
 use App\Models\Batch;
 use App\Services\ClassRecordingService;
 use Illuminate\Http\JsonResponse;
@@ -20,12 +21,11 @@ class ClassRecordingController extends Controller
         $user = auth('api')->user();
         $result = $this->recordings->index($user, $batch_id, $request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recordings retrieved successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            ClassRecordingResource::collection($result['items']),
+            $result['pagination'],
+            'Recordings retrieved successfully'
+        );
     }
 
     /** Create a class recording for a batch. */
@@ -36,29 +36,22 @@ class ClassRecordingController extends Controller
         $teacher = $this->recordings->findTeacherForUser($user);
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $validated = $request->validated();
         $batch = Batch::findOrFail($validated['batch_id']);
 
         if ($batch->teacher_id !== $teacher->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not assigned to this batch',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not assigned to this batch');
         }
 
         $recording = $this->recordings->store($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recording created successfully',
-            'data' => $recording,
-        ]);
+        return $this->created(
+            new ClassRecordingResource($recording),
+            'Recording created successfully'
+        );
     }
 
     /** Show a single class recording. */
@@ -72,25 +65,18 @@ class ClassRecordingController extends Controller
 
         if ($teacher) {
             if ($recording->batch->teacher_id !== $teacher->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized: You do not have permission to view this recording',
-                ], 403);
+                return $this->forbidden('Unauthorized: You do not have permission to view this recording');
             }
         } else {
             if (! $recording->batch->enrollments()->where('user_id', $user->id)->exists()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized: You are not enrolled in this batch',
-                ], 403);
+                return $this->forbidden('Unauthorized: You are not enrolled in this batch');
             }
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recording fetched successfully',
-            'data' => $recording,
-        ]);
+        return $this->success(
+            new ClassRecordingResource($recording),
+            'Recording fetched successfully'
+        );
     }
 
     /** Update a class recording. */
@@ -103,19 +89,13 @@ class ClassRecordingController extends Controller
         $teacher = $this->recordings->findTeacherForUser($user);
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $recording->loadMissing('batch:id,teacher_id');
 
         if (! $recording->batch || $recording->batch->teacher_id !== $teacher->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not assigned to this batch',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not assigned to this batch');
         }
 
         $validated = $request->validated();
@@ -125,20 +105,16 @@ class ClassRecordingController extends Controller
             $destinationBatch = Batch::findOrFail($batchId);
 
             if ($destinationBatch->teacher_id !== $teacher->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized: You are not assigned to this batch',
-                ], 403);
+                return $this->forbidden('Unauthorized: You are not assigned to this batch');
             }
         }
 
         $recording = $this->recordings->update($recording, $validated, (int) $batchId);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recording updated successfully',
-            'data' => $recording,
-        ]);
+        return $this->success(
+            new ClassRecordingResource($recording),
+            'Recording updated successfully'
+        );
     }
 
     /** Delete a class recording. */
@@ -151,25 +127,16 @@ class ClassRecordingController extends Controller
         $teacher = $this->recordings->findTeacherForUser($user);
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         if ($recording->batch->teacher_id !== $teacher->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You cannot delete this recording',
-            ], 403);
+            return $this->forbidden('Unauthorized: You cannot delete this recording');
         }
 
         $this->recordings->destroy($recording);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recording deleted successfully',
-        ]);
+        return $this->success(message: 'Recording deleted successfully');
     }
 
     /** List class recordings for an enrolled student in a batch. */
@@ -178,19 +145,15 @@ class ClassRecordingController extends Controller
         $user = auth('api')->user();
 
         if (! $this->recordings->isStudentEnrolled($user, $batch_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not enrolled in this batch',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not enrolled in this batch');
         }
 
         $result = $this->recordings->forStudent($batch_id, $request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recordings retrieved successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            ClassRecordingResource::collection($result['items']),
+            $result['pagination'],
+            'Recordings retrieved successfully'
+        );
     }
 }

@@ -7,8 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Batch\StoreBatchRequest;
 use App\Http\Requests\Batch\UpdateBatchRequest;
 use App\Http\Requests\Batch\UpdateZoomLinkRequest;
+use App\Http\Resources\BatchResource;
 use App\Models\Teacher;
 use App\Services\BatchService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -23,12 +25,11 @@ class BatchController extends Controller
     {
         $result = $this->batches->index($request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batch list fetched successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            BatchResource::collection($result['items']),
+            $result['pagination'],
+            'Batch list fetched successfully'
+        );
     }
 
     /** Store a newly created batch with schedules. */
@@ -37,16 +38,9 @@ class BatchController extends Controller
         try {
             $batch = $this->batches->store($request->validated());
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Batch created successfully',
-                'data' => $batch,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return $this->created(new BatchResource($batch), 'Batch created successfully');
+        } catch (Exception $e) {
+            return $this->error($e->getMessage(), 422);
         }
     }
 
@@ -56,16 +50,10 @@ class BatchController extends Controller
         $batch = $this->batches->findForEdit($id);
 
         if (! $batch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Batch not found',
-            ], 404);
+            return $this->notFound('Batch not found');
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => $batch,
-        ]);
+        return $this->success(new BatchResource($batch), 'Batch retrieved successfully');
     }
 
     /** Update the specified batch and its schedules. */
@@ -74,25 +62,15 @@ class BatchController extends Controller
         $batch = $this->batches->find($id);
 
         if (! $batch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Batch not found',
-            ], 404);
+            return $this->notFound('Batch not found');
         }
 
         try {
             $batch = $this->batches->update($batch, $request->validated());
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Batch updated successfully',
-                'data' => $batch,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return $this->success(new BatchResource($batch), 'Batch updated successfully');
+        } catch (Exception $e) {
+            return $this->error($e->getMessage(), 422);
         }
     }
 
@@ -102,25 +80,16 @@ class BatchController extends Controller
         $batch = $this->batches->find($id);
 
         if (! $batch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Batch not found',
-            ], 404);
+            return $this->notFound('Batch not found');
         }
 
         try {
             $this->batches->delete($batch);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+        } catch (Exception $e) {
+            return $this->error($e->getMessage(), 422);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batch deleted successfully',
-        ]);
+        return $this->success(message: 'Batch deleted successfully');
     }
 
     /** List active classes for batch forms. */
@@ -128,11 +97,7 @@ class BatchController extends Controller
     {
         $classes = $this->batches->classList();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Class list retrieved successfully',
-            'data' => $classes,
-        ]);
+        return $this->success($classes, 'Class list retrieved successfully');
     }
 
     /** List active teachers for batch forms. */
@@ -140,11 +105,7 @@ class BatchController extends Controller
     {
         $teachers = $this->batches->teacherList();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Teacher list retrieved successfully',
-            'data' => $teachers,
-        ]);
+        return $this->success($teachers, 'Teacher list retrieved successfully');
     }
 
     /** Toggle the active status of a batch. */
@@ -153,19 +114,12 @@ class BatchController extends Controller
         $batch = $this->batches->find($id);
 
         if (! $batch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Batch not found',
-            ], 404);
+            return $this->notFound('Batch not found');
         }
 
         $data = $this->batches->toggleStatus($batch);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batch status updated successfully',
-            'data' => $data,
-        ]);
+        return $this->success($data, 'Batch status updated successfully');
     }
 
     /** List batches assigned to the authenticated teacher. */
@@ -176,20 +130,16 @@ class BatchController extends Controller
         $teacher = Teacher::where('user_id', $user->id)->first();
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $result = $this->batches->teacherBatch($request, $teacher);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batch list fetched successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            BatchResource::collection($result['items']),
+            $result['pagination'],
+            'Batch list fetched successfully'
+        );
     }
 
     /** List active batches for a class. */
@@ -197,11 +147,7 @@ class BatchController extends Controller
     {
         $batches = $this->batches->getBatchesByClass($classId);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batches fetched successfully',
-            'data' => $batches,
-        ]);
+        return $this->success(BatchResource::collection($batches), 'Batches fetched successfully');
     }
 
     /** List batches for the authenticated student. */
@@ -212,18 +158,14 @@ class BatchController extends Controller
         $result = $this->batches->studentBatch($request, $user->id);
 
         if ($result === null) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not enrolled in any batches',
-            ], 404);
+            return $this->notFound('You are not enrolled in any batches');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batches fetched successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            BatchResource::collection($result['items']),
+            $result['pagination'],
+            'Batches fetched successfully'
+        );
     }
 
     /** Update the Zoom link for a batch. */
@@ -234,10 +176,7 @@ class BatchController extends Controller
         $batch = $this->batches->find($batchId);
 
         if (! $batch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Batch not found',
-            ], 404);
+            return $this->notFound('Batch not found');
         }
 
         $validated = $request->validated();
@@ -245,47 +184,30 @@ class BatchController extends Controller
         if ($user->hasRole('admin')) {
             $batch = $this->batches->updateZoomLink($batch, $validated['zoom_link']);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Zoom link updated successfully',
-                'data' => [
-                    'id' => $batch->id,
-                    'zoom_link' => $batch->zoom_link,
-                ],
-            ]);
+            return $this->success([
+                'id' => $batch->id,
+                'zoom_link' => $batch->zoom_link,
+            ], 'Zoom link updated successfully');
         }
 
         if ($user->hasRole('teacher')) {
             if (! $user->teacher) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Teacher profile not found',
-                ], 403);
+                return $this->forbidden('Teacher profile not found');
             }
 
             if (! $this->canManageBatch($user, (int) $batch->id)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You are not allowed to update this batch',
-                ], 403);
+                return $this->forbidden('You are not allowed to update this batch');
             }
 
             $batch = $this->batches->updateZoomLink($batch, $validated['zoom_link']);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Zoom link updated successfully',
-                'data' => [
-                    'id' => $batch->id,
-                    'zoom_link' => $batch->zoom_link,
-                ],
-            ]);
+            return $this->success([
+                'id' => $batch->id,
+                'zoom_link' => $batch->zoom_link,
+            ], 'Zoom link updated successfully');
         }
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Unauthorized access',
-        ], 403);
+        return $this->forbidden('Unauthorized access');
     }
 
     /** Get details for a single batch for authenticated users. */
@@ -296,34 +218,21 @@ class BatchController extends Controller
         $batch = $this->batches->singleBatch($batchId);
 
         if (! $batch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Batch not found',
-            ], 404);
+            return $this->notFound('Batch not found');
         }
 
         if ($user->hasRole('teacher')) {
             if (($user->teacher->id ?? 0) !== $batch->teacher_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 403);
+                return $this->forbidden('Unauthorized');
             }
         }
 
         if ($user->hasRole('student')) {
             if (! $this->batches->isStudentEnrolled($user->id, $batch->id)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 403);
+                return $this->forbidden('Unauthorized');
             }
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batch details fetched successfully',
-            'data' => $batch,
-        ]);
+        return $this->success(new BatchResource($batch), 'Batch details fetched successfully');
     }
 }

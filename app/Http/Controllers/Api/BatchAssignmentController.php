@@ -21,29 +21,22 @@ class BatchAssignmentController extends Controller
         $teacher = $this->assignments->currentTeacher();
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $batch = $this->assignments->teacherBatch($teacher->id, $batchId);
 
         if (! $batch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: Invalid batch access',
-            ], 403);
+            return $this->forbidden('Unauthorized: Invalid batch access');
         }
 
         $result = $this->assignments->indexForTeacher($batch->id, $request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assignments fetched successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            $result['items'],
+            $result['pagination'],
+            'Assignments fetched successfully'
+        );
     }
 
     /** Create an assignment on a batch. */
@@ -52,10 +45,7 @@ class BatchAssignmentController extends Controller
         $teacher = $this->assignments->currentTeacher();
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $validated = $request->validated();
@@ -63,10 +53,7 @@ class BatchAssignmentController extends Controller
         $batch = $this->assignments->teacherBatch($teacher->id, (int) $validated['batch_id']);
 
         if (! $batch) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: Invalid batch access',
-            ], 403);
+            return $this->forbidden('Unauthorized: Invalid batch access');
         }
 
         $assignment = $this->assignments->store(
@@ -76,11 +63,10 @@ class BatchAssignmentController extends Controller
             $request->file('attachment')
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assignment created successfully',
-            'data' => $this->assignments->formatAssignment($assignment),
-        ], 201);
+        return $this->created(
+            $this->assignments->formatAssignment($assignment),
+            'Assignment created successfully'
+        );
     }
 
     /** Show a single assignment (teacher). */
@@ -89,26 +75,19 @@ class BatchAssignmentController extends Controller
         $teacher = $this->assignments->currentTeacher();
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $assignment = $this->assignments->findForTeacher($teacher->id, $id);
 
         if (! $assignment) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Assignment not found',
-            ], 404);
+            return $this->notFound('Assignment not found');
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assignment fetched successfully',
-            'data' => $this->assignments->formatAssignment($assignment),
-        ]);
+        return $this->success(
+            $this->assignments->formatAssignment($assignment),
+            'Assignment fetched successfully'
+        );
     }
 
     /** Update an assignment. */
@@ -117,19 +96,13 @@ class BatchAssignmentController extends Controller
         $teacher = $this->assignments->currentTeacher();
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $assignment = $this->assignments->findOwnedByTeacher($teacher->id, $id);
 
         if (! $assignment) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Assignment not found',
-            ], 404);
+            return $this->notFound('Assignment not found');
         }
 
         $assignment = $this->assignments->update(
@@ -138,11 +111,10 @@ class BatchAssignmentController extends Controller
             $request->file('attachment')
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assignment updated successfully',
-            'data' => $this->assignments->formatAssignment($assignment),
-        ]);
+        return $this->success(
+            $this->assignments->formatAssignment($assignment),
+            'Assignment updated successfully'
+        );
     }
 
     /** Delete an assignment and related submission files. */
@@ -151,27 +123,18 @@ class BatchAssignmentController extends Controller
         $teacher = $this->assignments->currentTeacher();
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $assignment = $this->assignments->findOwnedByTeacher($teacher->id, $id);
 
         if (! $assignment) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Assignment not found',
-            ], 404);
+            return $this->notFound('Assignment not found');
         }
 
         $this->assignments->destroy($assignment);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assignment deleted successfully',
-        ]);
+        return $this->success(message: 'Assignment deleted successfully');
     }
 
     /** List submissions for an assignment (teacher). */
@@ -180,29 +143,22 @@ class BatchAssignmentController extends Controller
         $teacher = $this->assignments->currentTeacher();
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $assignment = $this->assignments->findOwnedByTeacher($teacher->id, $id);
 
         if (! $assignment) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Assignment not found',
-            ], 404);
+            return $this->notFound('Assignment not found');
         }
 
         $result = $this->assignments->submissions($assignment, $request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Submissions fetched successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            $result['items'],
+            $result['pagination'],
+            'Submissions fetched successfully'
+        );
     }
 
     /** Student Assignment tab: active assignments across enrolled batches. */
@@ -211,12 +167,11 @@ class BatchAssignmentController extends Controller
         $user = auth('api')->user();
         $result = $this->assignments->activeForStudent($user, $request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Active assignments fetched successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            $result['items'],
+            $result['pagination'],
+            'Active assignments fetched successfully'
+        );
     }
 
     /** List assignments for a batch (student). */
@@ -225,20 +180,16 @@ class BatchAssignmentController extends Controller
         $user = auth('api')->user();
 
         if (! $this->assignments->studentEnrolledInBatch($user->id, $batchId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not enrolled in this batch',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not enrolled in this batch');
         }
 
         $result = $this->assignments->forStudent($user, $batchId, $request);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assignments fetched successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            $result['items'],
+            $result['pagination'],
+            'Assignments fetched successfully'
+        );
     }
 
     /** Submit or replace a student assignment file. */
@@ -249,33 +200,23 @@ class BatchAssignmentController extends Controller
         $assignment = $this->assignments->findAssignment($assignmentId);
 
         if (! $assignment) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Assignment not found',
-            ], 404);
+            return $this->notFound('Assignment not found');
         }
 
         if (! $this->assignments->studentEnrolledInBatch($user->id, $assignment->batch_id)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not enrolled in this batch',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not enrolled in this batch');
         }
 
         if (! $assignment->isOpenForSubmission()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Assignment submission is closed',
-            ], 422);
+            return $this->error('Assignment submission is closed', 422);
         }
 
         $result = $this->assignments->submit($user, $assignment, $request->file('file'));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Assignment submitted successfully',
-            'data' => $this->assignments->formatSubmitResponse($result['submission'], $result['assignment']),
-        ]);
+        return $this->success(
+            $this->assignments->formatSubmitResponse($result['submission'], $result['assignment']),
+            'Assignment submitted successfully'
+        );
     }
 
     /** Grade a student submission (teacher). */
@@ -284,27 +225,20 @@ class BatchAssignmentController extends Controller
         $teacher = $this->assignments->currentTeacher();
 
         if (! $teacher) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized: You are not a teacher',
-            ], 403);
+            return $this->forbidden('Unauthorized: You are not a teacher');
         }
 
         $submission = $this->assignments->findSubmission($submissionId);
 
         if (! $submission || ! $submission->assignment || $submission->assignment->teacher_id !== $teacher->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Submission not found',
-            ], 404);
+            return $this->notFound('Submission not found');
         }
 
         $submission = $this->assignments->grade($submission, $request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Submission graded successfully',
-            'data' => $this->assignments->formatGradeResponse($submission),
-        ]);
+        return $this->success(
+            $this->assignments->formatGradeResponse($submission),
+            'Submission graded successfully'
+        );
     }
 }
