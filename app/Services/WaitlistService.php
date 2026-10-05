@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Common\Pagination;
 use App\Models\Waitlist;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 
 class WaitlistService
@@ -29,10 +30,7 @@ class WaitlistService
         return ['waitlist' => $waitlist];
     }
 
-    /**
-     * @return array{items: array<int, Waitlist>, pagination: array<string, int>}
-     */
-    public function getForAdmin(Request $request): array
+    public function getForAdmin(Request $request): LengthAwarePaginator
     {
         $query = Waitlist::with([
             'user:id,name,email',
@@ -45,23 +43,10 @@ class WaitlistService
             $query->where('batch_id', $request->batch_id);
         }
 
-        $waitlists = $query->paginate(Pagination::perPage($request));
-
-        return [
-            'items' => $waitlists->items(),
-            'pagination' => [
-                'current_page' => $waitlists->currentPage(),
-                'per_page' => $waitlists->perPage(),
-                'total' => $waitlists->total(),
-                'last_page' => $waitlists->lastPage(),
-            ],
-        ];
+        return $query->paginate(Pagination::perPage($request));
     }
 
-    /**
-     * @return array{items: array<int, Waitlist>, pagination: array<string, int>}
-     */
-    public function getForUser(int $userId, Request $request): array
+    public function getForUser(int $userId, Request $request): LengthAwarePaginator
     {
         $query = Waitlist::with([
             'batch:id,name,teacher_id',
@@ -71,16 +56,6 @@ class WaitlistService
             ->where('user_id', $userId)
             ->latest();
 
-        $waitlists = $query->paginate(Pagination::perPage($request));
-
-        return [
-            'items' => $waitlists->items(),
-            'pagination' => [
-                'current_page' => $waitlists->currentPage(),
-                'per_page' => $waitlists->perPage(),
-                'total' => $waitlists->total(),
-                'last_page' => $waitlists->lastPage(),
-            ],
-        ];
+        return $query->paginate(Pagination::perPage($request));
     }
 }

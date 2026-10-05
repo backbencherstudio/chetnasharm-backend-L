@@ -47,15 +47,7 @@ class TransactionService
 
         $payments = $query->latest()->paginate($perPage);
 
-        return [
-            'items' => $payments->items(),
-            'pagination' => [
-                'current_page' => $payments->currentPage(),
-                'per_page' => $payments->perPage(),
-                'total' => $payments->total(),
-                'last_page' => $payments->lastPage(),
-            ],
-        ];
+        return Pagination::format($payments);
     }
 
     /**

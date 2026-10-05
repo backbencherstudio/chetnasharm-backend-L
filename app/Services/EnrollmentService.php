@@ -42,15 +42,7 @@ class EnrollmentService
 
         $enrollments = $query->latest()->paginate($perPage);
 
-        return [
-            'items' => $enrollments->items(),
-            'pagination' => [
-                'current_page' => $enrollments->currentPage(),
-                'per_page' => $enrollments->perPage(),
-                'total' => $enrollments->total(),
-                'last_page' => $enrollments->lastPage(),
-            ],
-        ];
+        return Pagination::format($enrollments);
     }
 
     /**

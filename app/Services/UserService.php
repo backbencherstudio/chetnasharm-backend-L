@@ -108,20 +108,6 @@ class UserService
 
         $users = $query->paginate($perPage);
 
-        $users->getCollection()->transform(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'mobile' => $user->mobile,
-                'department' => $user->department,
-                'image' => $user->image,
-                'image_url' => $user->image_url,
-                'suspended' => $user->suspend_status,
-                'role' => $user->roles->pluck('name')->map(fn ($r) => ucfirst($r))->implode(', '),
-            ];
-        });
-
         $roleCounts = DB::table('model_has_roles')
             ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
             ->where('model_has_roles.model_type', User::class)
