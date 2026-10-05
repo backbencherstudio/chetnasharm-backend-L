@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\MarkAsPaidRequest;
+use App\Http\Resources\PaymentResource;
 use App\Services\TransactionService;
 use Illuminate\Http\JsonResponse;
 
@@ -16,12 +17,11 @@ class TransactionController extends Controller
     {
         $data = $this->transaction->listPayments(auth('api')->user(), request());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Payment list fetched successfully',
-            'data' => $data['items'],
-            'pagination' => $data['pagination'],
-        ]);
+        return $this->paginated(
+            PaymentResource::collection($data['items']),
+            $data['pagination'],
+            'Payment list fetched successfully'
+        );
     }
 
     /** Mark a payment as paid and enroll the student. */
@@ -30,34 +30,21 @@ class TransactionController extends Controller
         $result = $this->transaction->markAsPaid($id, $request->validated());
 
         if ($result['type'] === 'not_found') {
-            return response()->json(['success' => false, 'message' => 'Payment not found'], 404);
+            return $this->notFound('Payment not found');
         }
 
         if ($result['type'] === 'batch_full') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Batch is full',
-            ], 400);
+            return $this->error('Batch is full', 400);
         }
 
         if ($result['type'] === 'already_enrolled') {
-            return response()->json([
-                'success' => false,
-                'message' => 'User is already enrolled in this batch',
-            ], 400);
+            return $this->error('User is already enrolled in this batch', 400);
         }
 
         if ($result['type'] === 'error') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Something went wrong',
-                'error' => $result['error'],
-            ], 500);
+            return $this->error('Something went wrong', 500, ['error' => $result['error']]);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Transaction & enrollment successful',
-        ], 200);
+        return $this->success(message: 'Transaction & enrollment successful');
     }
 }

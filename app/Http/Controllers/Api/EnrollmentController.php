@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Concerns\AuthorizesBatchAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Enrollment\ChangeBatchRequest;
+use App\Http\Resources\EnrollmentResource;
 use App\Services\EnrollmentService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -21,20 +23,16 @@ class EnrollmentController extends Controller
         $user = auth('api')->user();
 
         if (! $this->canManageBatch($user, (int) $batchId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+            return $this->forbidden('Unauthorized');
         }
 
         $result = $this->enrollments->getEnrollmentsByBatch($request, $batchId);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Enrollments fetched successfully',
-            'data' => $result['items'],
-            'pagination' => $result['pagination'],
-        ]);
+        return $this->paginated(
+            EnrollmentResource::collection($result['items']),
+            $result['pagination'],
+            'Enrollments fetched successfully'
+        );
     }
 
     /** Move a student enrollment to another batch. */
@@ -42,16 +40,10 @@ class EnrollmentController extends Controller
     {
         try {
             $this->enrollments->changeBatch($request->validated());
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+        } catch (Exception $e) {
+            return $this->error($e->getMessage(), 422);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Student batch changed successfully',
-        ]);
+        return $this->success(message: 'Student batch changed successfully');
     }
 }

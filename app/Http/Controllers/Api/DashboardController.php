@@ -17,12 +17,11 @@ class DashboardController extends Controller
         $year = $request->year ?? now()->year;
         $result = $this->dashboard->totalStudentMonthly((int) $year);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Student monthly data retrieved successfully',
-            'year' => $result['year'],
-            'data' => $result['data'],
-        ]);
+        return $this->success(
+            data: $result['data'],
+            message: 'Student monthly data retrieved successfully',
+            extra: ['year' => $result['year']]
+        );
     }
 
     /** Get monthly enrollment totals for a year. */
@@ -31,24 +30,23 @@ class DashboardController extends Controller
         $year = $request->year ?? now()->year;
         $result = $this->dashboard->totalEnrollmentMonthly((int) $year);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Enrollment monthly data retrieved successfully',
-            'year' => $result['year'],
-            'total_enrollments' => $result['total_enrollments'],
-            'data' => $result['data'],
-        ]);
+        return $this->success(
+            data: $result['data'],
+            message: 'Enrollment monthly data retrieved successfully',
+            extra: [
+                'year' => $result['year'],
+                'total_enrollments' => $result['total_enrollments'],
+            ]
+        );
     }
 
     /** Get admin revenue and occupancy statistics. */
     public function revenueStats(): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'Revenue statistics retrieved successfully',
-
-            'data' => $this->dashboard->revenueStats(),
-        ]);
+        return $this->success(
+            $this->dashboard->revenueStats(),
+            'Revenue statistics retrieved successfully'
+        );
     }
 
     /** Get dashboard statistics and summaries for a teacher. */
@@ -57,16 +55,11 @@ class DashboardController extends Controller
         $user = auth('api')->user();
         $data = $this->dashboard->teacherDashboard($user->id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Teacher dashboard data retrieved successfully',
-
-            'data' => [
-                'statistics' => $data['statistics'],
-                'upcoming_batches' => $data['upcoming_batches'],
-                'top_batches' => $data['top_batches'],
-            ],
-        ]);
+        return $this->success([
+            'statistics' => $data['statistics'],
+            'upcoming_batches' => $data['upcoming_batches'],
+            'top_batches' => $data['top_batches'],
+        ], 'Teacher dashboard data retrieved successfully');
     }
 
     /** Get dashboard statistics and summaries for a student. */
@@ -75,18 +68,13 @@ class DashboardController extends Controller
         $user = auth('api')->user();
         $data = $this->dashboard->studentDashboard($user->id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Student dashboard retrieved successfully',
-
-            'data' => [
-                'statistics' => $data['statistics'],
-                'active_courses' => $data['active_courses'],
-                'recent_enrollments' => $data['recent_enrollments'],
-                'completed_courses' => $data['completed_courses'],
-                'recent_graded_assignments' => $data['recent_graded_assignments'],
-                'recent_activity_notes' => $data['recent_activity_notes'],
-            ],
-        ]);
+        return $this->success([
+            'statistics' => $data['statistics'],
+            'active_courses' => $data['active_courses'],
+            'recent_enrollments' => $data['recent_enrollments'],
+            'completed_courses' => $data['completed_courses'],
+            'recent_graded_assignments' => $data['recent_graded_assignments'],
+            'recent_activity_notes' => $data['recent_activity_notes'],
+        ], 'Student dashboard retrieved successfully');
     }
 }

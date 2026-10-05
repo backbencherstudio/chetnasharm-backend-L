@@ -23,40 +23,33 @@ class PaymentController extends Controller
         );
 
         if ($result['type'] === 'batch_full') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Batch is full',
-            ], 400);
+            return $this->error('Batch is full', 400);
         }
 
         if ($result['type'] === 'batch_started') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Batch has already started',
-            ], 400);
+            return $this->error('Batch has already started', 400);
         }
 
         if ($result['type'] === 'already_enrolled') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Already enrolled and active',
-                'expiry_date' => $result['expiry_date'],
-            ], 409);
+            return $this->error(
+                'Already enrolled and active',
+                409,
+                [],
+                ['expiry_date' => $result['expiry_date']]
+            );
         }
 
         if ($result['type'] === 'error') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Payment creation failed',
-                'error' => $result['message'],
-            ], 500);
+            return $this->error('Payment creation failed', 500, ['error' => $result['message']]);
         }
 
         $response = $result['response'];
         $httpStatus = $response['http_status'] ?? 200;
         unset($response['http_status']);
 
-        return response()->json($response, $httpStatus);
+        $response['success'] = $response['status'] ?? true;
+
+        return $this->respond($response, $httpStatus);
     }
 
     /** Capture an approved PayPal payment. */
