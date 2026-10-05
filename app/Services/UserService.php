@@ -150,7 +150,7 @@ class UserService
             ->with(['roles:id,name'])
             ->select('id', 'name', 'email', 'mobile', 'department', 'image', 'suspend_status', 'provider', 'deleted_at')
             ->latest('deleted_at')
-            ->paginate(1);
+            ->paginate($perPage);
     }
 
     /**
