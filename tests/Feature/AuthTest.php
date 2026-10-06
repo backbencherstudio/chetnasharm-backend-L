@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
@@ -160,4 +161,74 @@ test('google login fails with invalid token', function (): void {
     ]);
 
     $response->assertStatus(401);
+});
+
+test('user can refresh token successfully', function (): void {
+    $user = User::factory()->create();
+    $user->assignRole('student');
+    $token = auth('api')->login($user);
+
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->postJson('/api/refresh');
+
+    $response->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonStructure(['token', 'user', 'data']);
+
+    $newToken = $response->json('token');
+    expect($newToken)->not->toBeNull()->and($newToken)->not->toBe($token);
+
+    // Old token should be invalidated/blacklisted
+    auth('api')->forgetUser();
+    app('tymon.jwt')->unsetToken();
+    $this->withHeader('Authorization', "Bearer {$token}")
+        ->getJson('/api/me')
+        ->assertUnauthorized();
+
+    // New token should authenticate
+    auth('api')->forgetUser();
+    app('tymon.jwt')->unsetToken();
+    $this->withHeader('Authorization', "Bearer {$newToken}")
+        ->getJson('/api/me')
+        ->assertOk()
+        ->assertJsonPath('data.id', $user->id);
+});
+
+test('expired token within refresh window can be refreshed', function (): void {
+    $user = User::factory()->create();
+    $user->assignRole('student');
+
+    Carbon::setTestNow(now());
+    auth('api')->factory()->setTTL(1);
+    $token = auth('api')->login($user);
+
+    // Advance 5 minutes past 1 minute TTL
+    Carbon::setTestNow(now()->addMinutes(5));
+
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->postJson('/api/refresh');
+
+    $response->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonStructure(['token', 'user', 'data']);
+});
+
+test('refresh fails without token', function (): void {
+    $response = $this->postJson('/api/refresh');
+
+    $response->assertUnauthorized()
+        ->assertJsonPath('success', false)
+        ->assertJsonPath('message', 'Token invalid or not provided');
+});
+
+test('suspended user cannot refresh token', function (): void {
+    $user = User::factory()->create(['suspend_status' => 1]);
+    $user->assignRole('student');
+    $token = auth('api')->login($user);
+
+    $response = $this->withHeader('Authorization', "Bearer {$token}")
+        ->postJson('/api/refresh');
+
+    $response->assertStatus(403)
+        ->assertJsonPath('success', false);
 });
