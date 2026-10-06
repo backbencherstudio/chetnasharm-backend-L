@@ -25,8 +25,8 @@ class PublicBatchResource extends JsonResource
             'name' => $this->name,
             'total_seat' => $this->total_seat,
             'filled_seat' => $this->filled_seat,
-            'start_date' => optional($this->start_date)->format('Y-m-d'),
-            'end_date' => optional($this->end_date)->format('Y-m-d'),
+            'start_date' => $this->start_date?->format('Y-m-d'),
+            'end_date' => $this->end_date?->format('Y-m-d'),
             'status' => $this->status,
             'class' => $this->whenLoaded('class', fn (): ?array => $this->class ? [
                 'id' => $this->class->id,

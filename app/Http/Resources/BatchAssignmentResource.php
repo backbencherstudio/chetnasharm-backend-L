@@ -44,7 +44,7 @@ class BatchAssignmentResource extends JsonResource
             'is_open' => $this->isOpenForSubmission(),
             'has_submitted' => $hasSubmissions ? ($firstSubmission !== null) : $this->when(false, false),
             'my_submission' => $hasSubmissions
-                ? ($firstSubmission ? (new AssignmentSubmissionResource($firstSubmission))->resolve() : null)
+                ? ($firstSubmission ? new AssignmentSubmissionResource($firstSubmission)->resolve() : null)
                 : $this->when(false, null),
             'batch' => $this->whenLoaded('batch'),
             'teacher' => $this->whenLoaded('teacher'),

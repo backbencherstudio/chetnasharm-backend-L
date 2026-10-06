@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\BatchSchedule;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Date;
 
 /**
  * @mixin BatchSchedule
@@ -36,8 +36,8 @@ class BatchScheduleResource extends JsonResource
             'batch_id' => $this->batch_id,
             'day_of_week' => $this->day_of_week,
             'day' => self::DAY_NAMES[$this->day_of_week] ?? 'Unknown',
-            'start_time' => Carbon::parse($this->start_time)->format('H:i'),
-            'end_time' => Carbon::parse($this->end_time)->format('H:i'),
+            'start_time' => Date::parse($this->start_time)->format('H:i'),
+            'end_time' => Date::parse($this->end_time)->format('H:i'),
         ];
     }
 }
