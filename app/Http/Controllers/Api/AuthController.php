@@ -119,8 +119,8 @@ class AuthController extends Controller
     public function googleLogin(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'access_token' => 'required_without:token|string|nullable',
-            'token' => 'required_without:access_token|string|nullable',
+            'access_token' => ['required_without:token', 'string', 'nullable'],
+            'token' => ['required_without:access_token', 'string', 'nullable'],
         ]);
 
         $token = $validated['access_token'] ?? $validated['token'];

@@ -17,6 +17,7 @@ use App\Models\Batch;
 use App\Models\BatchAssignment;
 use App\Models\Teacher;
 use App\Services\BatchAssignmentService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -176,7 +177,7 @@ class BatchAssignmentController extends Controller
         $user = auth('api')->user();
         $assignments = $this->assignments->activeForStudent($user, $request);
 
-        if (! $assignments) {
+        if (! $assignments instanceof LengthAwarePaginator) {
             return $this->paginated(
                 [],
                 Pagination::empty(Pagination::perPage($request))['pagination'],

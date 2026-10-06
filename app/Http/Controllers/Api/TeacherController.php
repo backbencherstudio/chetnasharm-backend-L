@@ -48,7 +48,7 @@ class TeacherController extends Controller
             $user = $result['user'];
             $randomPassword = $result['password'];
 
-            $data = (new TeacherResource($teacher))->toArray($request);
+            $data = new TeacherResource($teacher)->toArray($request);
             $data['user'] = [
                 'id' => $user->id,
                 'email' => $user->email,

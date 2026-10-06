@@ -15,6 +15,7 @@ use App\Models\Batch;
 use App\Models\StudentActivityNote;
 use App\Models\Teacher;
 use App\Services\TeacherStudentService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -33,7 +34,7 @@ class TeacherStudentController extends Controller
 
         $enrollments = $this->teacherStudents->index($teacher, $request);
 
-        if (! $enrollments) {
+        if (! $enrollments instanceof LengthAwarePaginator) {
             return $this->paginated(
                 [],
                 Pagination::empty(Pagination::perPage($request))['pagination'],
