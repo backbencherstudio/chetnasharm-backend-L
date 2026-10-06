@@ -2,25 +2,29 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Model;
 
+#[Table('settings')]
+#[Fillable([
+    'class_time',
+    'support_number',
+    'support_email',
+    'class_notify_time',
+    'social_links',
+    'integrations',
+])]
 class Setting extends Model
 {
-    protected $table = 'settings';
-
-    protected $fillable = [
-        'class_time',
-        'support_number',
-        'support_email',
-        'class_notify_time',
-        'social_links',
-        'integrations',
-    ];
-
-    protected $casts = [
-        'social_links' => 'array',
-        'integrations' => 'array',
-    ];
+    /** Get the attribute casts for the model. */
+    protected function casts(): array
+    {
+        return [
+            'social_links' => 'array',
+            'integrations' => 'array',
+        ];
+    }
 
     /** Return default social link placeholders. */
     public static function defaultSocialLinks(): array

@@ -3,27 +3,28 @@
 namespace App\Models;
 
 use Database\Factories\BatchAssignmentFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[Fillable([
+    'batch_id',
+    'teacher_id',
+    'title',
+    'description',
+    'attachment',
+    'starts_at',
+    'due_at',
+    'total_marks',
+])]
 class BatchAssignment extends Model
 {
     /** @use HasFactory<BatchAssignmentFactory> */
     use HasFactory;
-
-    protected $fillable = [
-        'batch_id',
-        'teacher_id',
-        'title',
-        'description',
-        'attachment',
-        'starts_at',
-        'due_at',
-        'total_marks',
-    ];
 
     /** Get the attribute casts for the model. */
     protected function casts(): array
@@ -35,19 +36,22 @@ class BatchAssignment extends Model
         ];
     }
 
-    /** Get the batch this assignment belongs to. */
+    /** Get the batch this assignment belongs to.
+     * @return BelongsTo<Batch, $this> */
     public function batch(): BelongsTo
     {
         return $this->belongsTo(Batch::class);
     }
 
-    /** Get the teacher who created this assignment. */
+    /** Get the teacher who created this assignment.
+     * @return BelongsTo<Teacher, $this> */
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
     }
 
-    /** Get all submissions for this assignment. */
+    /** Get all submissions for this assignment.
+     * @return HasMany<AssignmentSubmission, $this> */
     public function submissions(): HasMany
     {
         return $this->hasMany(AssignmentSubmission::class, 'assignment_id');
@@ -67,8 +71,11 @@ class BatchAssignment extends Model
         return true;
     }
 
-    /** Scope to assignments that have reached their start time. */
-    public function scopeStarted(Builder $query): Builder
+    /** Scope to assignments that have reached their start time.
+     * @param Builder<static> $query
+     * @return Builder<static> */
+    #[Scope]
+    protected function started(Builder $query): Builder
     {
         return $query->where(function (Builder $builder): void {
             $builder->whereNull('starts_at')
@@ -76,8 +83,11 @@ class BatchAssignment extends Model
         });
     }
 
-    /** Scope to assignments currently within the submission window. */
-    public function scopeActive(Builder $query): Builder
+    /** Scope to assignments currently within the submission window.
+     * @param Builder<static> $query
+     * @return Builder<static> */
+    #[Scope]
+    protected function active(Builder $query): Builder
     {
         return $query
             ->started()

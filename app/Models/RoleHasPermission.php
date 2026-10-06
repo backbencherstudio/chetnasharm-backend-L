@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\WithoutTimestamps;
 use Illuminate\Database\Eloquent\Model;
 
-class RoleHasPermission extends Model
-{
-    protected $fillable = ['role_id', 'permission_id'];
-
-    public $timestamps = false;
-}
+#[Fillable(['role_id', 'permission_id'])]
+#[WithoutTimestamps]
+class RoleHasPermission extends Model {}

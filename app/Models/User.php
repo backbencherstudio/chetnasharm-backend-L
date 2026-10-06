@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Appends;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -11,30 +14,27 @@ use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
+#[Fillable([
+    'name',
+    'email',
+    'password',
+    'department',
+    'mobile',
+    'image',
+    'suspend_status',
+    'provider',
+    'provider_id',
+])]
+#[Hidden([
+    'password',
+    'remember_token',
+])]
+#[Appends([
+    'image_url',
+])]
 class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, HasRoles, Notifiable, SoftDeletes;
-
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'department',
-        'mobile',
-        'image',
-        'suspend_status',
-        'provider',
-        'provider_id',
-    ];
-
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    protected $appends = [
-        'image_url',
-    ];
 
     /** Get the attribute casts for the model. */
     protected function casts(): array
@@ -46,7 +46,7 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /** Get the full URL for the user's profile image. */
-    public function getImageUrlAttribute(): ?string
+    protected function getImageUrlAttribute(): ?string
     {
         if (! $this->image) {
             return null;
@@ -71,13 +71,15 @@ class User extends Authenticatable implements JWTSubject
         return [];
     }
 
-    /** Get the teacher profile linked to this user. */
+    /** Get the teacher profile linked to this user.
+     * @return HasOne<Teacher, $this> */
     public function teacher(): HasOne
     {
         return $this->hasOne(Teacher::class);
     }
 
-    /** Get all enrollments for this user. */
+    /** Get all enrollments for this user.
+     * @return HasMany<Enrollment, $this> */
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);

@@ -3,23 +3,23 @@
 namespace App\Models;
 
 use Database\Factories\AssignmentSubmissionFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[Fillable([
+    'assignment_id',
+    'student_user_id',
+    'file_path',
+    'obtained_marks',
+    'feedback',
+    'graded_at',
+])]
 class AssignmentSubmission extends Model
 {
     /** @use HasFactory<AssignmentSubmissionFactory> */
     use HasFactory;
-
-    protected $fillable = [
-        'assignment_id',
-        'student_user_id',
-        'file_path',
-        'obtained_marks',
-        'feedback',
-        'graded_at',
-    ];
 
     /** Get the attribute casts for the model. */
     protected function casts(): array
@@ -30,13 +30,15 @@ class AssignmentSubmission extends Model
         ];
     }
 
-    /** Get the assignment this submission belongs to. */
+    /** Get the assignment this submission belongs to.
+     * @return BelongsTo<BatchAssignment, $this> */
     public function assignment(): BelongsTo
     {
         return $this->belongsTo(BatchAssignment::class, 'assignment_id');
     }
 
-    /** Get the student who submitted this assignment. */
+    /** Get the student who submitted this assignment.
+     * @return BelongsTo<User, $this> */
     public function student(): BelongsTo
     {
         return $this->belongsTo(User::class, 'student_user_id');

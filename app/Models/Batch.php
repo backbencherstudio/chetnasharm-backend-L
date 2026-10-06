@@ -2,58 +2,67 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[Fillable([
+    'class_id',
+    'teacher_id',
+    'name',
+    'total_seat',
+    'filled_seat',
+    'start_date',
+    'end_date',
+    'zoom_link',
+    'status',
+    'active_status',
+])]
 class Batch extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'class_id',
-        'teacher_id',
-        'name',
-        'total_seat',
-        'filled_seat',
-        'start_date',
-        'end_date',
-        'zoom_link',
-        'status',
-        'active_status',
-    ];
+    /** Get the attribute casts for the model. */
+    protected function casts(): array
+    {
+        return [
+            'start_date' => 'date',
+            'end_date' => 'date',
+        ];
+    }
 
-    protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-    ];
-
-    /** Get the class this batch belongs to. */
+    /** Get the class this batch belongs to.
+     * @return BelongsTo<ClassModel, $this> */
     public function class(): BelongsTo
     {
         return $this->belongsTo(ClassModel::class, 'class_id');
     }
 
-    /** Get the weekly schedules for this batch. */
+    /** Get the weekly schedules for this batch.
+     * @return HasMany<BatchSchedule, $this> */
     public function schedules(): HasMany
     {
         return $this->hasMany(BatchSchedule::class);
     }
 
-    /** Get the teacher assigned to this batch. */
+    /** Get the teacher assigned to this batch.
+     * @return BelongsTo<Teacher, $this> */
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class, 'teacher_id');
     }
 
-    /** Get all enrollments for this batch. */
+    /** Get all enrollments for this batch.
+     * @return HasMany<Enrollment, $this> */
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);
     }
 
-    /** Get all assignments for this batch. */
+    /** Get all assignments for this batch.
+     * @return HasMany<BatchAssignment, $this> */
     public function assignments(): HasMany
     {
         return $this->hasMany(BatchAssignment::class);
