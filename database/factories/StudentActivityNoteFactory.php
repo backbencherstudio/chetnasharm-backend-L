@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class StudentActivityNoteFactory extends Factory
 {
+    #[\Override]
     protected $model = StudentActivityNote::class;
 
     /**

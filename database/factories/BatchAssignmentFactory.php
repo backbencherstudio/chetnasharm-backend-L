@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class BatchAssignmentFactory extends Factory
 {
+    #[\Override]
     protected $model = BatchAssignment::class;
 
     /**
