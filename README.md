@@ -4,7 +4,7 @@ Laravel API backend for the Chetnasharm / Listenact learning platform. It powers
 
 ## Stack
 
-- PHP 8.3
+- PHP 8.5
 - Laravel 13
 - JWT auth (`tymon/jwt-auth`)
 - Spatie roles & permissions (`admin`, `teacher`, `student`)
@@ -25,7 +25,7 @@ Laravel API backend for the Chetnasharm / Listenact learning platform. It powers
 
 ## Requirements
 
-- PHP 8.3+
+- PHP 8.5+
 - Composer
 - MySQL (or SQLite for local/tests)
 - Node.js (for Vite when using `php artisan dev`)
