@@ -4,11 +4,11 @@ namespace App\Notifications;
 
 use App\Models\Enrollment;
 use App\Models\NotificationLog;
-use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Date;
 
 class EnrollmentNotification extends Notification implements ShouldQueue
 {
@@ -44,8 +44,8 @@ class EnrollmentNotification extends Notification implements ShouldQueue
 
         $schedules = $batch->schedules->map(fn (object $schedule): array => [
             'day' => $days[$schedule->day_of_week] ?? 'Unknown',
-            'start' => Carbon::parse($schedule->start_time)->format('H:i'),
-            'end' => Carbon::parse($schedule->end_time)->format('H:i'),
+            'start' => Date::parse($schedule->start_time)->format('H:i'),
+            'end' => Date::parse($schedule->end_time)->format('H:i'),
         ]);
 
         $messageText = "Enrollment confirmation sent for {$class->title} (Batch {$batch->id})";

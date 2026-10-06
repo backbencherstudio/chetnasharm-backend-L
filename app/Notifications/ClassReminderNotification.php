@@ -7,11 +7,11 @@ use App\Models\Batch;
 use App\Models\BatchSchedule;
 use App\Models\NotificationLog;
 use App\Notifications\Channels\WhatsAppChannel;
-use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -114,7 +114,7 @@ class ClassReminderNotification extends Notification implements ShouldQueue
     /** Format the scheduled class start time for display. */
     private function startTime(): string
     {
-        return Carbon::parse($this->schedule->start_time)->format('h:i A');
+        return Date::parse($this->schedule->start_time)->format('h:i A');
     }
 
     /** Build the human-readable reminder message text. */
