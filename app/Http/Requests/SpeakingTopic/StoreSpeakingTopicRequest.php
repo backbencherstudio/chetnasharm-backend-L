@@ -19,8 +19,8 @@ class StoreSpeakingTopicRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'topic' => 'required|string',
-            'level' => 'nullable|string|max:50',
+            'topic' => ['required', 'string'],
+            'level' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

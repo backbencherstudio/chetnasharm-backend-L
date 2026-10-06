@@ -19,10 +19,10 @@ class UpdateSingleAttendanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'batch_id' => 'required|exists:batches,id',
-            'user_id' => 'required|exists:users,id',
-            'class_date' => 'required|date',
-            'status' => 'required|in:present,absent',
+            'batch_id' => ['required', 'exists:batches,id'],
+            'user_id' => ['required', 'exists:users,id'],
+            'class_date' => ['required', 'date'],
+            'status' => ['required', 'in:present,absent'],
         ];
     }
 }

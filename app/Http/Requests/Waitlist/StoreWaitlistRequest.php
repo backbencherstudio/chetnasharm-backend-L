@@ -19,7 +19,7 @@ class StoreWaitlistRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'batch_id' => 'required|exists:batches,id',
+            'batch_id' => ['required', 'exists:batches,id'],
         ];
     }
 }

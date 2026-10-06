@@ -19,10 +19,10 @@ class UpdateSettingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'class_time' => 'required|integer|min:1',
-            'support_number' => 'required|string|max:20',
-            'support_email' => 'required|email|max:255',
-            'class_notify_time' => 'required|integer|min:1',
+            'class_time' => ['required', 'integer', 'min:1'],
+            'support_number' => ['required', 'string', 'max:20'],
+            'support_email' => ['required', 'email', 'max:255'],
+            'class_notify_time' => ['required', 'integer', 'min:1'],
         ];
     }
 }

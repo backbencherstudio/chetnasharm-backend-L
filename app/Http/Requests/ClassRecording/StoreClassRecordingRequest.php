@@ -19,9 +19,9 @@ class StoreClassRecordingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'batch_id' => 'required|exists:batches,id',
-            'class_date' => 'required|date',
-            'recording_url' => 'required|url',
+            'batch_id' => ['required', 'exists:batches,id'],
+            'class_date' => ['required', 'date'],
+            'recording_url' => ['required', 'url'],
         ];
     }
 }

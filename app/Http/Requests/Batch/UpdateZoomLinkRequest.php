@@ -19,7 +19,7 @@ class UpdateZoomLinkRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'zoom_link' => 'required|url',
+            'zoom_link' => ['required', 'url'],
         ];
     }
 }

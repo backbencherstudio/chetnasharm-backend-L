@@ -19,11 +19,11 @@ class StoreAttendanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'batch_id' => 'required|exists:batches,id',
-            'class_date' => 'required|date',
-            'attendances' => 'required|array',
-            'attendances.*.user_id' => 'required|exists:users,id',
-            'attendances.*.status' => 'required|in:present,absent',
+            'batch_id' => ['required', 'exists:batches,id'],
+            'class_date' => ['required', 'date'],
+            'attendances' => ['required', 'array'],
+            'attendances.*.user_id' => ['required', 'exists:users,id'],
+            'attendances.*.status' => ['required', 'in:present,absent'],
         ];
     }
 }

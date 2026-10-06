@@ -20,9 +20,9 @@ class StoreStudentActivityNoteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'batch_id' => 'required|exists:batches,id',
-            'student_user_id' => 'required|exists:users,id',
-            'comment' => 'required|string',
+            'batch_id' => ['required', 'exists:batches,id'],
+            'student_user_id' => ['required', 'exists:users,id'],
+            'comment' => ['required', 'string'],
             'status' => 'required|in:'.implode(',', StudentActivityNote::STATUSES),
         ];
     }

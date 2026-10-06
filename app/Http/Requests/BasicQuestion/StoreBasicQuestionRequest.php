@@ -19,8 +19,8 @@ class StoreBasicQuestionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'question' => 'required|string',
-            'level' => 'nullable|string|max:50',
+            'question' => ['required', 'string'],
+            'level' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

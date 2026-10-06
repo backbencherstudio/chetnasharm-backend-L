@@ -22,7 +22,7 @@ class GetAttendanceSheetRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date' => 'required',
+            'date' => ['required'],
         ];
     }
 

@@ -22,12 +22,12 @@ class UpdateBatchAssignmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
             'attachment' => 'nullable|'.$this->assignmentFileRules(),
-            'starts_at' => 'nullable|date',
-            'due_at' => 'nullable|date|after_or_equal:starts_at',
-            'total_marks' => 'required|numeric|min:1',
+            'starts_at' => ['nullable', 'date'],
+            'due_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'total_marks' => ['required', 'numeric', 'min:1'],
         ];
     }
 }

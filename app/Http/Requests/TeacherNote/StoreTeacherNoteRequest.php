@@ -22,11 +22,11 @@ class StoreTeacherNoteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => 'required|string',
-            'batch_id' => 'required|exists:batches,id',
-            'note' => 'nullable|string',
-            'note_link' => 'nullable|url',
-            'note_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'title' => ['required', 'string'],
+            'batch_id' => ['required', 'exists:batches,id'],
+            'note' => ['nullable', 'string'],
+            'note_link' => ['nullable', 'url'],
+            'note_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ];
     }
 }

@@ -22,7 +22,7 @@ class GetMonthlyAttendanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'month' => 'required',
+            'month' => ['required'],
         ];
     }
 

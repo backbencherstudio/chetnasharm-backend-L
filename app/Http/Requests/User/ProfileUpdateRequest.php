@@ -25,10 +25,10 @@ class ProfileUpdateRequest extends FormRequest
         $user = Auth::guard('api')->user();
 
         return [
-            'name' => 'required|string|max:255',
+            'name' => ['required', 'string', 'max:255'],
             'email' => 'required|email|unique:users,email,'.$user->id,
-            'mobile' => 'nullable|string',
-            'department' => 'nullable|string|max:100',
+            'mobile' => ['nullable', 'string'],
+            'department' => ['nullable', 'string', 'max:100'],
             'image' => $this->hasFile('image')
                 ? ['nullable', 'image', 'max:5120']
                 : ['nullable'],

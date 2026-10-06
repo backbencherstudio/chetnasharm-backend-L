@@ -19,9 +19,9 @@ class UpdateClassRecordingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'batch_id' => 'sometimes|exists:batches,id',
-            'class_date' => 'sometimes|date',
-            'recording_url' => 'sometimes|url',
+            'batch_id' => ['sometimes', 'exists:batches,id'],
+            'class_date' => ['sometimes', 'date'],
+            'recording_url' => ['sometimes', 'url'],
         ];
     }
 }

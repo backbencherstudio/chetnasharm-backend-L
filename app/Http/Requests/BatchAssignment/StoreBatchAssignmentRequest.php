@@ -22,13 +22,13 @@ class StoreBatchAssignmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'batch_id' => 'required|exists:batches,id',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'batch_id' => ['required', 'exists:batches,id'],
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
             'attachment' => 'nullable|'.$this->assignmentFileRules(),
-            'starts_at' => 'nullable|date',
-            'due_at' => 'nullable|date|after_or_equal:starts_at',
-            'total_marks' => 'required|numeric|min:1',
+            'starts_at' => ['nullable', 'date'],
+            'due_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'total_marks' => ['required', 'numeric', 'min:1'],
         ];
     }
 }

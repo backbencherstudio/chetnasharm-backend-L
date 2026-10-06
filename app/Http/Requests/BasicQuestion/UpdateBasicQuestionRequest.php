@@ -19,9 +19,9 @@ class UpdateBasicQuestionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'question' => 'required|string',
-            'level' => 'nullable|string|max:50',
-            'status' => 'nullable|in:0,1',
+            'question' => ['required', 'string'],
+            'level' => ['nullable', 'string', 'max:50'],
+            'status' => ['nullable', 'in:0,1'],
         ];
     }
 }

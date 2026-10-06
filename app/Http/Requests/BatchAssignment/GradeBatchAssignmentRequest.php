@@ -21,8 +21,8 @@ class GradeBatchAssignmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'obtained_marks' => 'required|numeric|min:0',
-            'feedback' => 'nullable|string',
+            'obtained_marks' => ['required', 'numeric', 'min:0'],
+            'feedback' => ['nullable', 'string'],
         ];
     }
 

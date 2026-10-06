@@ -22,12 +22,12 @@ class UpdateVocabularyRequest extends FormRequest
 
         return [
             'word' => 'required|string|max:255|unique:vocabularies,word,'.$vocabularyId,
-            'meaning' => 'required|string',
-            'example' => 'nullable|string',
-            'pronunciation' => 'nullable|string',
-            'part_of_speech' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
-            'status' => 'nullable|integer|in:1,0',
+            'meaning' => ['required', 'string'],
+            'example' => ['nullable', 'string'],
+            'pronunciation' => ['nullable', 'string'],
+            'part_of_speech' => ['nullable', 'string'],
+            'image' => ['nullable', 'image', 'max:2048'],
+            'status' => ['nullable', 'integer', 'in:1,0'],
         ];
     }
 }

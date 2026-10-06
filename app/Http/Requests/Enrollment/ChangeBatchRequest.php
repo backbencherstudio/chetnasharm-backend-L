@@ -19,9 +19,9 @@ class ChangeBatchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => 'required|exists:users,id',
-            'from_batch_id' => 'required|exists:batches,id',
-            'to_batch_id' => 'required|exists:batches,id',
+            'user_id' => ['required', 'exists:users,id'],
+            'from_batch_id' => ['required', 'exists:batches,id'],
+            'to_batch_id' => ['required', 'exists:batches,id'],
         ];
     }
 }

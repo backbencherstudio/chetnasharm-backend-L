@@ -20,7 +20,7 @@ class UpdateStudentActivityNoteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'comment' => 'required|string',
+            'comment' => ['required', 'string'],
             'status' => 'required|in:'.implode(',', StudentActivityNote::STATUSES),
         ];
     }
