@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Common\Pagination;
 use App\Common\PhoneNormalizer;
 use App\Models\User;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -91,13 +92,13 @@ class UserService
         $query = User::query();
 
         if ($role) {
-            $query->whereHas('roles', function ($q) use ($role): void {
+            $query->whereHas('roles', function (Builder $q) use ($role): void {
                 $q->where('name', $role);
             });
         }
 
         if ($search) {
-            $query->where(function ($q) use ($search): void {
+            $query->where(function (Builder $q) use ($search): void {
                 $q->where('name', 'LIKE', "%{$search}%")
                     ->orWhere('email', 'LIKE', "%{$search}%");
             });
@@ -140,7 +141,7 @@ class UserService
         $query = User::onlyTrashed();
 
         if ($search) {
-            $query->where(function ($q) use ($search): void {
+            $query->where(function (Builder $q) use ($search): void {
                 $q->where('name', 'LIKE', "%{$search}%")
                     ->orWhere('email', 'LIKE', "%{$search}%");
             });

@@ -6,6 +6,7 @@ use App\Common\Pagination;
 use App\Models\Batch;
 use App\Models\ClassModel;
 use App\Models\Enrollment;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -24,7 +25,7 @@ class ClassService
 
         $classes = ClassModel::query()
             ->when($search, function ($query) use ($search): void {
-                $query->where(function ($q) use ($search): void {
+                $query->where(function (Builder $q) use ($search): void {
                     $q->where('title', 'like', "%{$search}%")
                         ->orWhere('description', 'like', "%{$search}%");
                 });

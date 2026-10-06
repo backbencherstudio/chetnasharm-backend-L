@@ -11,6 +11,7 @@ use App\Models\BatchAssignment;
 use App\Models\Enrollment;
 use App\Models\Teacher;
 use App\Models\User;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -162,7 +163,7 @@ class BatchAssignmentService
         $batchIds = Enrollment::query()
             ->where('user_id', $user->id)
             ->where('status', 'active')
-            ->whereHas('batch', function ($query): void {
+            ->whereHas('batch', function (Builder $query): void {
                 $query->where('active_status', 1)
                     ->where('status', '!=', 'completed');
             })

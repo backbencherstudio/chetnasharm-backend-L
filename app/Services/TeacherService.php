@@ -6,6 +6,7 @@ use App\Common\Pagination;
 use App\Common\PhoneNormalizer;
 use App\Models\Teacher;
 use App\Models\User;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -27,12 +28,12 @@ class TeacherService
         if ($request->filled('search')) {
             $search = $request->search;
 
-            $query->where(function ($q) use ($search): void {
+            $query->where(function (Builder $q) use ($search): void {
                 $q->where('bio', 'like', "%{$search}%")
                     ->orWhere('expertise', 'like', "%{$search}%")
                     ->orWhere('qualification', 'like', "%{$search}%")
                     ->orWhere('about', 'like', "%{$search}%")
-                    ->orWhereHas('user', function ($userQuery) use ($search): void {
+                    ->orWhereHas('user', function (Builder $userQuery) use ($search): void {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%")
                             ->orWhere('mobile', 'like', "%{$search}%");

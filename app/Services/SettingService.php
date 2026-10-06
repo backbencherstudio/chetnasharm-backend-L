@@ -6,6 +6,7 @@ use App\Common\IntegrationConfig;
 use App\Common\Pagination;
 use App\Models\NotificationLog;
 use App\Models\Setting;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 
@@ -66,9 +67,9 @@ class SettingService
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
 
-            $query->where(function ($q) use ($search): void {
+            $query->where(function (Builder $q) use ($search): void {
                 $q->where('message', 'like', "%{$search}%")
-                    ->orWhereHas('user', function ($userQuery) use ($search): void {
+                    ->orWhereHas('user', function (Builder $userQuery) use ($search): void {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
                     });

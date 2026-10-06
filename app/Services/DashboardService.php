@@ -10,6 +10,7 @@ use App\Models\Enrollment;
 use App\Models\StudentActivityNote;
 use App\Models\Teacher;
 use App\Models\User;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -22,7 +23,7 @@ class DashboardService
     {
         $year ??= now()->year;
 
-        $students = User::whereHas('roles', function ($query): void {
+        $students = User::whereHas('roles', function (Builder $query): void {
             $query->where('name', 'student');
         })
             ->whereYear('created_at', $year)
@@ -188,13 +189,13 @@ class DashboardService
         $upcomingClasses = Batch::with('class:id,title')
             ->where('teacher_id', $teacher->id)
             ->whereDate('start_date', '>=', now())
-            ->orderBy('start_date')
+            ->oldest('start_date')
             ->take(5)
             ->get()
             ->map(fn ($batch): array => [
                 'id' => $batch->id,
                 'batch_name' => $batch->name,
-                'class_title' => optional($batch->class)->title,
+                'class_title' => $batch->class?->title,
                 'start_date' => $batch->start_date,
                 'end_date' => $batch->end_date,
                 'filled_seat' => $batch->filled_seat,
@@ -263,7 +264,7 @@ class DashboardService
             ->count();
 
         $totalSpent = $enrollments->sum(
-            fn ($enrollment): float => (float) (optional($enrollment->class)->price ?? 0)
+            fn ($enrollment): float => (float) ($enrollment->class?->price ?? 0)
         );
 
         $activeCourseList = $activeEnrollments
@@ -285,10 +286,10 @@ class DashboardService
 
                 return [
                     'enrollment_id' => $enrollment->id,
-                    'class_title' => optional($enrollment->class)->title,
-                    'batch_name' => optional($batch)->name,
-                    'start_date' => optional($batch)->start_date,
-                    'end_date' => optional($batch)->end_date,
+                    'class_title' => $enrollment->class?->title,
+                    'batch_name' => $batch?->name,
+                    'start_date' => $batch?->start_date,
+                    'end_date' => $batch?->end_date,
                     'progress_percent' => $progress.'%',
                     'expiry_date' => $enrollment->expiry_date,
                 ];
@@ -299,8 +300,8 @@ class DashboardService
             ->take(5)
             ->map(fn ($enrollment): array => [
                 'id' => $enrollment->id,
-                'class_title' => optional($enrollment->class)->title,
-                'batch_name' => optional($enrollment->batch)->name,
+                'class_title' => $enrollment->class?->title,
+                'batch_name' => $enrollment->batch?->name,
                 'status' => $enrollment->status,
                 'enrolled_at' => $enrollment->enrolled_at,
             ])
@@ -311,9 +312,9 @@ class DashboardService
             ->take(5)
             ->map(fn ($enrollment): array => [
                 'id' => $enrollment->id,
-                'class_title' => optional($enrollment->class)->title,
-                'batch_name' => optional($enrollment->batch)->name,
-                'completed_at' => optional($enrollment->batch)->end_date,
+                'class_title' => $enrollment->class?->title,
+                'batch_name' => $enrollment->batch?->name,
+                'completed_at' => $enrollment->batch?->end_date,
             ])
             ->values();
 

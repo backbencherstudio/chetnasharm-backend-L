@@ -10,6 +10,7 @@ use App\Models\Enrollment;
 use App\Models\StudentActivityNote;
 use App\Models\Teacher;
 use App\Models\User;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -37,7 +38,7 @@ class TeacherStudentService
             ->where('teacher_id', $teacherId)
             ->where('active_status', 1)
             ->where('status', 'ongoing')
-            ->where(function ($query): void {
+            ->where(function (Builder $query): void {
                 $query->whereNull('end_date')
                     ->orWhereDate('end_date', '>=', now()->toDateString());
             })

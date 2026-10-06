@@ -10,9 +10,10 @@ use App\Models\Enrollment;
 use App\Models\Setting;
 use App\Models\Teacher;
 use App\Models\TeacherAvailability;
-use Carbon\Carbon;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 
 class BatchService
@@ -401,7 +402,7 @@ class BatchService
         $existingSchedules = BatchSchedule::query()
             ->where('teacher_id', $teacherId)
             ->when($excludeSelf, fn ($query) => $query->where('batch_id', '!=', $batch->id))
-            ->whereHas('batch', function ($query) use ($startDate, $endDate): void {
+            ->whereHas('batch', function (Builder $query) use ($startDate, $endDate): void {
                 $query->where('start_date', '<=', $endDate)
                     ->where('end_date', '>=', $startDate);
             })
@@ -412,7 +413,7 @@ class BatchService
         $now = now();
 
         foreach ($schedules as $schedule) {
-            $startTime = Carbon::parse($schedule['start_time']);
+            $startTime = Date::parse($schedule['start_time']);
             $endTime = (clone $startTime)->addMinutes($classTime);
 
             $startTimeStr = $startTime->format('H:i:s');

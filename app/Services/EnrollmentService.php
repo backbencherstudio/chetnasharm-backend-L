@@ -8,6 +8,7 @@ use App\Models\Enrollment;
 use App\Models\Payment;
 use App\Models\User;
 use App\Notifications\EnrollmentNotification;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -26,7 +27,7 @@ class EnrollmentService
         if ($search) {
             $query->withWhereHas('user', function ($q) use ($search): void {
                 $q->select('id', 'name', 'email', 'image')
-                    ->where(function ($userQuery) use ($search): void {
+                    ->where(function (Builder $userQuery) use ($search): void {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
                     });

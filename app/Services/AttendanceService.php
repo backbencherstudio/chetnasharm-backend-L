@@ -4,9 +4,10 @@ namespace App\Services;
 
 use App\Models\Attendance;
 use App\Models\Enrollment;
-use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Date;
 
 class AttendanceService
 {
@@ -22,7 +23,7 @@ class AttendanceService
         if ($search) {
             $query->withWhereHas('user', function ($q) use ($search): void {
                 $q->select('id', 'name', 'email')
-                    ->where(function ($userQuery) use ($search): void {
+                    ->where(function (Builder $userQuery) use ($search): void {
                         $userQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
                     });
@@ -118,8 +119,8 @@ class AttendanceService
      */
     public function getMonthlyAttendance(int $batchId, string $month): array
     {
-        $start = Carbon::parse($month.'-01')->startOfMonth();
-        $end = Carbon::parse($month.'-01')->endOfMonth();
+        $start = Date::parse($month.'-01')->startOfMonth();
+        $end = Date::parse($month.'-01')->endOfMonth();
 
         $attendanceDates = Attendance::where('batch_id', $batchId)
             ->whereBetween('class_date', [$start, $end])

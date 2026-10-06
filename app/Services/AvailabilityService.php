@@ -7,7 +7,9 @@ use App\Models\Setting;
 use App\Models\TeacherAvailability;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Date;
 
 class AvailabilityService
 {
@@ -37,8 +39,8 @@ class AvailabilityService
             'slots' => isset($grouped[$day])
                 ? $grouped[$day]->map(fn ($slot): array => [
                     'id' => $slot->id,
-                    'start_time' => Carbon::parse($slot->start_time)->format('H:i'),
-                    'end_time' => Carbon::parse($slot->end_time)->format('H:i'),
+                    'start_time' => Date::parse($slot->start_time)->format('H:i'),
+                    'end_time' => Date::parse($slot->end_time)->format('H:i'),
                 ])->values()->all()
                 : [],
         ])->values()->all();
@@ -62,10 +64,10 @@ class AvailabilityService
         $failedSlots = [];
 
         foreach ($validated['slots'] as $slot) {
-            $startTime = Carbon::createFromFormat('H:i', $slot['start_time']);
+            $startTime = Date::createFromFormat('H:i', $slot['start_time']);
             $endTime = $startTime->copy()->addMinutes($classTime);
 
-            if ($endTime->gt(Carbon::createFromTime(23, 59))) {
+            if ($endTime->gt(Date::createFromTime(23, 59))) {
                 $failedSlots[] = [
                     'start_time' => $startTime->format('H:i'),
                     'message' => 'Exceeds day limit',
@@ -142,13 +144,13 @@ class AvailabilityService
             ->get();
 
         $existingMap = $existing->mapWithKeys(function ($slot): array {
-            $key = Carbon::parse($slot->start_time)->format('H:i');
+            $key = Date::parse($slot->start_time)->format('H:i');
 
             return [$key => $slot];
         });
 
         $newSlots = collect($validated['slots'])->mapWithKeys(function (array $slot) use ($classTime): array {
-            $start = Carbon::createFromFormat('H:i', $slot['start_time']);
+            $start = Date::createFromFormat('H:i', $slot['start_time']);
             $end = $start->copy()->addMinutes($classTime);
 
             return [
@@ -178,7 +180,7 @@ class AvailabilityService
             $startTime = $slotData['start_time'];
             $endTime = $slotData['end_time'];
 
-            if ($endTime->gt(Carbon::createFromTime(23, 59))) {
+            if ($endTime->gt(Date::createFromTime(23, 59))) {
                 $failedSlots[] = [
                     'start_time' => $start,
                     'message' => 'Exceeds day limit',
@@ -236,8 +238,8 @@ class AvailabilityService
     public function availabilityByDate(array $validated): array
     {
         $teacherId = $validated['teacher_id'];
-        $startDate = Carbon::parse($validated['start_date']);
-        $endDate = Carbon::parse($validated['end_date']);
+        $startDate = Date::parse($validated['start_date']);
+        $endDate = Date::parse($validated['end_date']);
 
         $classTime = Setting::first()?->class_time;
 
@@ -262,8 +264,8 @@ class AvailabilityService
             $daySchedules = $schedules->get($dayOfWeek, collect());
 
             foreach ($availabilities->get($dayOfWeek, collect()) as $availability) {
-                $slotStart = Carbon::parse($availability->start_time);
-                $slotEnd = Carbon::parse($availability->end_time);
+                $slotStart = Date::parse($availability->start_time);
+                $slotEnd = Date::parse($availability->end_time);
 
                 while ($slotStart->copy()->addMinutes($classTime)->lte($slotEnd)) {
                     $startTime = $slotStart->format('H:i:s');
@@ -275,8 +277,8 @@ class AvailabilityService
                         if (
                             ! $batch ||
                             ! $startDate->between(
-                                Carbon::parse($batch->start_date)->startOfDay(),
-                                Carbon::parse($batch->end_date)->endOfDay()
+                                Date::parse($batch->start_date)->startOfDay(),
+                                Date::parse($batch->end_date)->endOfDay()
                             )
                         ) {
                             return false;
@@ -317,8 +319,8 @@ class AvailabilityService
     public function teacherBusySlots(array $validated): array
     {
         $teacherId = $validated['teacher_id'];
-        $startDate = Carbon::parse($validated['start_date']);
-        $endDate = Carbon::parse($validated['end_date']);
+        $startDate = Date::parse($validated['start_date']);
+        $endDate = Date::parse($validated['end_date']);
 
         $schedules = $this->teacherSchedulesInRange(
             $teacherId,
@@ -340,8 +342,8 @@ class AvailabilityService
                 if (
                     $batch &&
                     $startDate->between(
-                        Carbon::parse($batch->start_date),
-                        Carbon::parse($batch->end_date)
+                        Date::parse($batch->start_date),
+                        Date::parse($batch->end_date)
                     )
                 ) {
                     $dayBusy[] = [
@@ -372,8 +374,8 @@ class AvailabilityService
     public function teacherSchedule(array $validated): array
     {
         $teacherId = $validated['teacher_id'];
-        $startDate = Carbon::parse($validated['start_date']);
-        $endDate = Carbon::parse($validated['end_date']);
+        $startDate = Date::parse($validated['start_date']);
+        $endDate = Date::parse($validated['end_date']);
 
         $classTime = Setting::value('class_time');
 
@@ -407,8 +409,8 @@ class AvailabilityService
                 if (
                     $batch &&
                     $currentDate->between(
-                        Carbon::parse($batch->start_date),
-                        Carbon::parse($batch->end_date)
+                        Date::parse($batch->start_date),
+                        Date::parse($batch->end_date)
                     )
                 ) {
                     $busySlots[] = [
@@ -423,8 +425,8 @@ class AvailabilityService
             $dayAvailabilities = $availabilities[$dayOfWeek] ?? collect();
 
             foreach ($dayAvailabilities as $availability) {
-                $slotStart = Carbon::parse($availability->start_time);
-                $slotEnd = Carbon::parse($availability->end_time);
+                $slotStart = Date::parse($availability->start_time);
+                $slotEnd = Date::parse($availability->end_time);
 
                 while ($slotStart->copy()->addMinutes($classTime)->lte($slotEnd)) {
                     $startTime = $slotStart->format('H:i:s');
@@ -479,7 +481,7 @@ class AvailabilityService
     ): Collection {
         return BatchSchedule::with(['batch' => fn ($query) => $query->select($batchColumns)])
             ->where('teacher_id', $teacherId)
-            ->whereHas('batch', function ($query) use ($startDate, $endDate): void {
+            ->whereHas('batch', function (Builder $query) use ($startDate, $endDate): void {
                 $query->whereDate('start_date', '<=', $endDate->toDateString())
                     ->whereDate('end_date', '>=', $startDate->toDateString());
             })

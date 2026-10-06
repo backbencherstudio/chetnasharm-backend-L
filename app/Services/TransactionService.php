@@ -7,6 +7,7 @@ use App\Models\Batch;
 use App\Models\Enrollment;
 use App\Models\Payment;
 use App\Models\User;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -31,12 +32,12 @@ class TransactionService
         if ($request->filled('search')) {
             $search = $request->search;
 
-            $query->where(function ($q) use ($search): void {
+            $query->where(function (Builder $q) use ($search): void {
                 $q->where('payment_id', 'like', "%$search%")
                     ->orWhere('transaction_id', 'like', "%$search%")
                     ->orWhere('payment_method', 'like', "%$search%")
                     ->orWhere('status', 'like', "%$search%")
-                    ->orWhereHas('user', function ($q2) use ($search): void {
+                    ->orWhereHas('user', function (Builder $q2) use ($search): void {
                         $q2->where('name', 'like', "%$search%")
                             ->orWhere('email', 'like', "%$search%");
                     });

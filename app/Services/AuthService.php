@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Role;
 use App\Models\User;
 use App\Notifications\PasswordOtpNotification;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -133,8 +133,8 @@ class AuthService
             ['user_id' => $user->id],
             [
                 'otp' => $otp,
-                'expires_at' => Carbon::now()->addMinutes(3),
-                'updated_at' => Carbon::now(),
+                'expires_at' => Date::now()->addMinutes(3),
+                'updated_at' => Date::now(),
             ]
         );
 
@@ -156,7 +156,7 @@ class AuthService
             return ['type' => 'invalid_otp'];
         }
 
-        if (Carbon::now()->gt(Carbon::parse($otpRecord->expires_at))) {
+        if (Date::now()->gt(Date::parse($otpRecord->expires_at))) {
             return ['type' => 'expired_otp'];
         }
 
@@ -174,7 +174,7 @@ class AuthService
             ->where('user_id', $user->id)
             ->first();
 
-        if (! $otpRecord || $otpRecord->otp != $otp || Carbon::now()->gt(Carbon::parse($otpRecord->expires_at))) {
+        if (! $otpRecord || $otpRecord->otp != $otp || Date::now()->gt(Date::parse($otpRecord->expires_at))) {
             return ['type' => 'invalid_or_expired_otp'];
         }
 
