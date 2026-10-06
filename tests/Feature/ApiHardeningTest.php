@@ -57,7 +57,7 @@ test('enroll student from payment creates enrollment and increments seats', func
         'paid_at' => now(),
     ]);
 
-    $enrollment = app(EnrollmentService::class)->enrollFromPayment($payment, $batch->id);
+    $enrollment = resolve(EnrollmentService::class)->enrollFromPayment($payment, $batch->id);
 
     expect($enrollment)->not->toBeNull()
         ->and($batch->fresh()->filled_seat)->toBe(1)
@@ -245,7 +245,7 @@ test('enroll rejects batch mismatch', function (): void {
         'paid_at' => now(),
     ]);
 
-    expect(fn () => app(EnrollmentService::class)->enrollFromPayment($payment, $otherBatch->id))
+    expect(fn () => resolve(EnrollmentService::class)->enrollFromPayment($payment, $otherBatch->id))
         ->toThrow(Exception::class, 'Batch mismatch');
 });
 

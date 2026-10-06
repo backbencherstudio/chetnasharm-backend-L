@@ -2,6 +2,7 @@
 
 use App\Models\Teacher;
 use App\Models\User;
+use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
@@ -31,7 +32,7 @@ test('teacher store saves a square optimized image', function (): void {
 
     $teacher = Teacher::query()
         ->with('user')
-        ->whereHas('user', fn ($q) => $q->where('email', 'teacher1@example.com'))
+        ->whereHas('user', fn (Builder $q) => $q->where('email', 'teacher1@example.com'))
         ->first();
 
     expect($teacher)->not->toBeNull()

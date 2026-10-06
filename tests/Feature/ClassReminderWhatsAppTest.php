@@ -10,7 +10,7 @@ use App\Models\Setting;
 use App\Models\Teacher;
 use App\Models\User;
 use App\Notifications\ClassReminderNotification;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -118,7 +118,7 @@ test('whatsapp channel sends meta template payload from notification', function 
             && $data['template']['name'] === 'class_reminder'
             && $data['template']['components'][0]['parameters'][0]['text'] === $student->name
             && $data['template']['components'][0]['parameters'][1]['text'] === $batch->name
-            && $data['template']['components'][0]['parameters'][2]['text'] === Carbon::parse($schedule->start_time)->format('h:i A')
+            && $data['template']['components'][0]['parameters'][2]['text'] === Date::parse($schedule->start_time)->format('h:i A')
             && $data['template']['components'][0]['parameters'][3]['text'] === 'https://zoom.example/join';
     });
 
